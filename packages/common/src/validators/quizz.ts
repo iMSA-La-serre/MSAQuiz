@@ -18,6 +18,7 @@ const questionValidator = z.object({
   solutions: z
     .union([z.number().int().min(0), z.array(z.number().int().min(0)).min(1)])
     .transform((v) => (Array.isArray(v) ? v : [v])),
+  multiple: z.boolean().default(false),
   cooldown: z.number().int().min(3).max(15),
   time: z.number().int().min(-1),
 })

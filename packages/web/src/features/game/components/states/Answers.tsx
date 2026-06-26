@@ -23,13 +23,15 @@ interface Props {
 }
 
 const Answers = ({
-  data: { question, answers, media, time, totalPlayer },
+  data: { question, answers, media, time, totalPlayer, multiple },
 }: Props) => {
   const { socket } = useSocket()
   const { player, gameId } = usePlayerStore()
 
   const [cooldown, setCooldown] = useState(time)
   const [totalAnswer, setTotalAnswer] = useState(0)
+  const [selected, setSelected] = useState<number[]>([])
+  const [submitted, setSubmitted] = useState(false)
   const { t } = useTranslation()
 
   const [sfxPop] = useSound(SFX.ANSWERS.SOUND, {
@@ -42,18 +44,37 @@ const Answers = ({
     loop: true,
   })
 
-  const handleAnswer = (answerKey: number) => () => {
-    if (!player || !gameId) {
+  const submit = (answerKeys: number[]) => {
+    if (!player || !gameId || submitted || answerKeys.length === 0) {
       return
     }
 
     socket.emit(EVENTS.PLAYER.SELECTED_ANSWER, {
       gameId,
       data: {
-        answerKey,
+        answers: answerKeys,
       },
     })
+    setSubmitted(true)
     sfxPop()
+  }
+
+  const handleAnswer = (answerKey: number) => () => {
+    if (submitted) {
+      return
+    }
+
+    if (multiple) {
+      setSelected((prev) =>
+        prev.includes(answerKey)
+          ? prev.filter((key) => key !== answerKey)
+          : [...prev, answerKey],
+      )
+
+      return
+    }
+
+    submit([answerKey])
   }
 
   useEffect(() => {
@@ -113,11 +134,15 @@ const Answers = ({
           </div>
         </div>
 
-        <div className="mx-auto mb-4 grid w-full max-w-7xl grid-cols-2 gap-1 px-2 text-lg font-bold text-white md:text-xl">
+        <div className="mx-auto mb-2 grid w-full max-w-7xl grid-cols-2 gap-1 px-2 text-lg font-bold text-white md:text-xl">
           {answers.map((answer, key) => (
             <AnswerButton
               key={key}
-              className={clsx(ANSWERS_COLORS[key])}
+              className={clsx(ANSWERS_COLORS[key], {
+                "ring-4 ring-white ring-inset":
+                  multiple && selected.includes(key),
+                "opacity-50": submitted && !selected.includes(key),
+              })}
               label={ANSWERS_LABELS[key]}
               onClick={handleAnswer(key)}
             >
@@ -125,6 +150,18 @@ const Answers = ({
             </AnswerButton>
           ))}
         </div>
+
+        {multiple && (
+          <div className="mx-auto mb-4 w-full max-w-7xl px-2">
+            <button
+              onClick={() => submit(selected)}
+              disabled={selected.length === 0 || submitted}
+              className="bg-primary w-full rounded-2xl py-4 text-lg font-bold text-white shadow-md transition-opacity disabled:opacity-50"
+            >
+              {t("common:submit")}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

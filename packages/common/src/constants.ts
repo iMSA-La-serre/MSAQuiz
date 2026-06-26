@@ -103,6 +103,7 @@ export const EXAMPLE_QUIZZ = {
       question: "Which of these are primary colors ?",
       answers: ["Red", "Green", "Blue", "Yellow"],
       solutions: [0, 2, 3],
+      multiple: true,
       cooldown: 5,
       time: 20,
     },

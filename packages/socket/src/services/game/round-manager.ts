@@ -20,6 +20,21 @@ import { orderToPoint, timeToPoint } from "@razzia/socket/utils/game"
 import sleep from "@razzia/socket/utils/sleep"
 import { nanoid } from "nanoid"
 
+const isAnswerCorrect = (question: Question, answerIds: number[]): boolean => {
+  if (answerIds.length === 0) {
+    return false
+  }
+
+  if (question.multiple) {
+    return (
+      answerIds.length === question.solutions.length &&
+      answerIds.every((id) => question.solutions.includes(id))
+    )
+  }
+
+  return question.solutions.includes(answerIds[0])
+}
+
 type BroadcastFn = <T extends Status>(
   _status: T,
   _data: StatusDataMap[T],
@@ -146,6 +161,7 @@ export class RoundManager {
       media: question.media,
       time: question.time,
       totalPlayer: this.opts.players.count(),
+      multiple: question.multiple ?? false,
     })
 
     await this.opts.cooldown.start(question.time)
@@ -169,8 +185,10 @@ export class RoundManager {
     })()
 
     const totalType = this.playersAnswers.reduce(
-      (acc: Record<number, number>, { answerId }) => {
-        acc[answerId] = (acc[answerId] || 0) + 1
+      (acc: Record<number, number>, { answerIds }) => {
+        answerIds.forEach((id) => {
+          acc[id] = (acc[id] || 0) + 1
+        })
 
         return acc
       },
@@ -184,7 +202,7 @@ export class RoundManager {
         )
 
         const isCorrect = playerAnswer
-          ? question.solutions.includes(playerAnswer.answerId)
+          ? isAnswerCorrect(question, playerAnswer.answerIds)
           : false
 
         const points =
@@ -222,9 +240,9 @@ export class RoundManager {
       ...question,
       playerAnswers: currentPlayers.map((player) => ({
         playerName: player.username,
-        answerId:
-          this.playersAnswers.find((a) => a.playerId === player.id)?.answerId ??
-          null,
+        answerIds:
+          this.playersAnswers.find((a) => a.playerId === player.id)
+            ?.answerIds ?? [],
       })),
     })
 
@@ -233,11 +251,15 @@ export class RoundManager {
     this.playersAnswers = []
   }
 
-  selectAnswer(socket: Socket, answerId: number): void {
+  selectAnswer(socket: Socket, answerIds: number[]): void {
     const player = this.opts.players.findById(socket.id)
     const question = this.opts.quizz.questions[this.currentQuestion]
 
     if (!player) {
+      return
+    }
+
+    if (answerIds.length === 0) {
       return
     }
 
@@ -258,7 +280,7 @@ export class RoundManager {
 
     this.playersAnswers.push({
       playerId: player.id,
-      answerId,
+      answerIds,
       points,
     })
 
