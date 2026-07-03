@@ -4,12 +4,16 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "node esbuild.config.js",
-    "start": "node dist/index.cjs"
+    "start": "node dist/index.cjs",
+    "db:generate": "drizzle-kit generate",
+    "db:studio": "drizzle-kit studio"
   },
   "license": "ISC",
   "dependencies": {
     "@razzia/common": "workspace:*",
+    "better-sqlite3": "^12.11.1",
     "dayjs": "^1.11.21",
+    "drizzle-orm": "^0.45.2",
     "nanoid": "^5.1.16",
     "socket.io": "^4.8.3",
     "typescript": "^6.0.3",
@@ -17,7 +21,9 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^26.0.1",
+    "drizzle-kit": "^0.31.10",
     "esbuild": "^0.28.1",
     "tsx": "^4.22.4"
   }
