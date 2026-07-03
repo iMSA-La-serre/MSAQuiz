@@ -1,11 +1,6 @@
 import type { QuizzValidated } from "@razzia/common/validators/quizz"
 import { sql } from "drizzle-orm"
-import {
-  integer,
-  primaryKey,
-  sqliteTable,
-  text,
-} from "drizzle-orm/sqlite-core"
+import { integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core"
 
 export const users = sqliteTable("users", {
   id: text("id").primaryKey(),

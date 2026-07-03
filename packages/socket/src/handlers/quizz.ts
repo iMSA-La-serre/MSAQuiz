@@ -5,7 +5,7 @@ import {
   getQuizzById,
   saveQuizz,
   updateQuizz,
-} from "@razzia/socket/services/config"
+} from "@razzia/socket/repositories/quizz"
 import manager, { emitConfig } from "@razzia/socket/services/manager"
 
 export const quizzSocketHandlers = ({ socket }: SocketContext) => {
