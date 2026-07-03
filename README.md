@@ -1,17 +1,11 @@
-<p align="center">
-  <img width="450" height="120" align="center" src=".github/logo.svg">
-  <br>
-  <div align="center">
-    <img alt="Visitor Badge" src="https://api.visitorbadge.io/api/visitors?path=https://github.com/Ralex91/Razzia/edit/main/README.md&countColor=%23FF9900">
-    <img src="https://img.shields.io/docker/pulls/ralex91/razzia?style=for-the-badge&color=FF9900" alt="Docker Pulls">
-  </div>
-</p>
+<h1 align="center">MSAQuiz</h1>
+<p align="center"><strong>La plateforme de quiz interne d'iMSA</strong> — self-hosted, temps réel, aux couleurs de La Serre.</p>
 
 ## 🧩 What is this project?
 
-Razzia is a straightforward and open-source quiz platform, allowing users to host it on their own server for smaller events.
+MSAQuiz is iMSA's internal quiz platform: create quizzes, host live games, and collect results — self-hosted on our own infrastructure. It is built on top of [Razzia](https://github.com/Ralex91/Razzia), an open-source quiz platform by Ralex91.
 
-> **Disclaimer**: Razzia is an independent, open-source software project. It is not affiliated with, endorsed by, or sponsored by any third-party quiz platform or service. Any resemblance to other quiz platforms is purely incidental.
+> **Disclaimer**: MSAQuiz/Razzia are independent, open-source software projects, not affiliated with, endorsed by, or sponsored by any third-party quiz platform or service. Any resemblance to other quiz platforms is purely incidental.
 
 <p align="center">
   <img width="30%" src=".github/previews/1.png" alt="Login">
@@ -41,6 +35,8 @@ git cherry-pick <sha>                       # pick only what we want
 
 The La Serre theme itself lives in the **deployment volume** (`config/branding/`), not in this repo.
 
+> Note: internal package names (`@razzia/web`, `@razzia/socket`, `@razzia/common`) are kept as-is on purpose — renaming them would create massive, pointless divergence from upstream.
+
 ## ⚙️ Prerequisites
 
 Choose one of the following deployment methods:
@@ -60,21 +56,20 @@ Choose your deployment method:
 
 ### 🐳 Using Docker (Recommended)
 
-Using Docker Compose (recommended):
-You can find the docker compose configuration in the repository:
-[docker-compose.yml](/compose.yml)
+The image is built from this repository (there is no public MSAQuiz image). Using Docker Compose (recommended — see [compose.yml](/compose.yml)):
 
 ```bash
-docker compose up -d
+docker compose up -d --build
 ```
 
 Or using Docker directly:
 
 ```bash
+docker build -t msaquiz .
 docker run -d \
   -p 3000:3000 \
   -v ./config:/app/config \
-  ralex91/razzia:latest
+  msaquiz
 ```
 
 **Configuration Volume:**
@@ -93,8 +88,8 @@ The application will be available at http://localhost:3000
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/Ralex91/Razzia.git
-cd ./Razzia
+git clone https://github.com/iMSA-La-serre/MSAQuiz.git
+cd ./MSAQuiz
 ```
 
 2. Install dependencies:
@@ -242,12 +237,28 @@ All fields are optional — anything you omit keeps its default value.
 4. Wait for players to join
 5. Click the start button to begin the game
 
+## 🚀 Deploying a new version (iMSA)
+
+1. **Build the image from this repo** (the Dockerfile handles the SQLite native module, the DB migrations and the web build):
+
+   ```bash
+   docker build -t <registry>/msaquiz:latest .
+   docker push <registry>/msaquiz:latest
+   ```
+
+2. **On the VM**: `docker compose pull && docker compose up -d` (or `up -d --build` if building on the VM).
+
+3. **The config volume does the rest** — nothing else to install:
+   - `config/msaquiz.db` is created and migrated automatically at startup;
+   - `config/branding/` (La Serre theme) is untouched by deployments;
+   - `config/game.json` (manager password) is preserved.
+
+4. **First deployment of the DB version only**: quizzes previously stored as `config/quizz/*.json` are no longer read — re-import the ones you care about via the manager (Quizz → Import, JSON).
+
 ## 📝 Contributing
 
-Contributions are welcome! Please read the [CONTRIBUTING.md](.github/CONTRIBUTING.md) guide before submitting a pull request.
+MSAQuiz is maintained internally by the La Serre team — open issues and merge requests on [iMSA-La-serre/MSAQuiz](https://github.com/iMSA-La-serre/MSAQuiz).
 
-For bug reports or feature requests, please [create an issue](https://github.com/Ralex91/Razzia/issues).
+## 🙏 Credits
 
-## ⭐ Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=Ralex91/Razzia&type=date&legend=bottom-right)](https://www.star-history.com/#Ralex91/Razzia&type=date&legend=bottom-right)
+Built on [Razzia](https://github.com/Ralex91/Razzia) by [Ralex91](https://github.com/Ralex91) — our generic runtime-theming system was contributed back upstream (PR #127).
