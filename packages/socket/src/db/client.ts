@@ -4,7 +4,6 @@ import { drizzle } from "drizzle-orm/better-sqlite3"
 import { migrate } from "drizzle-orm/better-sqlite3/migrator"
 import fs from "node:fs"
 import { resolve } from "node:path"
-import { fileURLToPath } from "node:url"
 
 const configPath = process.env.CONFIG_PATH
   ? resolve(process.env.CONFIG_PATH)
@@ -23,11 +22,16 @@ export const db = drizzle(sqlite, { schema })
 /**
  * Applique les migrations Drizzle au démarrage.
  *
- * NB déploiement : dans le bundle esbuild, le dossier `migrations` doit être
- * copié à côté de `index.cjs` (il est résolu via `import.meta.url`).
+ * Résolution du dossier `migrations` :
+ * - bundle CJS (prod) : `__dirname` = dossier d'`index.cjs`, le Dockerfile
+ *   copie `migrations/` juste à côté ;
+ * - dev (tsx, ESM) : `__dirname` n'existe pas, on part du cwd du package.
  */
 export const runMigrations = () => {
-  migrate(db, {
-    migrationsFolder: fileURLToPath(new URL("./migrations", import.meta.url)),
-  })
+  const migrationsFolder =
+    typeof __dirname === "undefined"
+      ? resolve(process.cwd(), "src/db/migrations")
+      : resolve(__dirname, "migrations")
+
+  migrate(db, { migrationsFolder })
 }
