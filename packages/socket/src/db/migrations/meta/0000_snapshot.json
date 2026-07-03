@@ -36,12 +36,8 @@
           "name": "quiz_shares_quizz_id_quizzes_id_fk",
           "tableFrom": "quiz_shares",
           "tableTo": "quizzes",
-          "columnsFrom": [
-            "quizz_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["quizz_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -49,22 +45,15 @@
           "name": "quiz_shares_user_id_users_id_fk",
           "tableFrom": "quiz_shares",
           "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {
         "quiz_shares_quizz_id_user_id_pk": {
-          "columns": [
-            "quizz_id",
-            "user_id"
-          ],
+          "columns": ["quizz_id", "user_id"],
           "name": "quiz_shares_quizz_id_user_id_pk"
         }
       },
@@ -125,12 +114,8 @@
           "name": "quizzes_owner_id_users_id_fk",
           "tableFrom": "quizzes",
           "tableTo": "users",
-          "columnsFrom": [
-            "owner_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["owner_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -190,16 +175,12 @@
       "indexes": {
         "users_email_unique": {
           "name": "users_email_unique",
-          "columns": [
-            "email"
-          ],
+          "columns": ["email"],
           "isUnique": true
         },
         "users_entra_oid_unique": {
           "name": "users_entra_oid_unique",
-          "columns": [
-            "entra_oid"
-          ],
+          "columns": ["entra_oid"],
           "isUnique": true
         }
       },

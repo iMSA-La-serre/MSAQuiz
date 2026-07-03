@@ -1,4 +1,6 @@
 import type { Server } from "@razzia/common/types/game/socket"
+import { runMigrations } from "@razzia/socket/db/client"
+import { seedDatabase } from "@razzia/socket/db/seed"
 import { gameSocketHandlers } from "@razzia/socket/handlers/game"
 import { managerSocketHandlers } from "@razzia/socket/handlers/manager"
 import { quizzSocketHandlers } from "@razzia/socket/handlers/quizz"
@@ -14,6 +16,8 @@ const io: Server = new ServerIO({
   path: "/ws",
 })
 initConfig()
+runMigrations()
+seedDatabase()
 
 console.log(`Socket server running on port ${WS_PORT}`)
 io.listen(WS_PORT)
