@@ -1,6 +1,6 @@
 services:
-  razzia:
-    image: ralex91/razzia:latest
+  msaquiz:
+    build: .
     ports:
       - "3000:3000"
     volumes:
