@@ -1,3 +1,4 @@
+import { QUESTION_TYPE_META } from "@razzia/common/constants"
 import type { QuestionType } from "@razzia/common/types/game"
 import {
   Select,
@@ -21,10 +22,28 @@ const QuestionEditorConfig = () => {
   const questionType = currentQuestion.type
 
   const handleTypeChange = (nextType: QuestionType) => {
-    updateQuestion(currentIndex, {
+    const meta = QUESTION_TYPE_META[nextType]
+    const updates: Parameters<typeof updateQuestion>[1] = {
       type: nextType,
       options: QUESTION_REGISTRY[nextType].defaultOptions,
-    })
+    }
+
+    if (!meta.acceptsAnswers) {
+      updates.answers = []
+      updates.solutions = []
+    } else {
+      if (currentQuestion.answers.length < 2) {
+        updates.answers = ["", ""]
+      }
+
+      if (!meta.scored) {
+        updates.solutions = []
+      } else if (currentQuestion.solutions.length === 0) {
+        updates.solutions = [0]
+      }
+    }
+
+    updateQuestion(currentIndex, updates)
   }
 
   const { ConfigComponent } = QUESTION_REGISTRY[questionType]

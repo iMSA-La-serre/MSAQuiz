@@ -85,11 +85,16 @@ const Responses = ({
             <AnswerButton
               key={key}
               className={clsx(ANSWERS_COLORS[key], {
-                // oxlint-disable-next-line typescript/no-unnecessary-condition
-                "opacity-65": responses && !solutions.includes(key),
+                // No dimming for polls (no correct answer to highlight).
+                "opacity-65":
+                  // oxlint-disable-next-line typescript/no-unnecessary-condition
+                  responses && solutions.length > 0 && !solutions.includes(key),
               })}
               label={ANSWERS_LABELS[key]}
-              correct={solutions.includes(key)}
+              // Polls have no solutions: undefined = no check/cross icon.
+              correct={
+                solutions.length > 0 ? solutions.includes(key) : undefined
+              }
             >
               {answer}
             </AnswerButton>

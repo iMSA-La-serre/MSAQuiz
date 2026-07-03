@@ -8,7 +8,8 @@
     "deleteConfirm": "Supprimer \"{{name}}\" ? Cette action est irréversible.",
     "deleted": "Quizz supprimé",
     "export": "Exporter le quizz (JSON)",
-    "import": "Importer un quizz (JSON)",
+    "import": "Importer un quizz (JSON / Excel)",
+    "imported": "Quizz importé",
     "none": "Aucun quizz créé",
     "notFound": "Aucun quizz trouvé",
     "pleaseCreate": "Veuillez d'abord créer un quizz",
@@ -19,9 +20,11 @@
     "delete": "Supprimer le résultat",
     "deleteConfirm": "Supprimer le résultat \"{{name}}\" ? Cette action est irréversible.",
     "deleted": "Résultat supprimé",
+    "export": "Exporter en Excel",
     "noAnswer": "Sans réponse",
     "none": "Aucun résultat pour l'instant, terminez une partie pour voir les rapports",
     "paginationOf": " sur ",
+    "playerCount": "{{count}} joueur(s)",
     "stats": {
       "correctAnswers": "Bonnes réponses",
       "playersAnswered": "Joueurs ayant répondu"
@@ -34,7 +37,6 @@
       "player": "Joueur",
       "points": "Points"
     },
-    "playerCount": "{{count}} joueur(s)",
     "timeLimitSuffix": "s limite"
   },
   "tabs": {

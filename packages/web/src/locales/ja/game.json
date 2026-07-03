@@ -1,4 +1,5 @@
 {
+  "confirm": "確認",
   "correct": "正解！",
   "gamePinLabel": "ゲームPIN:",
   "hud": {
@@ -8,9 +9,9 @@
   "joinInstruction": "以下でゲームに参加してください",
   "leaderboard": "リーダーボード",
   "pinLabel": "PINコード",
-  "reconnect": "再接続",
-  "reconnectTitle": "ゲームに参加していました",
   "playersJoined": "参加プレイヤー数: ",
+  "pollAnswered": "投票を記録しました！",
+  "pollNoVote": "投票しませんでした",
   "questionPrefix": "問題 #",
   "rank": {
     "1": "1位",
@@ -19,12 +20,14 @@
     "other": "{{rank}}位"
   },
   "rankSuffix": "位",
+  "reconnect": "再接続",
+  "reconnectTitle": "ゲームに参加していました",
   "resultBehind": "、差は ",
   "resultTop": "あなたの順位は ",
+  "slideInfo": "回答は不要です",
   "startGame": "ゲーム開始",
   "usernamePlaceholder": "ユーザー名を入力",
   "waitingForAnswers": "プレイヤーの回答を待っています",
   "waitingForPlayers": "プレイヤーを待っています",
-  "wrong": "残念！",
-  "confirm": "確認"
+  "wrong": "残念！"
 }

@@ -8,7 +8,8 @@
     "deleteConfirm": "¿Estás seguro de que quieres eliminar \"{{name}}\"? Esta acción no se puede deshacer.",
     "deleted": "Cuestionario eliminado",
     "export": "Exportar cuestionario como JSON",
-    "import": "Importar cuestionario desde JSON",
+    "import": "Importar un quiz (JSON / Excel)",
+    "imported": "Quiz importado",
     "none": "Aún no se ha creado ningún cuestionario",
     "notFound": "No se encontró ningún cuestionario",
     "pleaseCreate": "Por favor crea un cuestionario primero",
@@ -19,9 +20,11 @@
     "delete": "Eliminar resultado",
     "deleteConfirm": "¿Eliminar el resultado de \"{{name}}\"? Esta acción no se puede deshacer.",
     "deleted": "Resultado eliminado",
+    "export": "Exportar a Excel",
     "noAnswer": "Sin respuesta",
     "none": "Aún no hay resultados, termina una partida para ver los informes aquí",
     "paginationOf": " de ",
+    "playerCount": "{{count}} jugador(es)",
     "stats": {
       "correctAnswers": "Respuestas correctas",
       "playersAnswered": "Jugadores que respondieron"
@@ -34,7 +37,6 @@
       "player": "Jugador",
       "points": "Puntos"
     },
-    "playerCount": "{{count}} jugador(es)",
     "timeLimitSuffix": "s de tiempo límite"
   },
   "tabs": {

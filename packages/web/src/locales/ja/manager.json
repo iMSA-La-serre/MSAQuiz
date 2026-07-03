@@ -8,7 +8,8 @@
     "deleteConfirm": "「{{name}}」を削除してもよろしいですか？この操作は元に戻せません。",
     "deleted": "クイズを削除しました",
     "export": "JSONとしてクイズをエクスポート",
-    "import": "JSONからクイズをインポート",
+    "import": "クイズをインポート（JSON / Excel）",
+    "imported": "クイズをインポートしました",
     "none": "まだクイズは作成されていません",
     "notFound": "クイズが見つかりません",
     "pleaseCreate": "先にクイズを作成してください",
@@ -19,9 +20,11 @@
     "delete": "結果を削除",
     "deleteConfirm": "「{{name}}」の結果を削除しますか？この操作は元に戻せません。",
     "deleted": "結果を削除しました",
+    "export": "Excelにエクスポート",
     "noAnswer": "未回答",
     "none": "まだ結果はありません。ゲームを終了するとここにレポートが表示されます",
     "paginationOf": " / ",
+    "playerCount": "{{count}}人",
     "stats": {
       "correctAnswers": "正解数",
       "playersAnswered": "回答したプレイヤー数"
@@ -34,7 +37,6 @@
       "player": "プレイヤー",
       "points": "ポイント"
     },
-    "playerCount": "{{count}}人",
     "timeLimitSuffix": "秒制限"
   },
   "tabs": {

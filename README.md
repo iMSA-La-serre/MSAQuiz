@@ -19,13 +19,35 @@ Razzia is a straightforward and open-source quiz platform, allowing users to hos
   <img width="30%" src=".github/previews/3.png" alt="Question Screen">
 </p>
 
+## 🍴 About this fork (MSAQuiz)
+
+This repository is **iMSA's soft-fork of [Razzia](https://github.com/Ralex91/Razzia)**, deployed internally as **MSAQuiz**.
+
+**Fork policy:** we track upstream as a read-only remote and **cherry-pick** the fixes/features we want, on our own schedule — no rebase of our branches on upstream, no upstream PRs required.
+
+```bash
+git fetch upstream                          # remote: https://github.com/Ralex91/Razzia.git
+git log --oneline HEAD..upstream/dev        # see what's new upstream
+git cherry-pick <sha>                       # pick only what we want
+```
+
+**Differences vs upstream:**
+
+- **SQLite persistence** — quizzes and game results live in a database (`config/msaquiz.db`), not in JSON files. Schema is ready for user accounts (Microsoft SSO planned).
+- **Excel import** — import quizzes from `.xlsx` files (Kahoot template/export compatible).
+- **Excel export** — download any game result as an `.xlsx` report.
+- **Poll & info-slide question types** — in addition to upstream's single/multi.
+- The footer displays the branded app name (from `config/branding`).
+
+The La Serre theme itself lives in the **deployment volume** (`config/branding/`), not in this repo.
+
 ## ⚙️ Prerequisites
 
 Choose one of the following deployment methods:
 
 ### Without Docker
 
-- Node.js : version 24 or higher
+- Node.js : version 22 or higher
 - PNPM : version 10.16 or higher (learn more [here](https://pnpm.io/))
 
 ### With Docker
@@ -53,15 +75,6 @@ docker run -d \
   -p 3000:3000 \
   -v ./config:/app/config \
   ralex91/razzia:latest
-```
-
-The image is also published on the GitHub Container Registry, if you prefer using it instead of Docker Hub:
-
-```bash
-docker run -d \
-  -p 3000:3000 \
-  -v ./config:/app/config \
-  ghcr.io/ralex91/razzia:latest
 ```
 
 **Configuration Volume:**
@@ -94,16 +107,20 @@ pnpm install
 
 ```bash
 # Development mode
-pnpm dev
+pnpm run dev
 
 # Production mode
-pnpm build
+pnpm run build
 pnpm start
 ```
 
 ## ⚙️ Configuration
 
-**⚠️ Required:** set a manager password in `config/game.json` before going live.
+The configuration is split into two main parts:
+
+### 1. Game Configuration (`config/game.json`)
+
+Main game settings:
 
 ```json
 {
@@ -111,17 +128,111 @@ pnpm start
 }
 ```
 
-`managerPassword` **must be changed** from the default `"PASSWORD"` value, otherwise manager access is blocked.
+Options:
 
-## 📚 Documentation
+- `managerPassword`: The master password for accessing the manager interface. **Must be changed from the default `"PASSWORD"` value**, otherwise manager access is blocked.
 
-- [Configuration](docs/configuration.md): manager password, via the `config` folder.
-- [Quiz](docs/quiz.md): creating and structuring quizzes.
-- [Branding](docs/branding.md): optional custom theming.
-- [Reverse Proxy](docs/reverse-proxy.md): running behind Traefik, Nginx, Caddy, or another reverse proxy.
-- [WebSocket Protocol](docs/websocket-protocol.md): build a custom client (e.g. an ESP32 physical buzzer).
+### 2. Database (`config/msaquiz.db`)
 
-Full index in [docs/](docs/README.md).
+Quizzes and game results are stored in a **SQLite database** located in the config volume (`config/msaquiz.db`). It is created and migrated **automatically at startup** (WAL mode) — nothing to install or configure.
+
+- **Backup**: backing up the `config/` folder covers everything (database included).
+- **Legacy note**: `config/quizz/*.json` files are **no longer read** at runtime. To recover old quizzes, import them once via the manager (Quizz → Import, JSON format). Old `config/results/*.json` files are not migrated (no import path — they stay readable on disk).
+- Schema changes are managed with Drizzle migrations (`packages/socket/src/db/`): `pnpm --filter @razzia/socket run db:generate` after editing `schema.ts`.
+
+### 3. Creating & importing quizzes
+
+Quizzes can be created three ways, all from the manager dashboard:
+
+- **Quiz Editor** (recommended) — full editor with media, timers and question types.
+- **JSON import** — a file matching the format below.
+- **Excel import (`.xlsx`)** — compatible with the **Kahoot quiz template/export**: a header row containing `Question`, `Answer 1..4`, `Time limit`, `Correct answer(s)` (1-based, comma-separated), data on the following rows — or the exact Kahoot template layout (columns B–H, data from row 9). Questions with several correct answers become multi-select (strict scoring).
+
+JSON format:
+
+```json
+{
+  "subject": "Example Quiz",
+  "questions": [
+    {
+      "type": "single",
+      "question": "What is the correct answer?",
+      "answers": ["No", "Yes", "No", "No"],
+      "solutions": [1],
+      "cooldown": 5,
+      "time": 15
+    },
+    {
+      "type": "multi",
+      "question": "Which of these are primary colors?",
+      "answers": ["Red", "Green", "Blue", "Yellow"],
+      "solutions": [0, 2, 3],
+      "options": { "scoringMode": "balanced" },
+      "cooldown": 5,
+      "time": 20
+    },
+    {
+      "type": "poll",
+      "question": "Which topic should we cover next?",
+      "answers": ["Security", "Tooling"],
+      "cooldown": 5,
+      "time": 20
+    },
+    {
+      "type": "slide",
+      "question": "Coffee break — back in 5 minutes!",
+      "cooldown": 5,
+      "time": -1
+    }
+  ]
+}
+```
+
+Question fields:
+
+- `type`: `"single"`, `"multi"`, `"poll"` or `"slide"`. Legacy questions without a `type` are inferred on import: `"multi"` when they list several solutions, `"single"` otherwise.
+  - **single** — one answer to pick, one or more accepted as correct
+  - **multi** — multi-select with a Validate button; `options.scoringMode`: `"strict"` (exact match), `"balanced"` (correct − wrong) or `"lenient"` (share of correct picks)
+  - **poll** — a vote: no correct answer, no points, the distribution is shown
+  - **slide** — informational screen: no answers at all; players stay on it until the next question (use `time: -1` and the Skip button, or a timer)
+- `question`: The question text
+- `answers`: Array of possible answers (2-4 options; none for `slide`)
+- `media`: Optional media object displayed with the question:
+  - `type`: `"image"`, `"video"`, or `"audio"`
+  - `url`: URL of the media
+- `solutions`: Array of correct answer indices (0-based) — `single`/`multi` only
+- `cooldown`: Time in seconds before answers are revealed (3-15)
+- `time`: Time in seconds allowed to answer, or `-1` for no time limit
+
+### 4. Game results
+
+Results are saved automatically at the end of each game and browsable in the manager (Résultats tab). Each result can be **downloaded as an Excel report** (ranking sheet + per-question answer distribution).
+
+### 5. Custom branding (`config/branding/`) — optional
+
+You can fully rebrand the app **without touching the code** by dropping files into a `config/branding/` folder. If it is absent, the default look is used.
+
+Create `config/branding/theme.json`:
+
+```json
+{
+  "appName": "My Quiz",
+  "colors": { "primary": "#ff9900", "secondary": "#1a140b" },
+  "answerColors": ["#e69f00", "#56b4e9", "#3dbfa0", "#cc79a7"],
+  "font": { "family": "Rubik", "url": "https://fonts.googleapis.com/css2?family=Rubik:wght@300..900&display=swap" },
+  "logo": "/branding/logo.svg",
+  "favicon": "/branding/favicon.svg",
+  "background": "/branding/background.png"
+}
+```
+
+All fields are optional — anything you omit keeps its default value.
+
+- `appName`: app name + browser tab title
+- `colors`: CSS color tokens (at least `primary` and `secondary`)
+- `answerColors`: up to 4 answer-button colors
+- `font`: a font family + an optional stylesheet URL (e.g. Google Fonts)
+- `logo` / `favicon` / `background`: drop the files in `config/branding/` and reference them here
 
 ## 🎮 How to Play
 
@@ -139,4 +250,4 @@ For bug reports or feature requests, please [create an issue](https://github.com
 
 ## ⭐ Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=Ralex91/Razzia&type=date&logscale=&legend=bottom-right)](https://www.star-history.com/#Ralex91/Razzia&type=date&logscale=&legend=bottom-right)
+[![Star History Chart](https://api.star-history.com/svg?repos=Ralex91/Razzia&type=date&legend=bottom-right)](https://www.star-history.com/#Ralex91/Razzia&type=date&legend=bottom-right)

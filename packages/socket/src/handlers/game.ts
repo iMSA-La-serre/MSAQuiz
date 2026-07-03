@@ -1,7 +1,7 @@
 import { EVENTS } from "@razzia/common/constants"
 import { inviteCodeValidator } from "@razzia/common/validators/auth"
 import type { SocketContext } from "@razzia/socket/handlers/types"
-import { getQuizz } from "@razzia/socket/repositories/quizz"
+import { getQuizzById } from "@razzia/socket/repositories/quizz"
 import Game from "@razzia/socket/services/game"
 import manager from "@razzia/socket/services/manager"
 import Registry from "@razzia/socket/services/registry"
@@ -67,17 +67,13 @@ export const gameSocketHandlers = ({ io, socket }: SocketContext) => {
   socket.on(
     EVENTS.GAME.CREATE,
     manager.withAuth(socket, (quizzId: string) => {
-      const quizzList = getQuizz()
-      const quizz = quizzList.find((q) => q.id === quizzId)
-
-      if (!quizz) {
+      try {
+        const quizz = getQuizzById(quizzId)
+        const game = new Game(io, socket, quizz)
+        registry.addGame(game)
+      } catch {
         socket.emit(EVENTS.GAME.ERROR_MESSAGE, "errors:quizz.notFound")
-
-        return
       }
-
-      const game = new Game(io, socket, quizz)
-      registry.addGame(game)
     }),
   )
 

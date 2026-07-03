@@ -1,3 +1,4 @@
+import type { GameResult } from "@razzia/common/types/game"
 import type { QuizzValidated } from "@razzia/common/validators/quizz"
 import { sql } from "drizzle-orm"
 import { integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core"
@@ -32,6 +33,31 @@ export const quizzes = sqliteTable("quizzes", {
     .notNull()
     .default(sql`(unixepoch())`),
 })
+
+export const results = sqliteTable("results", {
+  id: text("id").primaryKey(),
+  subject: text("subject").notNull(),
+  // ISO 8601, même valeur que GameResult.date (tri lexicographique OK).
+  date: text("date").notNull(),
+  playerCount: integer("player_count").notNull(),
+  // GameResult complet (questions, réponses par joueur, classement).
+  data: text("data", { mode: "json" }).notNull().$type<GameResult>(),
+})
+
+// Lignes par joueur pour les requêtes d'historique/statistiques
+// (suivi d'un joueur dans le temps) sans scanner les JSON.
+export const resultPlayers = sqliteTable(
+  "result_players",
+  {
+    resultId: text("result_id")
+      .notNull()
+      .references(() => results.id, { onDelete: "cascade" }),
+    username: text("username").notNull(),
+    points: integer("points").notNull(),
+    rank: integer("rank").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.resultId, table.username] })],
+)
 
 export const quizShares = sqliteTable(
   "quiz_shares",

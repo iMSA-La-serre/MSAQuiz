@@ -11,7 +11,19 @@ export const getQuizz = (): QuizzWithId[] =>
     .select()
     .from(quizzes)
     .all()
-    .map((row) => ({ id: row.id, ...row.data }))
+    .flatMap((row) => {
+      // Rows can be edited outside the app (drizzle studio, SQL, older
+      // versions): re-validate on read, like the file storage used to.
+      const result = quizzValidator.safeParse(row.data)
+
+      if (!result.success) {
+        console.warn(`Invalid quizz "${row.id}":`, result.error.issues)
+
+        return []
+      }
+
+      return [{ id: row.id, ...result.data }]
+    })
 
 export const getQuizzMeta = (): QuizzMeta[] =>
   db.select({ id: quizzes.id, subject: quizzes.subject }).from(quizzes).all()
@@ -23,7 +35,13 @@ export const getQuizzById = (id: string): QuizzWithId => {
     throw new Error(`Quizz "${id}" not found`)
   }
 
-  return { id: row.id, ...row.data }
+  const result = quizzValidator.safeParse(row.data)
+
+  if (!result.success) {
+    throw new Error(`Invalid quizz "${id}"`)
+  }
+
+  return { id: row.id, ...result.data }
 }
 
 export const saveQuizz = (data: unknown): { id: string } => {
@@ -62,17 +80,8 @@ export const updateQuizz = (id: string, data: unknown): { id: string } => {
     throw new Error(result.error.issues[0].message)
   }
 
-  const existing = db
-    .select({ id: quizzes.id })
-    .from(quizzes)
-    .where(eq(quizzes.id, id))
-    .get()
-
-  if (!existing) {
-    throw new Error(`Quizz "${id}" not found`)
-  }
-
-  db.update(quizzes)
+  const { changes } = db
+    .update(quizzes)
     .set({
       subject: result.data.subject,
       data: result.data,
@@ -81,19 +90,17 @@ export const updateQuizz = (id: string, data: unknown): { id: string } => {
     .where(eq(quizzes.id, id))
     .run()
 
+  if (changes === 0) {
+    throw new Error(`Quizz "${id}" not found`)
+  }
+
   return { id }
 }
 
 export const deleteQuizz = (id: string): void => {
-  const existing = db
-    .select({ id: quizzes.id })
-    .from(quizzes)
-    .where(eq(quizzes.id, id))
-    .get()
+  const { changes } = db.delete(quizzes).where(eq(quizzes.id, id)).run()
 
-  if (!existing) {
+  if (changes === 0) {
     throw new Error(`Quizz "${id}" not found`)
   }
-
-  db.delete(quizzes).where(eq(quizzes.id, id)).run()
 }

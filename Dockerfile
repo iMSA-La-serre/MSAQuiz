@@ -23,9 +23,16 @@ COPY . .
 RUN pnpm build
 
 # better-sqlite3 est `external` du bundle esbuild (module natif) : on le
-# déréférence hors des symlinks pnpm pour le copier dans le runner.
-RUN mkdir -p /app/socket-deps \
-    && cp -rL packages/socket/node_modules/better-sqlite3 /app/socket-deps/
+# copie dans le runner AVEC ses dépendances runtime (bindings,
+# file-uri-to-path), résolues en chaîne depuis le vrai chemin .pnpm.
+RUN node -e "const fs=require('fs'),p=require('path'); \
+    const out='/app/socket-deps'; fs.mkdirSync(out,{recursive:true}); \
+    const req=(name,from)=>p.dirname(require.resolve(name+'/package.json',{paths:[from]})); \
+    const bs3=req('better-sqlite3','/app/packages/socket'); \
+    const bindings=req('bindings',bs3); \
+    const futp=req('file-uri-to-path',bindings); \
+    for (const [n,src] of [['better-sqlite3',bs3],['bindings',bindings],['file-uri-to-path',futp]]) \
+      fs.cpSync(src,p.join(out,n),{recursive:true,dereference:true});"
 
 # ---- RUNNER ----
 FROM base AS runner

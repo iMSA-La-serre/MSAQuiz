@@ -39,6 +39,13 @@ const ConfigManageQuizz = () => {
   })
 
   useEvent(
+    EVENTS.QUIZZ.SAVE_SUCCESS,
+    useCallback(() => {
+      toast.success(t("manager:quizz.imported"))
+    }, [t]),
+  )
+
+  useEvent(
     EVENTS.QUIZZ.DATA,
     useCallback((data) => {
       if (data.id !== pendingExportId.current) {
@@ -66,6 +73,28 @@ const ConfigManageQuizz = () => {
     const file = e.target.files?.[0]
 
     if (!file) {
+      return
+    }
+
+    if (/\.xlsx$/iu.test(file.name)) {
+      // Server guard is 2 MB; socket.io buffer is 5 MB. Reject early with a
+      // clear error instead of uploading a payload that will be refused.
+      if (file.size > 2_000_000) {
+        toast.error(t("errors:quizz.invalidImport"))
+        e.target.value = ""
+
+        return
+      }
+
+      void file.arrayBuffer().then((buffer) => {
+        socket.emit(EVENTS.QUIZZ.IMPORT_XLSX, {
+          name: file.name.replace(/\.xlsx$/iu, ""),
+          buffer,
+        })
+      })
+
+      e.target.value = ""
+
       return
     }
 
@@ -103,7 +132,7 @@ const ConfigManageQuizz = () => {
         <input
           ref={fileInputRef}
           type="file"
-          accept=".json"
+          accept=".json,.xlsx"
           className="hidden"
           onChange={handleImport}
         />

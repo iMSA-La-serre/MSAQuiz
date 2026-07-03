@@ -49,6 +49,7 @@ export const EVENTS = {
     DATA: "quizz:data",
     SAVE: "quizz:save",
     SAVE_SUCCESS: "quizz:saveSuccess",
+    IMPORT_XLSX: "quizz:importXlsx",
     UPDATE: "quizz:update",
     UPDATE_SUCCESS: "quizz:updateSuccess",
     DELETE: "quizz:delete",
@@ -58,6 +59,8 @@ export const EVENTS = {
     GET: "results:get",
     DATA: "results:data",
     DELETE: "results:delete",
+    EXPORT: "results:export",
+    EXPORT_DATA: "results:exportData",
   },
 } as const
 
@@ -68,7 +71,23 @@ export const MAX_POINTS = 1000
 export const QUESTION_TYPES = {
   SINGLE: "single",
   MULTI: "multi",
+  POLL: "poll",
+  SLIDE: "slide",
 } as const
+
+/**
+ * Per-type capabilities, consumed by the validator, the game engine and the
+ * editor. Adding a question type = add its entry here + registry entries.
+ */
+export const QUESTION_TYPE_META: Record<
+  (typeof QUESTION_TYPES)[keyof typeof QUESTION_TYPES],
+  { scored: boolean; acceptsAnswers: boolean }
+> = {
+  single: { scored: true, acceptsAnswers: true },
+  multi: { scored: true, acceptsAnswers: true },
+  poll: { scored: false, acceptsAnswers: true },
+  slide: { scored: false, acceptsAnswers: false },
+}
 
 export const SCORING_MODES = {
   STRICT: "strict",

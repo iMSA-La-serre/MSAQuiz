@@ -41,8 +41,11 @@
   "quizzSaved": "Quizz saved successfully",
   "quizzUpdated": "Quizz updated successfully",
   "questionType": {
+    "multi": "Multiple choice",
+    "poll": "Poll",
     "single": "Single choice",
-    "multi": "Multiple choice"
+    "slide": "Info slide"
   },
-  "titleQuizzPlaceholder": "Quizz title..."
+  "titleQuizzPlaceholder": "Quizz title...",
+  "slideNoAnswers": "An info slide has no answers — it simply displays the question and its media."
 }

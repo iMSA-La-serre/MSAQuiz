@@ -1,5 +1,10 @@
 // oxlint-disable typescript/no-unnecessary-condition
-import { EVENTS, MEDIA_TYPES, NO_TIME_LIMIT } from "@razzia/common/constants"
+import {
+  EVENTS,
+  MEDIA_TYPES,
+  NO_TIME_LIMIT,
+  QUESTION_TYPE_META,
+} from "@razzia/common/constants"
 import type {
   Answer,
   GameResult,
@@ -161,6 +166,7 @@ export class RoundManager {
   }
 
   private showResults(question: Question): void {
+    const { scored, acceptsAnswers } = QUESTION_TYPE_META[question.type]
     const currentPlayers = this.opts.players.getAll()
 
     const oldLeaderboard = (() => {
@@ -197,49 +203,80 @@ export class RoundManager {
 
         const points = Math.round((playerAnswer?.points ?? 0) * scoreMultiplier)
         const isCorrect = points > 0
-        const penalty = !isCorrect && playerAnswer ? (question.penalty ?? 0) : 0
+        // Unscored types (poll, slide) never penalize: voting is not "wrong".
+        const penalty =
+          scored && !isCorrect && playerAnswer ? (question.penalty ?? 0) : 0
 
         player.points = Math.max(0, player.points + points - penalty)
-        player.streak = isCorrect ? player.streak + 1 : 0
+
+        // Unscored types must not break a streak either.
+        if (scored) {
+          player.streak = isCorrect ? player.streak + 1 : 0
+        }
 
         return {
           ...player,
           lastCorrect: isCorrect,
           lastPoints: isCorrect ? points : -penalty,
+          lastAnswered: Boolean(playerAnswer),
         }
       })
       .sort((a, b) => b.points - a.points)
 
     this.opts.players.replace(sortedPlayers)
 
-    sortedPlayers.forEach((player, index) => {
-      const rank = index + 1
-      const aheadPlayer = sortedPlayers[index - 1]
+    // Answerless types (slide): players keep the screen until next question.
+    if (acceptsAnswers) {
+      sortedPlayers.forEach((player, index) => {
+        const rank = index + 1
+        const aheadPlayer = sortedPlayers[index - 1]
 
-      this.opts.send(player.id, STATUS.SHOW_RESULT, {
-        correct: player.lastCorrect,
-        message: player.lastCorrect ? "game:correct" : "game:wrong",
-        points: player.lastPoints,
-        myPoints: player.points,
-        rank,
-        aheadOfMe: aheadPlayer ? aheadPlayer.username : null,
+        // Unscored types (poll): confirm the vote, or flag the missing one —
+        // never claim a vote that was not cast.
+        const { correct, message } = (() => {
+          if (scored) {
+            return {
+              correct: player.lastCorrect,
+              message: player.lastCorrect ? "game:correct" : "game:wrong",
+            }
+          }
+
+          return {
+            correct: player.lastAnswered,
+            message: player.lastAnswered
+              ? "game:pollAnswered"
+              : "game:pollNoVote",
+          }
+        })()
+
+        this.opts.send(player.id, STATUS.SHOW_RESULT, {
+          correct,
+          message,
+          points: player.lastPoints,
+          myPoints: player.points,
+          rank,
+          aheadOfMe: aheadPlayer ? aheadPlayer.username : null,
+        })
       })
-    })
+    }
 
     this.opts.send(this.opts.getManagerId(), STATUS.SHOW_RESPONSES, {
       ...question,
       responses: answerCounts,
     })
 
-    this.questionsHistory.push({
-      ...question,
-      playerAnswers: currentPlayers.map((player) => ({
-        playerName: player.username,
-        answerIds:
-          this.playersAnswers.find((a) => a.playerId === player.id)
-            ?.answerIds ?? null,
-      })),
-    })
+    // Answerless types carry nothing to report: keep them out of history.
+    if (acceptsAnswers) {
+      this.questionsHistory.push({
+        ...question,
+        playerAnswers: currentPlayers.map((player) => ({
+          playerName: player.username,
+          answerIds:
+            this.playersAnswers.find((a) => a.playerId === player.id)
+              ?.answerIds ?? null,
+        })),
+      })
+    }
 
     this.leaderboard = sortedPlayers
     this.tempOldLeaderboard = oldLeaderboard
@@ -251,6 +288,10 @@ export class RoundManager {
     const question = this.opts.quizz.questions[this.currentQuestion]
 
     if (!player) {
+      return
+    }
+
+    if (!QUESTION_TYPE_META[question.type].acceptsAnswers) {
       return
     }
 

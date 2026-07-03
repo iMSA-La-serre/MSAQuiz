@@ -41,8 +41,11 @@
   "quizzSaved": "クイズを保存しました",
   "quizzUpdated": "クイズを更新しました",
   "questionType": {
+    "multi": "複数選択",
+    "poll": "アンケート",
     "single": "単一選択",
-    "multi": "複数選択"
+    "slide": "情報スライド"
   },
-  "titleQuizzPlaceholder": "クイズのタイトル..."
+  "titleQuizzPlaceholder": "クイズのタイトル...",
+  "slideNoAnswers": "情報スライドには回答がありません。質問とメディアのみ表示されます。"
 }

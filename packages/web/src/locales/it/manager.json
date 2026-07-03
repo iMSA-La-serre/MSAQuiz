@@ -8,7 +8,8 @@
     "deleteConfirm": "Sei sicuro di voler eliminare \"{{name}}\"? Questa azione non può essere annullata.",
     "deleted": "Quiz eliminato",
     "export": "Esporta quiz come JSON",
-    "import": "Importa quiz da JSON",
+    "import": "Importa un quiz (JSON / Excel)",
+    "imported": "Quiz importato",
     "none": "Nessun quiz creato ancora",
     "notFound": "Nessun quiz trovato",
     "pleaseCreate": "Per favore crea prima un quiz",
@@ -19,9 +20,11 @@
     "delete": "Elimina risultato",
     "deleteConfirm": "Eliminare il risultato per \"{{name}}\"? Questa azione non può essere annullata.",
     "deleted": "Risultato eliminato",
+    "export": "Esporta in Excel",
     "noAnswer": "Nessuna risposta",
     "none": "Nessun risultato ancora, termina una partita per vedere i rapporti qui",
     "paginationOf": " di ",
+    "playerCount": "{{count}} giocatore/i",
     "stats": {
       "correctAnswers": "Risposte corrette",
       "playersAnswered": "Giocatori che hanno risposto"
@@ -34,7 +37,6 @@
       "player": "Giocatore",
       "points": "Punti"
     },
-    "playerCount": "{{count}} giocatore/i",
     "timeLimitSuffix": "s limite di tempo"
   },
   "tabs": {

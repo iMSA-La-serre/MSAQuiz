@@ -1,4 +1,5 @@
 {
+  "confirm": "Confirmar",
   "correct": "¡Bien!",
   "gamePinLabel": "PIN del juego:",
   "hud": {
@@ -8,9 +9,9 @@
   "joinInstruction": "Únete al juego en",
   "leaderboard": "Clasificación",
   "pinLabel": "Código PIN",
-  "reconnect": "Reconectar",
-  "reconnectTitle": "Estabas en una partida",
   "playersJoined": "Jugadores conectados: ",
+  "pollAnswered": "¡Voto registrado!",
+  "pollNoVote": "No has votado",
   "questionPrefix": "Pregunta #",
   "rank": {
     "1": "1er puesto",
@@ -19,12 +20,14 @@
     "other": "Puesto {{rank}}"
   },
   "rankSuffix": " puesto",
+  "reconnect": "Reconectar",
+  "reconnectTitle": "Estabas en una partida",
   "resultBehind": ", detrás de ",
   "resultTop": "Terminaste ",
+  "slideInfo": "No se requiere respuesta",
   "startGame": "Iniciar juego",
   "usernamePlaceholder": "Nombre de usuario aquí",
   "waitingForAnswers": "Esperando que los jugadores respondan",
   "waitingForPlayers": "Esperando jugadores",
-  "wrong": "Mala suerte",
-  "confirm": "Confirmar"
+  "wrong": "Mala suerte"
 }

@@ -41,8 +41,11 @@
   "quizzSaved": "Quiz salvato con successo",
   "quizzUpdated": "Quiz aggiornato con successo",
   "questionType": {
+    "multi": "Scelta multipla",
+    "poll": "Sondaggio",
     "single": "Scelta singola",
-    "multi": "Scelta multipla"
+    "slide": "Slide informativa"
   },
-  "titleQuizzPlaceholder": "Titolo del quiz..."
+  "titleQuizzPlaceholder": "Titolo del quiz...",
+  "slideNoAnswers": "Una slide informativa non ha risposte: mostra solo la domanda e i suoi contenuti."
 }

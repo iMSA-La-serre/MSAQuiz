@@ -1,3 +1,4 @@
+import { QUESTION_TYPE_META } from "@razzia/common/constants"
 import {
   ANSWERS_COLORS,
   ANSWERS_LABELS,
@@ -14,6 +15,14 @@ const QuestionEditorAnswers = () => {
 
   const questionType = currentQuestion.type
   const { SolutionPicker } = QUESTION_REGISTRY[questionType]
+
+  if (!QUESTION_TYPE_META[questionType].acceptsAnswers) {
+    return (
+      <div className="z-10 rounded-2xl bg-white/80 px-4 py-6 text-center text-sm font-medium text-gray-500">
+        {t("quizz:slideNoAnswers")}
+      </div>
+    )
+  }
 
   const updateAnswer = (index: number, value: string) => {
     const next = [...currentQuestion.answers]
