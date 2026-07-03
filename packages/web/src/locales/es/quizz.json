@@ -36,8 +36,11 @@
   "quizzSaved": "Cuestionario guardado con éxito",
   "quizzUpdated": "Cuestionario actualizado con éxito",
   "questionType": {
+    "multi": "Opción múltiple",
+    "poll": "Encuesta",
     "single": "Opción única",
-    "multi": "Opción múltiple"
+    "slide": "Diapositiva informativa"
   },
-  "titleQuizzPlaceholder": "Título del cuestionario..."
+  "titleQuizzPlaceholder": "Título del cuestionario...",
+  "slideNoAnswers": "Una diapositiva informativa no tiene respuestas: solo muestra la pregunta y su contenido."
 }

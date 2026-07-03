@@ -14,6 +14,8 @@ const WS_PORT = 3001
 
 const io: Server = new ServerIO({
   path: "/ws",
+  // Default is 1 MB, which would kill the connection on xlsx quiz imports.
+  maxHttpBufferSize: 5e6,
 })
 initConfig()
 runMigrations()

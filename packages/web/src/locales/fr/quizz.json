@@ -36,8 +36,11 @@
   "quizzSaved": "Quizz enregistré avec succès",
   "quizzUpdated": "Quizz mis à jour avec succès",
   "questionType": {
+    "multi": "Choix multiple",
+    "poll": "Sondage",
     "single": "Choix unique",
-    "multi": "Choix multiple"
+    "slide": "Slide info"
   },
-  "titleQuizzPlaceholder": "Titre du quizz..."
+  "titleQuizzPlaceholder": "Titre du quizz...",
+  "slideNoAnswers": "Une slide n'attend pas de réponses — elle affiche simplement la question et son média."
 }

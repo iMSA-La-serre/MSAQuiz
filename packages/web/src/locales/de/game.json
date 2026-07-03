@@ -1,4 +1,5 @@
 {
+  "confirm": "Bestätigen",
   "correct": "Richtig!",
   "gamePinLabel": "Spiel-PIN:",
   "hud": {
@@ -8,9 +9,9 @@
   "joinInstruction": "Tritt dem Spiel bei auf",
   "leaderboard": "Bestenliste",
   "pinLabel": "PIN-Code",
-  "reconnect": "Erneut verbinden",
-  "reconnectTitle": "Du warst in einem Spiel",
   "playersJoined": "Verbundene Spieler: ",
+  "pollAnswered": "Stimme gespeichert!",
+  "pollNoVote": "Sie haben nicht abgestimmt",
   "questionPrefix": "Frage #",
   "rank": {
     "1": "1. Platz",
@@ -19,12 +20,14 @@
     "other": "{{rank}}. Platz"
   },
   "rankSuffix": ". Platz",
+  "reconnect": "Erneut verbinden",
+  "reconnectTitle": "Du warst in einem Spiel",
   "resultBehind": ", hinter ",
   "resultTop": "Du hast ",
+  "slideInfo": "Keine Antwort erforderlich",
   "startGame": "Spiel starten",
   "usernamePlaceholder": "Benutzername hier",
   "waitingForAnswers": "Warten auf die Antworten der Spieler",
   "waitingForPlayers": "Warten auf Spieler",
-  "wrong": "Schade",
-  "confirm": "Bestätigen"
+  "wrong": "Schade"
 }

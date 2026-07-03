@@ -36,8 +36,11 @@
   "quizzSaved": "Quiz erfolgreich gespeichert",
   "quizzUpdated": "Quiz erfolgreich aktualisiert",
   "questionType": {
+    "multi": "Mehrfachauswahl",
+    "poll": "Umfrage",
     "single": "Einzelauswahl",
-    "multi": "Mehrfachauswahl"
+    "slide": "Info-Folie"
   },
-  "titleQuizzPlaceholder": "Quiz-Titel..."
+  "titleQuizzPlaceholder": "Quiz-Titel...",
+  "slideNoAnswers": "Eine Info-Folie hat keine Antworten — sie zeigt nur die Frage und ihre Medien."
 }

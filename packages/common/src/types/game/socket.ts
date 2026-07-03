@@ -89,6 +89,10 @@ export interface ServerToClientEvents {
 
   // Results events
   [EVENTS.RESULTS.DATA]: (_result: GameResult) => void
+  [EVENTS.RESULTS.EXPORT_DATA]: (_data: {
+    filename: string
+    buffer: ArrayBuffer
+  }) => void
 }
 
 export interface ClientToServerEvents {
@@ -111,6 +115,10 @@ export interface ClientToServerEvents {
   // Quizz actions
   [EVENTS.QUIZZ.GET]: (_id: string) => void
   [EVENTS.QUIZZ.SAVE]: (_quizz: unknown) => void
+  [EVENTS.QUIZZ.IMPORT_XLSX]: (_data: {
+    name: string
+    buffer: ArrayBuffer
+  }) => void
   [EVENTS.QUIZZ.UPDATE]: (_data: QuizzWithId) => void
   [EVENTS.QUIZZ.DELETE]: (_id: string) => void
 
@@ -129,6 +137,7 @@ export interface ClientToServerEvents {
   // Results actions
   [EVENTS.RESULTS.GET]: (_id: string) => void
   [EVENTS.RESULTS.DELETE]: (_id: string) => void
+  [EVENTS.RESULTS.EXPORT]: (_id: string) => void
 
   // Common
   disconnect: () => void

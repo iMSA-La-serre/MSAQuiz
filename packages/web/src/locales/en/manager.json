@@ -8,7 +8,8 @@
     "deleteConfirm": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone.",
     "deleted": "Quizz deleted",
     "export": "Export quizz as JSON",
-    "import": "Import quizz from JSON",
+    "import": "Import a quiz (JSON / Excel)",
+    "imported": "Quiz imported",
     "none": "No quizz created yet",
     "notFound": "No quizz found",
     "pleaseCreate": "Please create a quizz first",
@@ -19,9 +20,11 @@
     "delete": "Delete result",
     "deleteConfirm": "Delete result for \"{{name}}\"? This cannot be undone.",
     "deleted": "Result deleted",
+    "export": "Export to Excel",
     "noAnswer": "No answer",
     "none": "No results yet, finish a game to see reports here",
     "paginationOf": " of ",
+    "playerCount": "{{count}} player(s)",
     "stats": {
       "correctAnswers": "Correct answers",
       "playersAnswered": "Players answered"
@@ -34,7 +37,6 @@
       "player": "Player",
       "points": "Points"
     },
-    "playerCount": "{{count}} player(s)",
     "timeLimitSuffix": "s time limit"
   },
   "tabs": {

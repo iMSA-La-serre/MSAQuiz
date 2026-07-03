@@ -7,10 +7,24 @@ import {
 } from "@razzia/web/features/game/contexts/socket-context"
 import ResultModal from "@razzia/web/features/manager/components/ResultModal"
 import { useConfig } from "@razzia/web/features/manager/contexts/config-context"
-import { Trash2 } from "lucide-react"
+import { FileSpreadsheet, Trash2 } from "lucide-react"
 import { useCallback, useState } from "react"
 import toast from "react-hot-toast"
 import { useTranslation } from "react-i18next"
+
+const downloadXlsx = (buffer: ArrayBuffer, filename: string) => {
+  const blob = new Blob([buffer], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+
+  a.href = url
+  a.download = filename
+  a.click()
+
+  URL.revokeObjectURL(url)
+}
 
 const formatDate = (iso: string) => {
   const d = new Date(iso)
@@ -31,6 +45,13 @@ const ConfigResults = () => {
   useEvent(
     EVENTS.RESULTS.DATA,
     useCallback((data) => setSelectedResult(data), []),
+  )
+
+  useEvent(
+    EVENTS.RESULTS.EXPORT_DATA,
+    useCallback(({ filename, buffer }) => {
+      downloadXlsx(buffer, filename)
+    }, []),
   )
 
   const handleOpen = (id: string) => () => {
@@ -60,9 +81,16 @@ const ConfigResults = () => {
                 {t("manager:result.playerCount", { count: r.playerCount })}
               </p>
             </button>
+            <button
+              className="ml-2 shrink-0 rounded-sm p-2 text-gray-600 hover:bg-gray-600/10"
+              onClick={() => socket.emit(EVENTS.RESULTS.EXPORT, r.id)}
+              title={t("manager:result.export")}
+            >
+              <FileSpreadsheet className="size-4" />
+            </button>
             <AlertDialog
               trigger={
-                <button className="ml-2 shrink-0 rounded-sm p-2 hover:bg-red-600/10">
+                <button className="shrink-0 rounded-sm p-2 hover:bg-red-600/10">
                   <Trash2 className="size-4 stroke-red-500" />
                 </button>
               }

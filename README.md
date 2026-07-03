@@ -19,6 +19,28 @@ Razzia is a straightforward and open-source quiz platform, allowing users to hos
   <img width="30%" src=".github/previews/3.png" alt="Question Screen">
 </p>
 
+## 🍴 About this fork (MSAQuiz)
+
+This repository is **iMSA's soft-fork of [Razzia](https://github.com/Ralex91/Razzia)**, deployed internally as **MSAQuiz**.
+
+**Fork policy:** we track upstream as a read-only remote and **cherry-pick** the fixes/features we want, on our own schedule — no rebase of our branches on upstream, no upstream PRs required.
+
+```bash
+git fetch upstream                          # remote: https://github.com/Ralex91/Razzia.git
+git log --oneline HEAD..upstream/dev        # see what's new upstream
+git cherry-pick <sha>                       # pick only what we want
+```
+
+**Differences vs upstream:**
+
+- **SQLite persistence** — quizzes and game results live in a database (`config/msaquiz.db`), not in JSON files. Schema is ready for user accounts (Microsoft SSO planned).
+- **Excel import** — import quizzes from `.xlsx` files (Kahoot template/export compatible).
+- **Excel export** — download any game result as an `.xlsx` report.
+- **Poll & info-slide question types** — in addition to upstream's single/multi.
+- The footer displays the branded app name (from `config/branding`).
+
+The La Serre theme itself lives in the **deployment volume** (`config/branding/`), not in this repo.
+
 ## ⚙️ Prerequisites
 
 Choose one of the following deployment methods:
@@ -110,22 +132,30 @@ Options:
 
 - `managerPassword`: The master password for accessing the manager interface. **Must be changed from the default `"PASSWORD"` value**, otherwise manager access is blocked.
 
-### 2. Quiz Configuration (`config/quizz/*.json`)
+### 2. Database (`config/msaquiz.db`)
 
-Quizzes can be created in two ways:
+Quizzes and game results are stored in a **SQLite database** located in the config volume (`config/msaquiz.db`). It is created and migrated **automatically at startup** (WAL mode) — nothing to install or configure.
 
-- **Via the Quiz Editor** — use the built-in editor available in the manager dashboard (recommended)
-- **Via JSON files** — manually create files in the `config/quizz/` directory
+- **Backup**: backing up the `config/` folder covers everything (database included).
+- **Legacy note**: `config/quizz/*.json` files are **no longer read** at runtime. To recover old quizzes, import them once via the manager (Quizz → Import, JSON format). Old `config/results/*.json` files are not migrated (no import path — they stay readable on disk).
+- Schema changes are managed with Drizzle migrations (`packages/socket/src/db/`): `pnpm --filter @razzia/socket run db:generate` after editing `schema.ts`.
 
-You can have multiple quiz files and select which one to use when starting a game.
+### 3. Creating & importing quizzes
 
-Example quiz configuration (`config/quizz/example.json`):
+Quizzes can be created three ways, all from the manager dashboard:
+
+- **Quiz Editor** (recommended) — full editor with media, timers and question types.
+- **JSON import** — a file matching the format below.
+- **Excel import (`.xlsx`)** — compatible with the **Kahoot quiz template/export**: a header row containing `Question`, `Answer 1..4`, `Time limit`, `Correct answer(s)` (1-based, comma-separated), data on the following rows — or the exact Kahoot template layout (columns B–H, data from row 9). Questions with several correct answers become multi-select (strict scoring).
+
+JSON format:
 
 ```json
 {
   "subject": "Example Quiz",
   "questions": [
     {
+      "type": "single",
       "question": "What is the correct answer?",
       "answers": ["No", "Yes", "No", "No"],
       "solutions": [1],
@@ -133,41 +163,52 @@ Example quiz configuration (`config/quizz/example.json`):
       "time": 15
     },
     {
+      "type": "multi",
       "question": "Which of these are primary colors?",
       "answers": ["Red", "Green", "Blue", "Yellow"],
       "solutions": [0, 2, 3],
+      "options": { "scoringMode": "balanced" },
       "cooldown": 5,
       "time": 20
     },
     {
-      "question": "What is the correct answer with an image?",
-      "answers": ["No", "Yes", "No", "No"],
-      "media": {
-        "type": "image",
-        "url": "https://placehold.co/600x400.png"
-      },
-      "solutions": [1],
+      "type": "poll",
+      "question": "Which topic should we cover next?",
+      "answers": ["Security", "Tooling"],
       "cooldown": 5,
       "time": 20
+    },
+    {
+      "type": "slide",
+      "question": "Coffee break — back in 5 minutes!",
+      "cooldown": 5,
+      "time": -1
     }
   ]
 }
 ```
 
-Quiz Options:
+Question fields:
 
-- `subject`: Title/topic of the quiz
-- `questions`: Array of question objects containing:
-  - `question`: The question text
-  - `answers`: Array of possible answers (2-4 options)
-  - `media`: Optional media object displayed with the question:
-    - `type`: `"image"`, `"video"`, or `"audio"`
-    - `url`: URL of the media
-  - `solutions`: Array of correct answer indices (0-based). Use multiple indices for multi-answer questions
-  - `cooldown`: Time in seconds before answers are revealed (3-15)
-  - `time`: Time in seconds allowed to answer (5-120)
+- `type`: `"single"`, `"multi"`, `"poll"` or `"slide"`. Legacy questions without a `type` are inferred on import: `"multi"` when they list several solutions, `"single"` otherwise.
+  - **single** — one answer to pick, one or more accepted as correct
+  - **multi** — multi-select with a Validate button; `options.scoringMode`: `"strict"` (exact match), `"balanced"` (correct − wrong) or `"lenient"` (share of correct picks)
+  - **poll** — a vote: no correct answer, no points, the distribution is shown
+  - **slide** — informational screen: no answers at all; players stay on it until the next question (use `time: -1` and the Skip button, or a timer)
+- `question`: The question text
+- `answers`: Array of possible answers (2-4 options; none for `slide`)
+- `media`: Optional media object displayed with the question:
+  - `type`: `"image"`, `"video"`, or `"audio"`
+  - `url`: URL of the media
+- `solutions`: Array of correct answer indices (0-based) — `single`/`multi` only
+- `cooldown`: Time in seconds before answers are revealed (3-15)
+- `time`: Time in seconds allowed to answer, or `-1` for no time limit
 
-### 3. Custom branding (`config/branding/`) — optional
+### 4. Game results
+
+Results are saved automatically at the end of each game and browsable in the manager (Résultats tab). Each result can be **downloaded as an Excel report** (ranking sheet + per-question answer distribution).
+
+### 5. Custom branding (`config/branding/`) — optional
 
 You can fully rebrand the app **without touching the code** by dropping files into a `config/branding/` folder. If it is absent, the default look is used.
 
