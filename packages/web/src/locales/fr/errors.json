@@ -6,9 +6,9 @@
   },
   "game": {
     "expired": "La partie a expiré",
-    "kickedByManager": "Vous avez été expulsé par le manager",
-    "managerAlreadyConnected": "Un manager est déjà connecté",
-    "managerDisconnected": "Le manager s'est déconnecté",
+    "kickedByManager": "Vous avez été expulsé par l'animateur",
+    "managerAlreadyConnected": "Un animateur est déjà connecté",
+    "managerDisconnected": "L'animateur s'est déconnecté",
     "noPlayersConnected": "Aucun joueur connecté",
     "managerCannotJoin": "Vous ne pouvez pas rejoindre votre propre partie",
     "notFound": "Partie introuvable",
@@ -17,7 +17,7 @@
   "manager": {
     "failedToReadConfig": "Impossible de lire la configuration",
     "invalidPassword": "Mot de passe invalide",
-    "passwordNotConfigured": "Mot de passe manager non configuré"
+    "passwordNotConfigured": "Mot de passe animateur non configuré"
   },
   "notFound": {
     "back": "Retour à l'accueil",
@@ -26,9 +26,9 @@
   },
   "quizz": {
     "answerEmpty": "Une réponse ne peut pas être vide",
-    "failedToDelete": "Suppression du quizz a echoué",
+    "failedToDelete": "La suppression du quizz a échoué",
     "failedToSave": "Le quizz est incomplet, vérifiez que chaque question a un titre et au moins une bonne réponse",
-    "failedToUpdate": "La mise à jour du quizz a echoué",
+    "failedToUpdate": "La mise à jour du quizz a échoué",
     "invalidImport": "Fichier d'import invalide ou vide",
     "invalidMediaUrl": "L'URL du média doit être une URL valide",
     "noQuestions": "Un quizz doit avoir au moins une question",

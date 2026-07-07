@@ -105,7 +105,7 @@ const ConfigManageQuizz = () => {
         const data: unknown = JSON.parse(event.target?.result as string)
         socket.emit(EVENTS.QUIZZ.SAVE, data)
       } catch {
-        toast.error("Invalid JSON file")
+        toast.error(t("errors:quizz.invalidImport"))
       }
     }
 
