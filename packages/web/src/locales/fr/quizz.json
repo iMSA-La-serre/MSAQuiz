@@ -33,14 +33,14 @@
     "mediaUrlPlaceholder": "Entrez l'URL...",
     "placeholder": "Commencez à écrire votre question..."
   },
-  "quizzSaved": "Quizz enregistré avec succès",
-  "quizzUpdated": "Quizz mis à jour avec succès",
+  "quizzSaved": "Quiz enregistré avec succès",
+  "quizzUpdated": "Quiz mis à jour avec succès",
   "questionType": {
     "multi": "Choix multiple",
     "poll": "Sondage",
     "single": "Choix unique",
     "slide": "Diapo info"
   },
-  "titleQuizzPlaceholder": "Titre du quizz...",
+  "titleQuizzPlaceholder": "Titre du quiz...",
   "slideNoAnswers": "Une diapo info n'attend pas de réponses — elle affiche simplement la question et son média."
 }
