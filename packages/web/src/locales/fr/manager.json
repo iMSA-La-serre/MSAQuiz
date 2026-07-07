@@ -3,17 +3,17 @@
   "logout": "Déconnexion",
   "passwordPlaceholder": "Mot de passe",
   "quizz": {
-    "create": "Créer un quizz",
-    "delete": "Supprimer le quizz",
+    "create": "Créer un quiz",
+    "delete": "Supprimer le quiz",
     "deleteConfirm": "Supprimer \"{{name}}\" ? Cette action est irréversible.",
-    "deleted": "Quizz supprimé",
-    "export": "Exporter le quizz (JSON)",
-    "import": "Importer un quizz (JSON / Excel)",
-    "imported": "Quizz importé",
-    "none": "Aucun quizz créé",
-    "notFound": "Aucun quizz trouvé",
-    "pleaseCreate": "Veuillez d'abord créer un quizz",
-    "pleaseSelect": "Veuillez sélectionner un quizz",
+    "deleted": "Quiz supprimé",
+    "export": "Exporter le quiz (JSON)",
+    "import": "Importer un quiz (JSON / Excel)",
+    "imported": "Quiz importé",
+    "none": "Aucun quiz créé",
+    "notFound": "Aucun quiz trouvé",
+    "pleaseCreate": "Veuillez d'abord créer un quiz",
+    "pleaseSelect": "Veuillez sélectionner un quiz",
     "startGame": "Démarrer la partie"
   },
   "result": {
@@ -41,7 +41,7 @@
   },
   "tabs": {
     "play": "Jouer",
-    "quizz": "Quizz",
+    "quizz": "Quiz",
     "results": "Résultats"
   }
 }

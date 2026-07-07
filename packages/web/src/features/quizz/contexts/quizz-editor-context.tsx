@@ -55,7 +55,7 @@ export const QuizzEditorProvider = ({
   initialData,
 }: QuizzEditorProviderProps) => {
   const [subject, setSubject] = useState(
-    initialData?.subject ?? "Quizz sans titre",
+    initialData?.subject ?? "Quiz sans titre",
   )
   const [questions, setQuestions] = useState<QuestionWithId[]>(
     initialData
