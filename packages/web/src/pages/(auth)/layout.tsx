@@ -1,5 +1,4 @@
 import Background from "@razzia/web/components/Background"
-import LanguageSwitcher from "@razzia/web/components/LanguageSwitcher"
 import Loader from "@razzia/web/components/Loader"
 import { useSocket } from "@razzia/web/features/game/contexts/socket-context"
 import { createFileRoute, Outlet } from "@tanstack/react-router"
@@ -27,9 +26,6 @@ const AuthLayout = () => {
 
   return (
     <Background>
-      <div className="absolute top-4 right-4">
-        <LanguageSwitcher />
-      </div>
       <Outlet />
     </Background>
   )

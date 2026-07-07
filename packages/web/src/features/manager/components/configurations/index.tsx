@@ -1,7 +1,6 @@
 import { EVENTS } from "@razzia/common/constants"
 import type { ManagerConfig } from "@razzia/common/types/manager"
 import Card from "@razzia/web/components/Card"
-import LanguageSwitcher from "@razzia/web/components/LanguageSwitcher"
 import { useSocket } from "@razzia/web/features/game/contexts/socket-context"
 import { useManagerStore } from "@razzia/web/features/game/stores/manager"
 import ConfigManageQuizz from "@razzia/web/features/manager/components/configurations/ConfigManageQuizz"
@@ -56,7 +55,6 @@ const Configurations = ({ data }: Props) => {
             {t("manager:configurationsTitle")}
           </p>
           <div className="flex items-center gap-2">
-            <LanguageSwitcher />
             <button
               className="rounded-sm p-1.5 text-gray-400 hover:bg-gray-200 hover:text-gray-600"
               onClick={handleLogout}

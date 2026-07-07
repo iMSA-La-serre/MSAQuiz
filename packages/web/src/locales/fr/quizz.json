@@ -15,7 +15,7 @@
       "questionDisplayHint": "Délai avant l'apparition des réponses",
       "timings": "Durées",
       "answerMode": "Mode de réponse",
-      "scoringMode": "Mode de score",
+      "scoringMode": "Mode de notation",
       "scoringMode.strict": "Strict",
       "scoringMode.balanced": "Équilibré",
       "scoringMode.lenient": "Indulgent",
@@ -39,8 +39,8 @@
     "multi": "Choix multiple",
     "poll": "Sondage",
     "single": "Choix unique",
-    "slide": "Slide info"
+    "slide": "Diapo info"
   },
   "titleQuizzPlaceholder": "Titre du quizz...",
-  "slideNoAnswers": "Une slide n'attend pas de réponses — elle affiche simplement la question et son média."
+  "slideNoAnswers": "Une diapo info n'attend pas de réponses — elle affiche simplement la question et son média."
 }

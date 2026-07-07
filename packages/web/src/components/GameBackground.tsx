@@ -10,7 +10,7 @@ const GameBackground = () => {
         className="pointer-events-none h-full w-full object-cover select-none"
         src={background}
         onError={imageFallback(defaultBackground)}
-        alt="background"
+        alt=""
       />
     </div>
   )

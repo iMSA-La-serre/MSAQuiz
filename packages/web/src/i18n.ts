@@ -1,8 +1,10 @@
 import i18n, { type Resource, type ResourceKey } from "i18next"
-import LanguageDetector from "i18next-browser-languagedetector"
 import { initReactI18next } from "react-i18next"
 
-const modules = import.meta.glob("./locales/*/*.json", { eager: true })
+// MSAQuiz est une application interne francophone : le français est la seule
+// langue chargée (les autres locales upstream restent dans le dépôt mais ne
+// sont ni chargées ni proposées).
+const modules = import.meta.glob("./locales/fr/*.json", { eager: true })
 
 const resources = Object.entries(modules).reduce<Resource>(
   (acc, [path, mod]) => {
@@ -21,18 +23,12 @@ const resources = Object.entries(modules).reduce<Resource>(
   {},
 )
 
-i18n
-  .use(LanguageDetector)
-  .use(initReactI18next)
-  .init({
-    fallbackLng: "en",
-    defaultNS: "common",
-    resources,
-    detection: {
-      order: ["localStorage", "navigator"],
-      caches: ["localStorage"],
-    },
-    interpolation: { escapeValue: false },
-  })
+i18n.use(initReactI18next).init({
+  lng: "fr",
+  fallbackLng: "fr",
+  defaultNS: "common",
+  resources,
+  interpolation: { escapeValue: false },
+})
 
 export default i18n
