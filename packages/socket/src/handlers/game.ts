@@ -3,12 +3,14 @@ import { inviteCodeValidator } from "@razzia/common/validators/auth"
 import type { SocketContext } from "@razzia/socket/handlers/types"
 import { getQuizz } from "@razzia/socket/services/config"
 import Game from "@razzia/socket/services/game"
+import manager from "@razzia/socket/services/manager"
 import Registry from "@razzia/socket/services/registry"
 import { withGame } from "@razzia/socket/utils/game"
+import { getClientId } from "@razzia/socket/utils/socket"
 
 export const gameSocketHandlers = ({ io, socket }: SocketContext) => {
   const registry = Registry.getInstance()
-  const clientId = socket.handshake.auth.clientId as string
+  const clientId = getClientId(socket)
 
   const handleManagerLeave = (game: Game) => {
     game.setManagerDisconnected()
@@ -62,18 +64,27 @@ export const gameSocketHandlers = ({ io, socket }: SocketContext) => {
     socket.emit(EVENTS.GAME.RESET, "errors:game.expired")
   })
 
-  socket.on(EVENTS.GAME.CREATE, (quizzId) => {
-    const quizzList = getQuizz()
-    const quizz = quizzList.find((q) => q.id === quizzId)
+  socket.on(
+    EVENTS.GAME.CREATE,
+    manager.withAuth(socket, (quizzId: string) => {
+      const quizzList = getQuizz()
+      const quizz = quizzList.find((q) => q.id === quizzId)
 
-    if (!quizz) {
-      socket.emit(EVENTS.GAME.ERROR_MESSAGE, "errors:quizz.notFound")
+      if (!quizz) {
+        socket.emit(EVENTS.GAME.ERROR_MESSAGE, "errors:quizz.notFound")
 
-      return
-    }
+        return
+      }
 
-    const game = new Game(io, socket, quizz)
-    registry.addGame(game)
+      const game = new Game(io, socket, quizz)
+      registry.addGame(game)
+    }),
+  )
+
+  socket.on(EVENTS.PLAYER.CHECK_PIN, (inviteCode) => {
+    const game = registry.getGameByInviteCode(inviteCode)
+
+    socket.emit(EVENTS.PLAYER.CHECK_PIN_RESULT, { valid: Boolean(game) })
   })
 
   socket.on(EVENTS.PLAYER.JOIN, (inviteCode) => {
@@ -89,6 +100,18 @@ export const gameSocketHandlers = ({ io, socket }: SocketContext) => {
 
     if (!game) {
       socket.emit(EVENTS.GAME.ERROR_MESSAGE, "errors:game.notFound")
+
+      return
+    }
+
+    if (game.manager.clientId === clientId) {
+      socket.emit(EVENTS.GAME.ERROR_MESSAGE, "errors:game.managerCannotJoin")
+
+      return
+    }
+
+    if (game.players.some((p) => p.clientId === clientId)) {
+      game.reconnect(socket)
 
       return
     }
@@ -110,7 +133,7 @@ export const gameSocketHandlers = ({ io, socket }: SocketContext) => {
 
   socket.on(EVENTS.PLAYER.SELECTED_ANSWER, ({ gameId, data }) =>
     withGame(gameId, socket, (game) =>
-      game.selectAnswer(socket, data.answerKey),
+      game.selectAnswer(socket, data.answerKeys),
     ),
   )
 
@@ -123,7 +146,7 @@ export const gameSocketHandlers = ({ io, socket }: SocketContext) => {
   )
 
   socket.on(EVENTS.MANAGER.SHOW_LEADERBOARD, ({ gameId }) =>
-    withGame(gameId, socket, (game) => game.showLeaderboard()),
+    withGame(gameId, socket, (game) => game.showLeaderboard(socket)),
   )
 
   socket.on(EVENTS.MANAGER.LEAVE, ({ gameId }) => {
