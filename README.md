@@ -143,61 +143,7 @@ Quizzes can be created three ways, all from the manager dashboard:
 - **JSON import** — a file matching the format below.
 - **Excel import (`.xlsx`)** — compatible with the **Kahoot quiz template/export**: a header row containing `Question`, `Answer 1..4`, `Time limit`, `Correct answer(s)` (1-based, comma-separated), data on the following rows — or the exact Kahoot template layout (columns B–H, data from row 9). Questions with several correct answers become multi-select (strict scoring).
 
-JSON format:
-
-```json
-{
-  "subject": "Example Quiz",
-  "questions": [
-    {
-      "type": "single",
-      "question": "What is the correct answer?",
-      "answers": ["No", "Yes", "No", "No"],
-      "solutions": [1],
-      "cooldown": 5,
-      "time": 15
-    },
-    {
-      "type": "multi",
-      "question": "Which of these are primary colors?",
-      "answers": ["Red", "Green", "Blue", "Yellow"],
-      "solutions": [0, 2, 3],
-      "options": { "scoringMode": "balanced" },
-      "cooldown": 5,
-      "time": 20
-    },
-    {
-      "type": "poll",
-      "question": "Which topic should we cover next?",
-      "answers": ["Security", "Tooling"],
-      "cooldown": 5,
-      "time": 20
-    },
-    {
-      "type": "slide",
-      "question": "Coffee break — back in 5 minutes!",
-      "cooldown": 5,
-      "time": -1
-    }
-  ]
-}
-```
-
-Question fields:
-
-- `type`: `"single"`, `"multi"`, `"poll"` or `"slide"`. Legacy questions without a `type` are inferred on import: `"multi"` when they list several solutions, `"single"` otherwise.
-  - **single** — one answer to pick, one or more accepted as correct
-  - **multi** — multi-select with a Validate button; `options.scoringMode`: `"strict"` (exact match), `"balanced"` (correct − wrong) or `"lenient"` (share of correct picks)
-  - **poll** — a vote: no correct answer, no points, the distribution is shown
-  - **slide** — informational screen: no answers at all; players stay on it until the next question (use `time: -1` and the Skip button, or a timer)
-- `question`: The question text
-- `answers`: Array of possible answers (2-4 options; none for `slide`)
-- `media`: Optional media object displayed with the question:
-  - `type`: `"image"`, `"video"`, or `"audio"`
-  - `url`: URL of the media
-- `solutions`: Array of correct answer indices (0-based) — `single`/`multi` only
-- `cooldown`: Time in seconds before answers are revealed (3-15)
-- `time`: Time in seconds allowed to answer, or `-1` for no time limit
+The JSON format, the four question types (`single`, `multi`, `poll`, `slide`), the scoring modes and the exact Kahoot mapping rules are documented in **[docs/quiz.md](docs/quiz.md)**.
 
 ### 4. Game results
 
@@ -214,7 +160,10 @@ Create `config/branding/theme.json`:
   "appName": "My Quiz",
   "colors": { "primary": "#ff9900", "secondary": "#1a140b" },
   "answerColors": ["#e69f00", "#56b4e9", "#3dbfa0", "#cc79a7"],
-  "font": { "family": "Rubik", "url": "https://fonts.googleapis.com/css2?family=Rubik:wght@300..900&display=swap" },
+  "font": {
+    "family": "Rubik",
+    "url": "https://fonts.googleapis.com/css2?family=Rubik:wght@300..900&display=swap"
+  },
   "logo": "/branding/logo.svg",
   "favicon": "/branding/favicon.svg",
   "background": "/branding/background.png"
