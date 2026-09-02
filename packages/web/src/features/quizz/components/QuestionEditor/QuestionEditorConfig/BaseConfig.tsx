@@ -140,6 +140,7 @@ const BaseConfig = () => {
           <ConfigNumberInput
             value={currentQuestion.cooldown}
             min={3}
+            max={15}
             onChange={handleUpdateQuestion("cooldown")}
           />
           <ConfigField.Description>
