@@ -71,6 +71,7 @@ export const MAX_POINTS = 1000
 export const QUESTION_TYPES = {
   SINGLE: "single",
   MULTI: "multi",
+  TRUEFALSE: "truefalse",
   POLL: "poll",
   SLIDE: "slide",
 } as const
@@ -78,13 +79,18 @@ export const QUESTION_TYPES = {
 /**
  * Per-type capabilities, consumed by the validator, the game engine and the
  * editor. Adding a question type = add its entry here + registry entries.
+ *
+ * `answersCount` marks a type whose answers are fixed (both in number and in
+ * wording): the validator enforces the count, and the editor renders them
+ * read-only instead of the add/remove controls.
  */
 export const QUESTION_TYPE_META: Record<
   (typeof QUESTION_TYPES)[keyof typeof QUESTION_TYPES],
-  { scored: boolean; acceptsAnswers: boolean }
+  { scored: boolean; acceptsAnswers: boolean; answersCount?: number }
 > = {
   single: { scored: true, acceptsAnswers: true },
   multi: { scored: true, acceptsAnswers: true },
+  truefalse: { scored: true, acceptsAnswers: true, answersCount: 2 },
   poll: { scored: false, acceptsAnswers: true },
   slide: { scored: false, acceptsAnswers: false },
 }

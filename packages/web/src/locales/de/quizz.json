@@ -44,8 +44,11 @@
     "multi": "Mehrfachauswahl",
     "poll": "Umfrage",
     "single": "Einzelauswahl",
-    "slide": "Info-Folie"
+    "slide": "Info-Folie",
+    "truefalse": "Wahr / Falsch"
   },
   "titleQuizzPlaceholder": "Quiz-Titel...",
-  "slideNoAnswers": "Eine Info-Folie hat keine Antworten — sie zeigt nur die Frage und ihre Medien."
+  "slideNoAnswers": "Eine Info-Folie hat keine Antworten — sie zeigt nur die Frage und ihre Medien.",
+  "trueAnswer": "Wahr",
+  "falseAnswer": "Falsch"
 }

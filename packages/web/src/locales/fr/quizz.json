@@ -44,8 +44,11 @@
     "multi": "Choix multiple",
     "poll": "Sondage",
     "single": "Choix unique",
-    "slide": "Diapo info"
+    "slide": "Diapo info",
+    "truefalse": "Vrai / Faux"
   },
   "titleQuizzPlaceholder": "Titre du quiz...",
-  "slideNoAnswers": "Une diapo info n'attend pas de réponses — elle affiche simplement la question et son média."
+  "slideNoAnswers": "Une diapo info n'attend pas de réponses — elle affiche simplement la question et son média.",
+  "trueAnswer": "Vrai",
+  "falseAnswer": "Faux"
 }

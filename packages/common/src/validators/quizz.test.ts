@@ -76,6 +76,29 @@ describe("unscored types", () => {
   })
 })
 
+describe("fixed-answer types", () => {
+  const trueFalse = {
+    ...SINGLE_QUESTION,
+    type: QUESTION_TYPES.TRUEFALSE,
+    answers: ["Vrai", "Faux"],
+    solutions: [0],
+  }
+
+  it("accepts exactly two answers", () => {
+    expect(parse(trueFalse).answers).toEqual(["Vrai", "Faux"])
+  })
+
+  it("rejects a third answer", () => {
+    expect(
+      isValid({ ...trueFalse, answers: ["Vrai", "Faux", "Peut-être"] }),
+    ).toBe(false)
+  })
+
+  it("still requires a solution", () => {
+    expect(isValid({ ...trueFalse, solutions: [] })).toBe(false)
+  })
+})
+
 describe("scoring options", () => {
   it("defaults the multi scoring mode to balanced", () => {
     const multi = parse({

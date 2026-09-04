@@ -23,14 +23,19 @@ const QuestionEditorConfig = () => {
 
   const handleTypeChange = (nextType: QuestionType) => {
     const meta = QUESTION_TYPE_META[nextType]
+    const { defaultOptions, defaultAnswerKeys } = QUESTION_REGISTRY[nextType]
     const updates: Parameters<typeof updateQuestion>[1] = {
       type: nextType,
-      options: QUESTION_REGISTRY[nextType].defaultOptions,
+      options: defaultOptions,
     }
 
     if (!meta.acceptsAnswers) {
       updates.answers = []
       updates.solutions = []
+    } else if (defaultAnswerKeys) {
+      // Fixed answers (true/false): impose the wording and a single solution.
+      updates.answers = defaultAnswerKeys.map((key) => t(key))
+      updates.solutions = [0]
     } else {
       if (currentQuestion.answers.length < 2) {
         updates.answers = ["", ""]

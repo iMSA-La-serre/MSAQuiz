@@ -114,6 +114,30 @@ describe("multi, default mode", () => {
   })
 })
 
+describe("truefalse", () => {
+  const score = (solutions: number[], answerIds: number[]) =>
+    QUESTION_SCORING.truefalse(
+      question({
+        type: QUESTION_TYPES.TRUEFALSE,
+        answers: ["Vrai", "Faux"],
+        solutions,
+      }),
+      answerIds,
+    )
+
+  it("gives full points for the expected side", () => {
+    expect(score([1], [1])).toBe(1)
+  })
+
+  it("gives nothing for the other side", () => {
+    expect(score([1], [0])).toBe(0)
+  })
+
+  it("gives nothing when both sides are submitted", () => {
+    expect(score([1], [0, 1])).toBe(0)
+  })
+})
+
 describe("unscored types", () => {
   it("never awards points for a poll vote", () => {
     expect(

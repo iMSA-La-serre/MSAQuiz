@@ -74,6 +74,17 @@ const questionValidator = z.preprocess(
         })
       }
 
+      if (
+        meta.answersCount !== undefined &&
+        question.answers.length !== meta.answersCount
+      ) {
+        ctx.addIssue({
+          code: "custom",
+          message: "errors:quizz.fixedAnswers",
+          path: ["answers"],
+        })
+      }
+
       if (meta.scored && question.solutions.length === 0) {
         ctx.addIssue({
           code: "custom",

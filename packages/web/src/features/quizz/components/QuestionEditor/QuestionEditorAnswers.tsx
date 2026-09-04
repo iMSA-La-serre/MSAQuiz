@@ -15,8 +15,12 @@ const QuestionEditorAnswers = () => {
 
   const questionType = currentQuestion.type
   const { SolutionPicker } = QUESTION_REGISTRY[questionType]
+  const { acceptsAnswers, answersCount } = QUESTION_TYPE_META[questionType]
+  // Types with a fixed set of answers (true/false) only let the author pick
+  // which one is correct.
+  const hasFixedAnswers = answersCount !== undefined
 
-  if (!QUESTION_TYPE_META[questionType].acceptsAnswers) {
+  if (!acceptsAnswers) {
     return (
       <div className="z-10 rounded-2xl bg-white/80 px-4 py-6 text-center text-sm font-medium text-gray-500">
         {t("quizz:slideNoAnswers")}
@@ -60,22 +64,24 @@ const QuestionEditorAnswers = () => {
           {currentQuestion.answers.length}
           {t("quizz:answersCountSuffix")}
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={removeAnswer}
-            disabled={currentQuestion.answers.length <= 2}
-            className="bg-accent text-accent-foreground hover:bg-accent flex size-7 items-center justify-center rounded-lg disabled:opacity-40"
-          >
-            <Minus className="size-4" />
-          </button>
-          <button
-            onClick={addAnswer}
-            disabled={currentQuestion.answers.length >= 4}
-            className="bg-accent text-accent-foreground hover:bg-accent flex size-7 items-center justify-center rounded-lg disabled:opacity-40"
-          >
-            <Plus className="size-4" />
-          </button>
-        </div>
+        {!hasFixedAnswers && (
+          <div className="flex gap-2">
+            <button
+              onClick={removeAnswer}
+              disabled={currentQuestion.answers.length <= 2}
+              className="bg-accent text-accent-foreground hover:bg-accent flex size-7 items-center justify-center rounded-lg disabled:opacity-40"
+            >
+              <Minus className="size-4" />
+            </button>
+            <button
+              onClick={addAnswer}
+              disabled={currentQuestion.answers.length >= 4}
+              className="bg-accent text-accent-foreground hover:bg-accent flex size-7 items-center justify-center rounded-lg disabled:opacity-40"
+            >
+              <Plus className="size-4" />
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -98,6 +104,7 @@ const QuestionEditorAnswers = () => {
                   className="w-full bg-transparent font-semibold text-white placeholder-white/70 outline-none"
                   placeholder={t("quizz:addAnswerPlaceholder")}
                   value={answer}
+                  readOnly={hasFixedAnswers}
                   onChange={(e) => updateAnswer(i, e.target.value)}
                 />
                 <SolutionPicker index={i} isSelected={isSelected} />

@@ -37,7 +37,8 @@
     "questionEmpty": "La pregunta no puede estar vacía",
     "subjectEmpty": "El tema no puede estar vacío",
     "tooFewAnswers": "Una pregunta debe tener al menos 2 respuestas",
-    "tooManyAnswers": "Una pregunta no puede tener más de 4 respuestas"
+    "tooManyAnswers": "Una pregunta no puede tener más de 4 respuestas",
+    "fixedAnswers": "Este tipo de pregunta tiene un número fijo de respuestas"
   },
   "route": {
     "back": "Volver al inicio",

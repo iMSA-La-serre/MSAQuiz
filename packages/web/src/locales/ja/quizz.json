@@ -44,8 +44,11 @@
     "multi": "複数選択",
     "poll": "アンケート",
     "single": "単一選択",
-    "slide": "情報スライド"
+    "slide": "情報スライド",
+    "truefalse": "正誤問題"
   },
   "titleQuizzPlaceholder": "クイズのタイトル...",
-  "slideNoAnswers": "情報スライドには回答がありません。質問とメディアのみ表示されます。"
+  "slideNoAnswers": "情報スライドには回答がありません。質問とメディアのみ表示されます。",
+  "trueAnswer": "正しい",
+  "falseAnswer": "誤り"
 }

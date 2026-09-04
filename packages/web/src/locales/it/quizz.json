@@ -44,8 +44,11 @@
     "multi": "Scelta multipla",
     "poll": "Sondaggio",
     "single": "Scelta singola",
-    "slide": "Slide informativa"
+    "slide": "Slide informativa",
+    "truefalse": "Vero / Falso"
   },
   "titleQuizzPlaceholder": "Titolo del quiz...",
-  "slideNoAnswers": "Una slide informativa non ha risposte: mostra solo la domanda e i suoi contenuti."
+  "slideNoAnswers": "Una slide informativa non ha risposte: mostra solo la domanda e i suoi contenuti.",
+  "trueAnswer": "Vero",
+  "falseAnswer": "Falso"
 }

@@ -14,14 +14,17 @@ You can keep as many quizzes as you like; you pick one when starting a game.
 
 ## Question types
 
-| Type     | What players see                             | Scored | Solutions   |
-| -------- | -------------------------------------------- | ------ | ----------- |
-| `single` | 2-4 answers, one tap submits                 | yes    | exactly one |
-| `multi`  | 2-4 answers, select several then **Valider** | yes    | one or more |
-| `poll`   | 2-4 answers, one tap, no right answer        | no     | none        |
-| `slide`  | an information screen, no answers to pick    | no     | none        |
+| Type        | What players see                             | Scored | Solutions            |
+| ----------- | -------------------------------------------- | ------ | -------------------- |
+| `single`    | 2-4 answers, one tap submits                 | yes    | one or more accepted |
+| `multi`     | 2-4 answers, select several then **Valider** | yes    | one or more          |
+| `truefalse` | two fixed answers, one tap submits           | yes    | exactly one          |
+| `poll`      | 2-4 answers, one tap, no right answer        | no     | none                 |
+| `slide`     | an information screen, no answers to pick    | no     | none                 |
 
 A slide has no answers, so players stay on it until the manager moves on: give it `time: -1` and use the Skip button, or set a timer.
+
+A true/false question carries its two answers for you: the editor fills them in, keeps them read-only, and lets you pick which one is correct. Only the statement is yours to write.
 
 Unscored types (`poll`, `slide`) ignore `solutions`, `maxPoints` and `penalty` â€” the validator strips those fields on save, and the editor hides them. A poll vote never awards points, never costs points, and never breaks a correct-answer streak; slides are skipped in the players' answer history and in the exported report.
 
@@ -51,6 +54,14 @@ Unscored types (`poll`, `slide`) ignore `solutions`, `maxPoints` and `penalty` â
       "penalty": 200
     },
     {
+      "type": "truefalse",
+      "question": "Paris est la capitale de la France.",
+      "answers": ["Vrai", "Faux"],
+      "solutions": [0],
+      "cooldown": 3,
+      "time": 15
+    },
+    {
       "type": "poll",
       "question": "Which session time suits you best?",
       "answers": ["Morning", "Noon", "Afternoon", "Evening"],
@@ -70,20 +81,20 @@ Unscored types (`poll`, `slide`) ignore `solutions`, `maxPoints` and `penalty` â
 
 ## Field reference
 
-| Field                   | Type                                     | Notes                                                                                                             |
-| ----------------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `subject`               | string                                   | Quiz title, cannot be empty.                                                                                      |
-| `questions`             | array                                    | At least one question.                                                                                            |
-| `questions[].type`      | `single` \| `multi` \| `poll` \| `slide` | See the table above. Optional in legacy files, see [Legacy quizzes](#legacy-quizzes).                             |
-| `questions[].question`  | string                                   | The question text (or the slide text). Cannot be empty.                                                           |
-| `questions[].answers`   | string[]                                 | 2 to 4 non-empty answers. Always empty for `slide`.                                                               |
-| `questions[].media`     | object                                   | Optional: `type` is `"image"`, `"video"` or `"audio"`, `url` must be a valid URL.                                 |
-| `questions[].solutions` | number[]                                 | 0-based indices into `answers`. Required for scored types; a bare number is accepted too.                         |
-| `questions[].cooldown`  | integer 3-15                             | Seconds the question is displayed before answers open.                                                            |
-| `questions[].time`      | integer                                  | Seconds to answer (5 minimum in the editor), or `-1` for no time limit. Spreadsheet imports are clamped to 5-120. |
-| `questions[].maxPoints` | integer >= 0                             | Points for a perfect answer. Default `1000`.                                                                      |
-| `questions[].penalty`   | integer >= 0                             | Deducted on a wrong answer. Default none, see below.                                                              |
-| `questions[].options`   | object                                   | `multi` only: `{ "scoringMode": "strict" \| "balanced" \| "lenient" }`, default `balanced`.                       |
+| Field                   | Type                        | Notes                                                                                                             |
+| ----------------------- | --------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `subject`               | string                      | Quiz title, cannot be empty.                                                                                      |
+| `questions`             | array                       | At least one question.                                                                                            |
+| `questions[].type`      | one of the five types above | See the table above. Optional in legacy files, see [Legacy quizzes](#legacy-quizzes).                             |
+| `questions[].question`  | string                      | The question text (or the slide text). Cannot be empty.                                                           |
+| `questions[].answers`   | string[]                    | 2 to 4 non-empty answers. Always empty for `slide`, exactly two for `truefalse`.                                  |
+| `questions[].media`     | object                      | Optional: `type` is `"image"`, `"video"` or `"audio"`, `url` must be a valid URL.                                 |
+| `questions[].solutions` | number[]                    | 0-based indices into `answers`. Required for scored types; a bare number is accepted too.                         |
+| `questions[].cooldown`  | integer 3-15                | Seconds the question is displayed before answers open.                                                            |
+| `questions[].time`      | integer                     | Seconds to answer (5 minimum in the editor), or `-1` for no time limit. Spreadsheet imports are clamped to 5-120. |
+| `questions[].maxPoints` | integer >= 0                | Points for a perfect answer. Default `1000`.                                                                      |
+| `questions[].penalty`   | integer >= 0                | Deducted on a wrong answer. Default none, see below.                                                              |
+| `questions[].options`   | object                      | `multi` only: `{ "scoringMode": "strict" \| "balanced" \| "lenient" }`, default `balanced`.                       |
 
 > **Note:** ids are assigned by the database. Importing the same file twice creates two quizzes.
 

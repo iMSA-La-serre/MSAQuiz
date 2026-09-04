@@ -44,8 +44,11 @@
     "multi": "Multiple choice",
     "poll": "Poll",
     "single": "Single choice",
-    "slide": "Info slide"
+    "slide": "Info slide",
+    "truefalse": "True / False"
   },
   "titleQuizzPlaceholder": "Quizz title...",
-  "slideNoAnswers": "An info slide has no answers — it simply displays the question and its media."
+  "slideNoAnswers": "An info slide has no answers — it simply displays the question and its media.",
+  "trueAnswer": "True",
+  "falseAnswer": "False"
 }

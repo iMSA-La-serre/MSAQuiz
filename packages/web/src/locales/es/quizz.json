@@ -44,8 +44,11 @@
     "multi": "Opción múltiple",
     "poll": "Encuesta",
     "single": "Opción única",
-    "slide": "Diapositiva informativa"
+    "slide": "Diapositiva informativa",
+    "truefalse": "Verdadero / Falso"
   },
   "titleQuizzPlaceholder": "Título del cuestionario...",
-  "slideNoAnswers": "Una diapositiva informativa no tiene respuestas: solo muestra la pregunta y su contenido."
+  "slideNoAnswers": "Una diapositiva informativa no tiene respuestas: solo muestra la pregunta y su contenido.",
+  "trueAnswer": "Verdadero",
+  "falseAnswer": "Falso"
 }

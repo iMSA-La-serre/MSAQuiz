@@ -30,7 +30,7 @@ git cherry-pick <sha>                       # pick only what we want
 - **SQLite persistence** — quizzes and game results live in a database (`config/msaquiz.db`), not in JSON files. Schema is ready for user accounts (Microsoft SSO planned).
 - **Excel import** — import quizzes from `.xlsx` files (Kahoot template/export compatible).
 - **Excel export** — download any game result as an `.xlsx` report.
-- **Poll & info-slide question types** — in addition to upstream's single/multi.
+- **Poll, true/false & info-slide question types** — in addition to upstream's single/multi.
 - The footer displays the branded app name (from `config/branding`).
 
 The La Serre theme itself lives in the **deployment volume** (`config/branding/`), not in this repo.
@@ -143,7 +143,7 @@ Quizzes can be created three ways, all from the manager dashboard:
 - **JSON import** — a file matching the format below.
 - **Excel import (`.xlsx`)** — compatible with the **Kahoot quiz template/export**: a header row containing `Question`, `Answer 1..4`, `Time limit`, `Correct answer(s)` (1-based, comma-separated), data on the following rows — or the exact Kahoot template layout (columns B–H, data from row 9). Questions with several correct answers become multi-select (strict scoring).
 
-The JSON format, the four question types (`single`, `multi`, `poll`, `slide`), the scoring modes and the exact Kahoot mapping rules are documented in **[docs/quiz.md](docs/quiz.md)**.
+The JSON format, the five question types (`single`, `multi`, `truefalse`, `poll`, `slide`), the scoring modes and the exact Kahoot mapping rules are documented in **[docs/quiz.md](docs/quiz.md)**.
 
 ### 4. Game results
 
