@@ -44,5 +44,9 @@
     "back": "Go back home",
     "description": "An unexpected error occurred. Please try again.",
     "title": "Something went wrong"
+  },
+  "stats": {
+    "failed": "Failed to compute statistics",
+    "notFound": "Statistics not found"
   }
 }

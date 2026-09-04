@@ -42,6 +42,16 @@
   "tabs": {
     "play": "Gioca",
     "quizz": "Quiz",
-    "results": "Risultati"
+    "results": "Risultati",
+    "stats": "Statistiche"
+  },
+  "stats": {
+    "answered": "{{count}} risposta/e",
+    "gameCount": "{{count}} partita/e",
+    "missing": "{{count}} senza risposta",
+    "none": "Nessuna statistica per ora, termina una partita per vederla qui",
+    "noQuestion": "Nessuna domanda da analizzare",
+    "playerCount": "{{count}} partecipazione/i",
+    "unscored": "Non valutato"
   }
 }

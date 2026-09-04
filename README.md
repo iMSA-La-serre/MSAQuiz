@@ -31,6 +31,7 @@ git cherry-pick <sha>                       # pick only what we want
 - **Excel import** — import quizzes from `.xlsx` files (Kahoot template/export compatible).
 - **Excel export** — download any game result as an `.xlsx` report.
 - **Poll, true/false & info-slide question types** — in addition to upstream's single/multi.
+- **Per-question statistics** — success rates aggregated across every game of a quizz.
 - The footer displays the branded app name (from `config/branding`).
 
 The La Serre theme itself lives in the **deployment volume** (`config/branding/`), not in this repo.
@@ -148,6 +149,8 @@ The JSON format, the five question types (`single`, `multi`, `truefalse`, `poll`
 ### 4. Game results
 
 Results are saved automatically at the end of each game and browsable in the manager (Résultats tab). Each result can be **downloaded as an Excel report** (ranking sheet + per-question answer distribution).
+
+The **Stats tab** aggregates every game of a quizz: success rate per question, hardest questions first, how many players let the timer run out, and which answers were picked. Questions are matched by their text, so editing or reordering a quizz keeps its history readable. Only games played after this feature landed are linked to their quizz — older results stay in the Résultats tab but carry no link, so they are not counted.
 
 ### 5. Custom branding (`config/branding/`) — optional
 

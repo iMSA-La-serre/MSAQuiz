@@ -36,6 +36,11 @@ export const quizzes = sqliteTable("quizzes", {
 
 export const results = sqliteTable("results", {
   id: text("id").primaryKey(),
+  // Renseigné à la fin de la partie, null pour les résultats enregistrés
+  // avant l'ajout de la colonne. Volontairement sans clé étrangère : SQLite
+  // ne sait pas ajouter un ON DELETE à une colonne existante, et supprimer un
+  // quiz ne doit ni échouer ni effacer l'historique de ses parties.
+  quizzId: text("quizz_id"),
   subject: text("subject").notNull(),
   // ISO 8601, même valeur que GameResult.date (tri lexicographique OK).
   date: text("date").notNull(),

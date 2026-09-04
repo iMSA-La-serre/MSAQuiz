@@ -44,5 +44,9 @@
     "back": "Torna alla home",
     "description": "Si è verificato un errore imprevisto. Riprova.",
     "title": "Qualcosa è andato storto"
+  },
+  "stats": {
+    "failed": "Calcolo delle statistiche non riuscito",
+    "notFound": "Statistiche non trovate"
   }
 }

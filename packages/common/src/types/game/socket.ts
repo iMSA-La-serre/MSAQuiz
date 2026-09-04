@@ -3,6 +3,8 @@ import type {
   GameResult,
   GameUpdateQuestion,
   Player,
+  QuizzStats,
+  QuizzStatsMeta,
   QuizzWithId,
 } from "@razzia/common/types/game"
 import type { Status, StatusDataMap } from "@razzia/common/types/game/status"
@@ -93,6 +95,11 @@ export interface ServerToClientEvents {
     filename: string
     buffer: ArrayBuffer
   }) => void
+
+  // Statistics events
+  [EVENTS.STATS.LIST_DATA]: (_data: QuizzStatsMeta[]) => void
+  [EVENTS.STATS.DATA]: (_data: QuizzStats) => void
+  [EVENTS.STATS.ERROR]: (_message: string) => void
 }
 
 export interface ClientToServerEvents {
@@ -138,6 +145,10 @@ export interface ClientToServerEvents {
   [EVENTS.RESULTS.GET]: (_id: string) => void
   [EVENTS.RESULTS.DELETE]: (_id: string) => void
   [EVENTS.RESULTS.EXPORT]: (_id: string) => void
+
+  // Statistics actions
+  [EVENTS.STATS.LIST]: () => void
+  [EVENTS.STATS.GET]: (_quizzId: string) => void
 
   // Common
   disconnect: () => void

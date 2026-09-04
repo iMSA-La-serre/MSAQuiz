@@ -1,0 +1,1 @@
+ALTER TABLE `results` ADD `quizz_id` text;

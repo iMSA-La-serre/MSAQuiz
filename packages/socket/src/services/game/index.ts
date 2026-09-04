@@ -1,5 +1,5 @@
 import { EVENTS } from "@razzia/common/constants"
-import type { Player, Quizz } from "@razzia/common/types/game"
+import type { Player, QuizzWithId } from "@razzia/common/types/game"
 import type { Server, Socket } from "@razzia/common/types/game/socket"
 import {
   STATUS,
@@ -44,7 +44,7 @@ class Game {
     { name: Status; data: StatusDataMap[Status] }
   >()
 
-  constructor(io: Server, socket: Socket, quizz: Quizz) {
+  constructor(io: Server, socket: Socket, quizz: QuizzWithId) {
     const clientId = getClientId(socket)
 
     this.io = io

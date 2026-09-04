@@ -42,6 +42,16 @@
   "tabs": {
     "play": "プレイ",
     "quizz": "クイズ",
-    "results": "結果"
+    "results": "結果",
+    "stats": "統計"
+  },
+  "stats": {
+    "answered": "回答 {{count}} 件",
+    "gameCount": "{{count}} 回のゲーム",
+    "missing": "未回答 {{count}} 件",
+    "none": "統計はまだありません。ゲームを終えると表示されます",
+    "noQuestion": "分析できる問題がありません",
+    "playerCount": "延べ {{count}} 人",
+    "unscored": "採点なし"
   }
 }

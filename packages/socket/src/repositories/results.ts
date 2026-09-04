@@ -1,7 +1,16 @@
-import type { GameResult, GameResultMeta } from "@razzia/common/types/game"
+import type {
+  GameResult,
+  GameResultMeta,
+  QuizzStats,
+  QuizzStatsMeta,
+} from "@razzia/common/types/game"
 import { db } from "@razzia/socket/db/client"
 import { resultPlayers, results } from "@razzia/socket/db/schema"
-import { desc, eq } from "drizzle-orm"
+import {
+  aggregateQuestions,
+  overallSuccessRate,
+} from "@razzia/socket/services/stats"
+import { desc, eq, isNotNull } from "drizzle-orm"
 
 export const saveResult = (data: GameResult): void => {
   try {
@@ -9,6 +18,7 @@ export const saveResult = (data: GameResult): void => {
       tx.insert(results)
         .values({
           id: data.id,
+          quizzId: data.quizzId ?? null,
           subject: data.subject,
           date: data.date,
           playerCount: data.players.length,
@@ -59,6 +69,60 @@ export const getResultById = (id: string): GameResult => {
   }
 
   return row.data
+}
+
+/** Games grouped by quizz, most recently played first. */
+const gamesByQuizz = (): Map<string, GameResult[]> => {
+  const rows = db
+    .select({
+      quizzId: results.quizzId,
+      data: results.data,
+    })
+    .from(results)
+    .where(isNotNull(results.quizzId))
+    .orderBy(desc(results.date))
+    .all()
+
+  const games = new Map<string, GameResult[]>()
+
+  for (const row of rows) {
+    if (row.quizzId === null) {
+      continue
+    }
+
+    const played = games.get(row.quizzId) ?? []
+
+    played.push(row.data)
+    games.set(row.quizzId, played)
+  }
+
+  return games
+}
+
+export const getQuizzStatsMeta = (): QuizzStatsMeta[] =>
+  [...gamesByQuizz().entries()].map(([quizzId, games]) => ({
+    quizzId,
+    // The quizz may have been renamed between two games: show the latest name.
+    subject: games[0].subject,
+    gameCount: games.length,
+    playerCount: games.reduce((sum, game) => sum + game.players.length, 0),
+    successRate: overallSuccessRate(aggregateQuestions(games)),
+  }))
+
+export const getQuizzStats = (quizzId: string): QuizzStats => {
+  const games = gamesByQuizz().get(quizzId)
+
+  if (!games || games.length === 0) {
+    throw new Error(`No result for quizz "${quizzId}"`)
+  }
+
+  return {
+    quizzId,
+    subject: games[0].subject,
+    gameCount: games.length,
+    playerCount: games.reduce((sum, game) => sum + game.players.length, 0),
+    questions: aggregateQuestions(games),
+  }
 }
 
 export const deleteResult = (id: string): void => {

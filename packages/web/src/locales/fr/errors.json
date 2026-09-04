@@ -44,5 +44,9 @@
     "back": "Retour à l'accueil",
     "description": "Une erreur inattendue s'est produite. Veuillez réessayer.",
     "title": "Une erreur est survenue"
+  },
+  "stats": {
+    "failed": "Le calcul des statistiques a échoué",
+    "notFound": "Statistiques introuvables"
   }
 }

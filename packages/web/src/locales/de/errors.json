@@ -44,5 +44,9 @@
     "back": "Zurück zur Startseite",
     "description": "Ein unerwarteter Fehler ist aufgetreten. Bitte versuche es erneut.",
     "title": "Etwas ist schiefgelaufen"
+  },
+  "stats": {
+    "failed": "Statistiken konnten nicht berechnet werden",
+    "notFound": "Statistiken nicht gefunden"
   }
 }

@@ -44,5 +44,9 @@
     "back": "Volver al inicio",
     "description": "Ocurrió un error inesperado. Por favor, inténtalo de nuevo.",
     "title": "Algo salió mal"
+  },
+  "stats": {
+    "failed": "No se pudieron calcular las estadísticas",
+    "notFound": "Estadísticas no encontradas"
   }
 }

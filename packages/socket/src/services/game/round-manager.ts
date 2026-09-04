@@ -11,7 +11,7 @@ import type {
   Player,
   Question,
   QuestionResult,
-  Quizz,
+  QuizzWithId,
 } from "@razzia/common/types/game"
 import type { Server, Socket } from "@razzia/common/types/game/socket"
 import {
@@ -37,7 +37,7 @@ type SendFn = <T extends Status>(
 ) => void
 
 export interface RoundManagerOptions {
-  quizz: Quizz
+  quizz: QuizzWithId
   players: PlayerManager
   cooldown: CooldownTimer
   io: Server
@@ -375,6 +375,7 @@ export class RoundManager {
 
       this.opts.onGameFinished({
         id: `${Date.now()}-${nanoid(8)}`,
+        quizzId: this.opts.quizz.id,
         subject: this.opts.quizz.subject,
         date: new Date().toISOString(),
         players: this.leaderboard.map((player, index) => ({

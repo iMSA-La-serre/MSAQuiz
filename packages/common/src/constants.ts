@@ -62,6 +62,13 @@ export const EVENTS = {
     EXPORT: "results:export",
     EXPORT_DATA: "results:exportData",
   },
+  STATS: {
+    LIST: "stats:list",
+    LIST_DATA: "stats:listData",
+    GET: "stats:get",
+    DATA: "stats:data",
+    ERROR: "stats:error",
+  },
 } as const
 
 export const NO_TIME_LIMIT = -1
