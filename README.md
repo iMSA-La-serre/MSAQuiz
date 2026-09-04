@@ -208,6 +208,19 @@ All fields are optional — anything you omit keeps its default value.
 
 MSAQuiz is maintained internally by the La Serre team — open issues and merge requests on [iMSA-La-serre/MSAQuiz](https://github.com/iMSA-La-serre/MSAQuiz).
 
+### Tests
+
+Automated tests run with [Vitest](https://vitest.dev):
+
+```bash
+pnpm test        # once, as CI does
+pnpm test:watch  # while developing
+```
+
+They cover the pure logic — quiz validation, the scoring of all four question types, the point curves and the Kahoot spreadsheet parser — and run on every pull request. Test files sit next to the code they cover (`*.test.ts`).
+
+Keep them away from the database: importing anything that reaches `repositories/` or `db/` opens SQLite as a side effect, so stub those modules instead (see `packages/socket/src/utils/game.test.ts`).
+
 ## 🙏 Credits
 
 Built on [Razzia](https://github.com/Ralex91/Razzia) by [Ralex91](https://github.com/Ralex91) — our generic runtime-theming system was contributed back upstream (PR #127).
