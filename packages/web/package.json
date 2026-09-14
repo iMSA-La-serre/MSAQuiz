@@ -5,7 +5,8 @@
     "dev": "vite",
     "build": "vite build",
     "start": "vite preview",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "sounds:generate": "node scripts/generate-sounds.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

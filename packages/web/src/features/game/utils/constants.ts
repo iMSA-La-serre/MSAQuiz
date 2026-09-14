@@ -54,7 +54,7 @@ export const GAME_STATE_COMPONENTS_MANAGER = {
 export const SFX = {
   ANSWERS: {
     MUSIC: "/sounds/answersMusic.mp3",
-    SOUND: "/sounds/answersSound.mp3",
+    SOUND: "/sounds/answer-received.wav",
   },
   PODIUM: {
     THREE: "/sounds/three.mp3",
@@ -64,7 +64,7 @@ export const SFX = {
   },
   RESULTS_SOUND: "/sounds/results.mp3",
   SHOW_SOUND: "/sounds/show.mp3",
-  BOUMP_SOUND: "/sounds/boump.mp3",
+  BOUMP_SOUND: "/sounds/countdown-tick.wav",
 } as const
 
 export const MANAGER_SKIP_EVENTS = {
