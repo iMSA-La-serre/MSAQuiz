@@ -8,14 +8,20 @@
     "points": "pts",
     "winner": "Top score"
   },
-  "gameCodeLabel": "Game code:",
   "hud": {
     "answers": "Answers",
     "time": "Time"
   },
-  "joinInstruction": "Join the game at",
   "leaderboard": "Leaderboard",
-  "playersJoined": "Players Joined: ",
+  "lobby": {
+    "empty": "Participants will appear here as soon as they join",
+    "enlargeQr": "Enlarge the QR code",
+    "kick": "Remove {{name}}",
+    "orVisit": "or go to",
+    "participants": "Participants",
+    "scan": "Scan the QR code with your phone",
+    "title": "Join the game"
+  },
   "pollAnswered": "Vote recorded!",
   "pollNoVote": "You didn't vote",
   "questionPrefix": "Question #",

@@ -2,12 +2,12 @@ import { EVENTS } from "@razzia/common/constants"
 import Answers from "@razzia/web/features/game/components/states/Answers"
 import FinalRanking from "@razzia/web/features/game/components/states/FinalRanking"
 import Leaderboard from "@razzia/web/features/game/components/states/Leaderboard"
+import Lobby from "@razzia/web/features/game/components/states/Lobby"
 import PlayerFinished from "@razzia/web/features/game/components/states/PlayerFinished"
 import Prepared from "@razzia/web/features/game/components/states/Prepared"
 import Question from "@razzia/web/features/game/components/states/Question"
 import Responses from "@razzia/web/features/game/components/states/Responses"
 import Result from "@razzia/web/features/game/components/states/Result"
-import Room from "@razzia/web/features/game/components/states/Room"
 import Start from "@razzia/web/features/game/components/states/Start"
 import Wait from "@razzia/web/features/game/components/states/Wait"
 
@@ -48,7 +48,7 @@ export const GAME_STATE_COMPONENTS = {
 
 export const GAME_STATE_COMPONENTS_MANAGER = {
   ...GAME_STATE_COMPONENTS,
-  [STATUS.SHOW_ROOM]: Room,
+  [STATUS.SHOW_ROOM]: Lobby,
   [STATUS.SHOW_RESPONSES]: Responses,
   [STATUS.SHOW_LEADERBOARD]: Leaderboard,
   [STATUS.FINISHED]: FinalRanking,

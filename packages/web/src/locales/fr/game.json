@@ -8,14 +8,20 @@
     "points": "pts",
     "winner": "Meilleur score"
   },
-  "gameCodeLabel": "Code de la partie :",
   "hud": {
     "answers": "Réponses",
     "time": "Temps"
   },
-  "joinInstruction": "Rejoins la partie sur",
   "leaderboard": "Classement",
-  "playersJoined": "Joueurs connectés : ",
+  "lobby": {
+    "empty": "Les participants apparaîtront ici dès qu'ils auront rejoint la partie",
+    "enlargeQr": "Agrandir le QR code",
+    "kick": "Exclure {{name}}",
+    "orVisit": "ou rendez-vous sur",
+    "participants": "Participants",
+    "scan": "Scannez le QR code avec votre téléphone",
+    "title": "Rejoindre la partie"
+  },
   "pollAnswered": "Vote enregistré !",
   "pollNoVote": "Vous n'avez pas voté",
   "questionPrefix": "Question n°",

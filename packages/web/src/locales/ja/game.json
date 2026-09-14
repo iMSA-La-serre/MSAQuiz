@@ -8,14 +8,20 @@
     "points": "pt",
     "winner": "最高得点"
   },
-  "gameCodeLabel": "ゲームコード:",
   "hud": {
     "answers": "回答数",
     "time": "時間"
   },
-  "joinInstruction": "以下でゲームに参加してください",
   "leaderboard": "リーダーボード",
-  "playersJoined": "参加プレイヤー数: ",
+  "lobby": {
+    "empty": "参加者は参加するとここに表示されます",
+    "enlargeQr": "QRコードを拡大",
+    "kick": "{{name}}を退出させる",
+    "orVisit": "または次のURLを開いてください:",
+    "participants": "参加者",
+    "scan": "スマートフォンでQRコードを読み取ってください",
+    "title": "ゲームに参加"
+  },
   "pollAnswered": "投票を記録しました！",
   "pollNoVote": "投票しませんでした",
   "questionPrefix": "問題 #",

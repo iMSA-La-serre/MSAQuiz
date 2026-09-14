@@ -8,14 +8,20 @@
     "points": "Pkt.",
     "winner": "Bestes Ergebnis"
   },
-  "gameCodeLabel": "Spielcode:",
   "hud": {
     "answers": "Antworten",
     "time": "Zeit"
   },
-  "joinInstruction": "Tritt dem Spiel bei auf",
   "leaderboard": "Bestenliste",
-  "playersJoined": "Verbundene Spieler: ",
+  "lobby": {
+    "empty": "Teilnehmende erscheinen hier, sobald sie beitreten",
+    "enlargeQr": "QR-Code vergrößern",
+    "kick": "{{name}} entfernen",
+    "orVisit": "oder öffne",
+    "participants": "Teilnehmende",
+    "scan": "Scanne den QR-Code mit deinem Handy",
+    "title": "Am Spiel teilnehmen"
+  },
   "pollAnswered": "Stimme gespeichert!",
   "pollNoVote": "Sie haben nicht abgestimmt",
   "questionPrefix": "Frage #",
