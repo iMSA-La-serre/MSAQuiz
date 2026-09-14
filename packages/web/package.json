@@ -28,7 +28,6 @@
     "motion": "^12.42.0",
     "qrcode.react": "^4.2.0",
     "react": "^19.2.7",
-    "react-confetti": "^6.4.0",
     "react-dom": "^19.2.7",
     "react-hot-toast": "^2.6.0",
     "react-i18next": "^17.0.8",

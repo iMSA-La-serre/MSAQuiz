@@ -4,17 +4,14 @@ Every sound shipped in `packages/web/public/sounds/` must have a known author an
 
 ## Register
 
-| File                  | Played when                            | Origin                                                                          | Status        |
-| --------------------- | -------------------------------------- | ------------------------------------------------------------------------------- | ------------- |
-| `answer-received.wav` | An answer comes in (host screen)       | Original, synthesised by `packages/web/scripts/generate-sounds.ts` (iMSA, 2026) | ✅ Owned      |
-| `countdown-tick.wav`  | Each second of the pre-game countdown  | Original, synthesised by `packages/web/scripts/generate-sounds.ts` (iMSA, 2026) | ✅ Owned      |
-| `answersMusic.mp3`    | Looping music while players answer     | Inherited from Razzia, author unknown                                           | ⚠️ To replace |
-| `show.mp3`            | The question appears                   | Inherited from Razzia, author unknown                                           | ⚠️ To replace |
-| `results.mp3`         | Result and answer-distribution screens | Inherited from Razzia, author unknown                                           | ⚠️ To replace |
-| `three.mp3`           | Podium, 3rd place                      | Inherited from Razzia, author unknown                                           | ⚠️ To replace |
-| `second.mp3`          | Podium, 2nd place                      | Inherited from Razzia, author unknown                                           | ⚠️ To replace |
-| `snearRoll.mp3`       | Podium, before 1st place               | Inherited from Razzia, author unknown                                           | ⚠️ To replace |
-| `first.mp3`           | Podium, 1st place                      | Inherited from Razzia, author unknown                                           | ⚠️ To replace |
+| File                  | Played when                             | Origin                                                                          | Status        |
+| --------------------- | --------------------------------------- | ------------------------------------------------------------------------------- | ------------- |
+| `answer-received.wav` | An answer comes in (host screen)        | Original, synthesised by `packages/web/scripts/generate-sounds.ts` (iMSA, 2026) | ✅ Owned      |
+| `countdown-tick.wav`  | Each second of the pre-game countdown   | Original, synthesised by `packages/web/scripts/generate-sounds.ts` (iMSA, 2026) | ✅ Owned      |
+| `finale.wav`          | The final ranking appears (host screen) | Original, synthesised by `packages/web/scripts/generate-sounds.ts` (iMSA, 2026) | ✅ Owned      |
+| `answersMusic.mp3`    | Looping music while players answer      | Inherited from Razzia, author unknown                                           | ⚠️ To replace |
+| `show.mp3`            | The question appears                    | Inherited from Razzia, author unknown                                           | ⚠️ To replace |
+| `results.mp3`         | Result and answer-distribution screens  | Inherited from Razzia, author unknown                                           | ⚠️ To replace |
 
 ## Adding or replacing a sound
 

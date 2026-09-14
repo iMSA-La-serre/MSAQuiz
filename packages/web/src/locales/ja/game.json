@@ -1,6 +1,12 @@
 {
   "confirm": "確認",
   "correct": "正解！",
+  "finale": {
+    "eyebrow": "最終順位",
+    "noPlayers": "参加したプレイヤーはいません",
+    "points": "pt",
+    "winner": "最高得点"
+  },
   "gamePinLabel": "ゲームPIN:",
   "hud": {
     "answers": "回答数",

@@ -1,6 +1,12 @@
 {
   "confirm": "Confirm",
   "correct": "Nice!",
+  "finale": {
+    "eyebrow": "Final ranking",
+    "noPlayers": "No players took part",
+    "points": "pts",
+    "winner": "Top score"
+  },
   "gamePinLabel": "Game PIN:",
   "hud": {
     "answers": "Answers",

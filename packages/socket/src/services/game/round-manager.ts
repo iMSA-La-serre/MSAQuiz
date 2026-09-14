@@ -371,7 +371,7 @@ export class RoundManager {
     if (isLastRound) {
       this.started = false
 
-      const top = this.leaderboard.slice(0, 3)
+      const top = this.leaderboard.slice(0, 5)
 
       this.opts.onGameFinished({
         id: `${Date.now()}-${nanoid(8)}`,

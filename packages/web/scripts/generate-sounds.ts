@@ -20,7 +20,7 @@ interface MasterOptions {
   fadeOut?: number
 }
 
-interface Partial {
+interface BarPartial {
   ratio: number
   amplitude: number
   decay: number
@@ -118,12 +118,27 @@ const answerReceived = (): Float64Array => {
   return master(samples, { rmsDb: -12, peakCeilingDb: -1 })
 }
 
-// "Tok": a soft wooden mallet on a tuned bar, one per countdown second.
-// Partials follow a marimba bar (about 1 : 3.9 : 9.2), each decaying faster
-// than the one below it, plus a very short mallet transient.
+// A tuned wooden bar: its partials follow a marimba (about 1 : 3.9 : 9.2),
+// each decaying faster than the one below it.
+const marimbaBar = (
+  t: number,
+  fundamental: number,
+  partials: BarPartial[],
+): number =>
+  partials.reduce(
+    (sum, { ratio, amplitude, decay }) =>
+      sum +
+      amplitude *
+        Math.sin(2 * Math.PI * fundamental * ratio * t) *
+        Math.exp(-t / decay),
+    0,
+  )
+
+// "Tok": a soft wooden mallet on a tuned bar, one per countdown second,
+// with a very short mallet transient on top.
 const countdownTick = (): Float64Array => {
   const fundamental = 523.25
-  const partials: Partial[] = [
+  const partials: BarPartial[] = [
     { ratio: 1, amplitude: 1, decay: 0.08 },
     { ratio: 3.93, amplitude: 0.3, decay: 0.02 },
     { ratio: 9.2, amplitude: 0.08, decay: 0.008 },
@@ -131,14 +146,7 @@ const countdownTick = (): Float64Array => {
 
   const samples = render(0.3, (t) => {
     const attack = smoothRamp(t / 0.0015)
-    const bar = partials.reduce(
-      (sum, { ratio, amplitude, decay }) =>
-        sum +
-        amplitude *
-          Math.sin(2 * Math.PI * fundamental * ratio * t) *
-          Math.exp(-t / decay),
-      0,
-    )
+    const bar = marimbaBar(t, fundamental, partials)
     const mallet =
       0.15 * Math.sin(2 * Math.PI * 2500 * t) * Math.exp(-t / 0.003)
 
@@ -148,5 +156,37 @@ const countdownTick = (): Float64Array => {
   return master(samples, { rmsDb: -17, peakCeilingDb: -4 })
 }
 
+// "Floraison": played once, when the final ranking appears. The same wooden
+// bar as the countdown, struck as a quick rolled chord and left to ring. The
+// voicing (C, G, D, E) is open and airy on purpose: a closing chord, not a
+// victory fanfare.
+const finale = (): Float64Array => {
+  const notes = [523.25, 783.99, 1174.66, 1318.51]
+  const strikeGap = 0.07
+  const partials: BarPartial[] = [
+    { ratio: 1, amplitude: 1, decay: 0.45 },
+    { ratio: 3.93, amplitude: 0.22, decay: 0.07 },
+    { ratio: 9.2, amplitude: 0.05, decay: 0.018 },
+  ]
+
+  const samples = render(1.6, (t) =>
+    notes.reduce((sum, fundamental, index) => {
+      const local = t - index * strikeGap
+
+      if (local < 0) {
+        return sum
+      }
+
+      return (
+        sum +
+        smoothRamp(local / 0.0015) * marimbaBar(local, fundamental, partials)
+      )
+    }, 0),
+  )
+
+  return master(samples, { rmsDb: -18, peakCeilingDb: -3, fadeOut: 0.15 })
+}
+
 writeWav("answer-received.wav", answerReceived())
 writeWav("countdown-tick.wav", countdownTick())
+writeWav("finale.wav", finale())

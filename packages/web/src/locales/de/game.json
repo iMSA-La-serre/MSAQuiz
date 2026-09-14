@@ -1,6 +1,12 @@
 {
   "confirm": "Bestätigen",
   "correct": "Richtig!",
+  "finale": {
+    "eyebrow": "Endstand",
+    "noPlayers": "Keine Spieler haben teilgenommen",
+    "points": "Pkt.",
+    "winner": "Bestes Ergebnis"
+  },
   "gamePinLabel": "Spiel-PIN:",
   "hud": {
     "answers": "Antworten",

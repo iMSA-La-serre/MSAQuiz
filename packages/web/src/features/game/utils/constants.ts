@@ -1,8 +1,8 @@
 import { EVENTS } from "@razzia/common/constants"
 import Answers from "@razzia/web/features/game/components/states/Answers"
+import FinalRanking from "@razzia/web/features/game/components/states/FinalRanking"
 import Leaderboard from "@razzia/web/features/game/components/states/Leaderboard"
 import PlayerFinished from "@razzia/web/features/game/components/states/PlayerFinished"
-import Podium from "@razzia/web/features/game/components/states/Podium"
 import Prepared from "@razzia/web/features/game/components/states/Prepared"
 import Question from "@razzia/web/features/game/components/states/Question"
 import Responses from "@razzia/web/features/game/components/states/Responses"
@@ -48,7 +48,7 @@ export const GAME_STATE_COMPONENTS_MANAGER = {
   [STATUS.SHOW_ROOM]: Room,
   [STATUS.SHOW_RESPONSES]: Responses,
   [STATUS.SHOW_LEADERBOARD]: Leaderboard,
-  [STATUS.FINISHED]: Podium,
+  [STATUS.FINISHED]: FinalRanking,
 }
 
 export const SFX = {
@@ -56,12 +56,7 @@ export const SFX = {
     MUSIC: "/sounds/answersMusic.mp3",
     SOUND: "/sounds/answer-received.wav",
   },
-  PODIUM: {
-    THREE: "/sounds/three.mp3",
-    SECOND: "/sounds/second.mp3",
-    FIRST: "/sounds/first.mp3",
-    SNEAR_ROOL: "/sounds/snearRoll.mp3",
-  },
+  FINALE: "/sounds/finale.wav",
   RESULTS_SOUND: "/sounds/results.mp3",
   SHOW_SOUND: "/sounds/show.mp3",
   BOUMP_SOUND: "/sounds/countdown-tick.wav",
