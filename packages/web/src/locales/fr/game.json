@@ -24,7 +24,10 @@
   },
   "pollAnswered": "Vote enregistré !",
   "pollNoVote": "Vous n'avez pas voté",
-  "questionPrefix": "Question n°",
+  "prepared": {
+    "outOf": "sur {{total}}",
+    "title": "Question {{number}}"
+  },
   "rank": {
     "1": "1er",
     "2": "2ème place",
@@ -37,6 +40,10 @@
   "resultBehind": ", derrière ",
   "resultTop": "Tu es ",
   "slideInfo": "Aucune réponse attendue",
+  "start": {
+    "eyebrow": "Le quiz commence",
+    "firstQuestionIn": "Première question dans {{count}} s"
+  },
   "startGame": "Démarrer la partie",
   "usernamePlaceholder": "Pseudo",
   "waitingForAnswers": "En attente des réponses des joueurs",

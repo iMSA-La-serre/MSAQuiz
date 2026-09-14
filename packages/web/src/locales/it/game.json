@@ -24,7 +24,10 @@
   },
   "pollAnswered": "Voto registrato!",
   "pollNoVote": "Non hai votato",
-  "questionPrefix": "Domanda #",
+  "prepared": {
+    "outOf": "di {{total}}",
+    "title": "Domanda {{number}}"
+  },
   "rank": {
     "1": "1° posto",
     "2": "2° posto",
@@ -37,6 +40,10 @@
   "resultBehind": ", dietro ",
   "resultTop": "Hai terminato ",
   "slideInfo": "Nessuna risposta richiesta",
+  "start": {
+    "eyebrow": "Il quiz sta per iniziare",
+    "firstQuestionIn": "Prima domanda tra {{count}} s"
+  },
   "startGame": "Inizia il gioco",
   "usernamePlaceholder": "Nome utente qui",
   "waitingForAnswers": "In attesa delle risposte dei giocatori",

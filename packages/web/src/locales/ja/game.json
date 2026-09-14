@@ -24,7 +24,10 @@
   },
   "pollAnswered": "投票を記録しました！",
   "pollNoVote": "投票しませんでした",
-  "questionPrefix": "問題 #",
+  "prepared": {
+    "outOf": "全{{total}}問中",
+    "title": "第{{number}}問"
+  },
   "rank": {
     "1": "1位",
     "2": "2位",
@@ -37,6 +40,10 @@
   "resultBehind": "、差は ",
   "resultTop": "あなたの順位は ",
   "slideInfo": "回答は不要です",
+  "start": {
+    "eyebrow": "クイズが始まります",
+    "firstQuestionIn": "最初の問題まで {{count}} 秒"
+  },
   "startGame": "ゲーム開始",
   "usernamePlaceholder": "ユーザー名を入力",
   "waitingForAnswers": "プレイヤーの回答を待っています",

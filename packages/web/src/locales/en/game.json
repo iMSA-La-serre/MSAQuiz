@@ -24,7 +24,10 @@
   },
   "pollAnswered": "Vote recorded!",
   "pollNoVote": "You didn't vote",
-  "questionPrefix": "Question #",
+  "prepared": {
+    "outOf": "of {{total}}",
+    "title": "Question {{number}}"
+  },
   "rank": {
     "1": "1st place",
     "2": "2nd place",
@@ -37,6 +40,10 @@
   "resultBehind": ", behind ",
   "resultTop": "You finished ",
   "slideInfo": "No answer needed",
+  "start": {
+    "eyebrow": "The quiz is starting",
+    "firstQuestionIn": "First question in {{count}} s"
+  },
   "startGame": "Start Game",
   "usernamePlaceholder": "Username here",
   "waitingForAnswers": "Waiting for the players to answer",

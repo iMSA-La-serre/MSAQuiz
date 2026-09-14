@@ -121,6 +121,7 @@ export class RoundManager {
     this.opts.broadcast(STATUS.SHOW_PREPARED, {
       totalAnswers: question.answers.length,
       questionNumber: this.currentQuestion + 1,
+      questionType: question.type,
     })
 
     await sleep(2)
