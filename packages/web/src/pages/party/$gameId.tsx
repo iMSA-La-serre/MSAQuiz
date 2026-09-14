@@ -8,6 +8,7 @@ import {
 import { usePlayerStore } from "@razzia/web/features/game/stores/player"
 import { useQuestionStore } from "@razzia/web/features/game/stores/question"
 import {
+  GAME_CODE_STORAGE_KEY,
   GAME_STATE_COMPONENTS,
   isKeyOf,
 } from "@razzia/web/features/game/utils/constants"
@@ -51,7 +52,7 @@ const PlayerGamePage = () => {
   })
 
   useEvent(EVENTS.GAME.RESET, (message) => {
-    localStorage.removeItem("game_pin")
+    localStorage.removeItem(GAME_CODE_STORAGE_KEY)
     navigate({ to: "/" })
     reset()
     setQuestionStates(null)

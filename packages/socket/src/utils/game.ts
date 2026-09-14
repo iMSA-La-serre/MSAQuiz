@@ -1,9 +1,14 @@
-import { MAX_POINTS } from "@razzia/common/constants"
+import {
+  INVITE_CODE_ALPHABET,
+  INVITE_CODE_LENGTH,
+  MAX_POINTS,
+} from "@razzia/common/constants"
 import type { Question } from "@razzia/common/types/game"
 import type { Socket } from "@razzia/common/types/game/socket"
 import Game from "@razzia/socket/services/game"
 import Registry from "@razzia/socket/services/registry"
 import { nanoid } from "nanoid"
+import { randomInt } from "node:crypto"
 
 export const withGame = (
   gameId: string | undefined,
@@ -28,14 +33,13 @@ export const withGame = (
   callback(game)
 }
 
-export const createInviteCode = (length = 6) => {
+export const createInviteCode = (length = INVITE_CODE_LENGTH) => {
   let result = ""
-  const characters = "0123456789"
-  const charactersLength = characters.length
 
   for (let i = 0; i < length; i += 1) {
-    const randomIndex = Math.floor(Math.random() * charactersLength)
-    result += characters.charAt(randomIndex)
+    result += INVITE_CODE_ALPHABET.charAt(
+      randomInt(INVITE_CODE_ALPHABET.length),
+    )
   }
 
   return result

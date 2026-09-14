@@ -74,8 +74,10 @@ const Room = ({ data: { text, inviteCode } }: Props) => {
             <div className="my-4 h-0.5 w-full bg-gray-300 md:mx-4 md:h-full md:w-0.5" />
 
             <div>
-              <p className="text-2xl font-bold">{t("game:gamePinLabel")}</p>
-              <p className="text-6xl font-extrabold">{inviteCode}</p>
+              <p className="text-2xl font-bold">{t("game:gameCodeLabel")}</p>
+              <p className="text-6xl font-extrabold tracking-wider">
+                {inviteCode}
+              </p>
             </div>
           </div>
         </div>
@@ -85,7 +87,7 @@ const Room = ({ data: { text, inviteCode } }: Props) => {
             <div className="group relative flex h-40 shrink-0 cursor-pointer rounded-xl bg-white p-2">
               <QRCodeSVG
                 className="h-auto w-auto"
-                value={`${webUrl}?pin=${inviteCode}`}
+                value={`${webUrl}?code=${inviteCode}`}
               />
               <div className="absolute inset-0 flex items-center justify-center rounded-xl opacity-0 transition-opacity group-hover:opacity-100">
                 <div className="rounded-md bg-black/80 p-2">
@@ -109,7 +111,7 @@ const Room = ({ data: { text, inviteCode } }: Props) => {
               </button>
               <QRCodeSVG
                 className="size-56 md:size-70 lg:size-95"
-                value={`${webUrl}?pin=${inviteCode}`}
+                value={`${webUrl}?code=${inviteCode}`}
               />
             </AlertDialog.Content>
           </AlertDialog.Portal>

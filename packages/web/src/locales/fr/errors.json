@@ -1,6 +1,6 @@
 {
   "auth": {
-    "invalidInviteCode": "Code d'invitation invalide",
+    "invalidInviteCode": "Code de partie invalide",
     "usernameTooLong": "Le pseudo ne peut pas dépasser 20 caractères",
     "usernameTooShort": "Le pseudo doit faire au moins 4 caractères"
   },

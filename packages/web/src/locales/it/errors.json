@@ -1,6 +1,6 @@
 {
   "auth": {
-    "invalidInviteCode": "Codice di invito non valido",
+    "invalidInviteCode": "Codice partita non valido",
     "usernameTooLong": "Il nome utente non può superare i 20 caratteri",
     "usernameTooShort": "Il nome utente non può avere meno di 4 caratteri"
   },

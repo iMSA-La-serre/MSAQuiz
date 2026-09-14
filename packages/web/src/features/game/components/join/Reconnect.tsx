@@ -7,6 +7,7 @@ import {
 } from "@razzia/web/features/game/contexts/socket-context"
 import { usePlayerStore } from "@razzia/web/features/game/stores/player"
 import { useQuestionStore } from "@razzia/web/features/game/stores/question"
+import { GAME_CODE_STORAGE_KEY } from "@razzia/web/features/game/utils/constants"
 import { useNavigate } from "@tanstack/react-router"
 import { X } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
@@ -19,41 +20,41 @@ const Reconnect = () => {
   const { setQuestionStates } = useQuestionStore()
   const navigate = useNavigate()
   const { t } = useTranslation()
-  const [savedPin, setSavedPin] = useState(() =>
-    localStorage.getItem("game_pin"),
+  const [savedCode, setSavedCode] = useState(() =>
+    localStorage.getItem(GAME_CODE_STORAGE_KEY),
   )
   const [isChecking, setIsChecking] = useState(
-    Boolean(localStorage.getItem("game_pin")),
+    Boolean(localStorage.getItem(GAME_CODE_STORAGE_KEY)),
   )
   const hasCheckedRef = useRef(false)
 
   useEffect(() => {
-    if (!isConnected || hasCheckedRef.current || !savedPin) {
+    if (!isConnected || hasCheckedRef.current || !savedCode) {
       return
     }
 
     hasCheckedRef.current = true
-    socket.emit(EVENTS.PLAYER.CHECK_PIN, savedPin)
-  }, [isConnected, savedPin, socket])
+    socket.emit(EVENTS.PLAYER.CHECK_CODE, savedCode)
+  }, [isConnected, savedCode, socket])
 
-  useEvent(EVENTS.PLAYER.CHECK_PIN_RESULT, ({ valid }) => {
+  useEvent(EVENTS.PLAYER.CHECK_CODE_RESULT, ({ valid }) => {
     setIsChecking(false)
 
     if (!valid) {
-      localStorage.removeItem("game_pin")
-      setSavedPin(null)
+      localStorage.removeItem(GAME_CODE_STORAGE_KEY)
+      setSavedCode(null)
     }
   })
 
   const handleReconnect = () => {
-    if (savedPin) {
-      socket.emit(EVENTS.PLAYER.JOIN, savedPin)
+    if (savedCode) {
+      socket.emit(EVENTS.PLAYER.JOIN, savedCode)
     }
   }
 
   const handleDismiss = () => {
-    localStorage.removeItem("game_pin")
-    setSavedPin(null)
+    localStorage.removeItem(GAME_CODE_STORAGE_KEY)
+    setSavedCode(null)
   }
 
   useEvent(EVENTS.GAME.RESET, (message) => {
@@ -71,7 +72,7 @@ const Reconnect = () => {
     },
   )
 
-  if (!savedPin || isChecking) {
+  if (!savedCode || isChecking) {
     return null
   }
 

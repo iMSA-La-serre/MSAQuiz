@@ -1,4 +1,5 @@
 {
+  "codeLabel": "ゲームコード",
   "confirm": "確認",
   "correct": "正解！",
   "finale": {
@@ -7,14 +8,13 @@
     "points": "pt",
     "winner": "最高得点"
   },
-  "gamePinLabel": "ゲームPIN:",
+  "gameCodeLabel": "ゲームコード:",
   "hud": {
     "answers": "回答数",
     "time": "時間"
   },
   "joinInstruction": "以下でゲームに参加してください",
   "leaderboard": "リーダーボード",
-  "pinLabel": "PINコード",
   "playersJoined": "参加プレイヤー数: ",
   "pollAnswered": "投票を記録しました！",
   "pollNoVote": "投票しませんでした",

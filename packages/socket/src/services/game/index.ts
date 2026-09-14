@@ -49,7 +49,15 @@ class Game {
 
     this.io = io
     this.gameId = uuid()
-    this.inviteCode = createInviteCode()
+
+    // Two live games must never share a code: draw again on the rare clash.
+    let inviteCode = createInviteCode()
+
+    while (registry.getGameByInviteCode(inviteCode)) {
+      inviteCode = createInviteCode()
+    }
+
+    this.inviteCode = inviteCode
     this._manager = {
       id: socket.id,
       clientId,

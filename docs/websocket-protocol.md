@@ -14,7 +14,7 @@ io("http://<host>:<port>", {
 ```
 
 - `clientId` is a stable, random identifier your device generates once and persists (e.g. in flash on an ESP32). It's what lets a player rejoin their seat in the game after a disconnect (Wi-Fi drop, reboot, etc). Reusing the same `clientId` after a disconnect triggers the reconnect flow instead of creating a new player.
-- There's no HTTP auth for players. Anyone who knows a 6-character invite code can join a room, so treat the invite code as a room key.
+- There's no HTTP auth for players. Anyone who knows a 5-character game code can join a room, so treat the game code as a room key.
 - The server doesn't override Socket.IO's default keepalive (`pingInterval` 25s / `pingTimeout` 20s). Your client library needs to answer Engine.IO pings within that window or it will be dropped as disconnected.
 
 ## Message envelope
@@ -35,12 +35,14 @@ where `name` is one of the status constants below and `data` is the payload for 
 
 ## Joining a game as a player
 
-1. **Check the PIN** (optional, used by the web UI to validate before showing the join form):
+1. **Check the game code** (optional, used by the web UI to validate a saved code before offering to rejoin):
 
    ```
-   emit  player:checkPin        <inviteCode: string>
-   on    player:checkPinResult  { valid: boolean }
+   emit  player:checkCode        <inviteCode: string>
+   on    player:checkCodeResult  { valid: boolean }
    ```
+
+   The code is 5 characters from `ABCDFGHJKMNPQRSTUVWXYZ23456789`: no look-alikes such as `0`/`O` or `1`/`I`/`L`, and no `E`, which URL search-param parsing could read as an exponent. Case and surrounding spaces are ignored.
 
 2. **Enter the room**:
 
@@ -173,7 +175,7 @@ Full type definitions live in [packages/common/src/types/game/socket.ts](../pack
 
 | Event                   | Payload                                      |
 | ----------------------- | -------------------------------------------- |
-| `player:checkPin`       | `inviteCode: string`                         |
+| `player:checkCode`      | `inviteCode: string`                         |
 | `player:join`           | `inviteCode: string`                         |
 | `player:login`          | `{ gameId, data: { username: string } }`     |
 | `player:reconnect`      | `{ gameId: string }`                         |
@@ -184,7 +186,7 @@ Full type definitions live in [packages/common/src/types/game/socket.ts](../pack
 
 | Event                     | Payload                                            |
 | ------------------------- | -------------------------------------------------- |
-| `player:checkPinResult`   | `{ valid: boolean }`                               |
+| `player:checkCodeResult`  | `{ valid: boolean }`                               |
 | `player:successReconnect` | `{ gameId, status, player, currentQuestion }`      |
 | `game:status`             | `{ name: Status, data }`                           |
 | `game:successRoom`        | `gameId: string`                                   |

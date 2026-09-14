@@ -22,6 +22,9 @@ export const ANSWERS_COLORS = [
 
 export const ANSWERS_LABELS = ["A", "B", "C", "D"]
 
+// Last game code a player joined, kept so they can rejoin after a refresh.
+export const GAME_CODE_STORAGE_KEY = "msaquiz_game_code"
+
 export const GAME_STATES = {
   status: {
     name: STATUS.WAIT,

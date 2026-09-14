@@ -20,8 +20,8 @@ export const EVENTS = {
     RECONNECT: "player:reconnect",
     LEAVE: "player:leave",
     SELECTED_ANSWER: "player:selectedAnswer",
-    CHECK_PIN: "player:checkPin",
-    CHECK_PIN_RESULT: "player:checkPinResult",
+    CHECK_CODE: "player:checkCode",
+    CHECK_CODE_RESULT: "player:checkCodeResult",
   },
   MANAGER: {
     SUCCESS_RECONNECT: "manager:successReconnect",
@@ -74,6 +74,16 @@ export const EVENTS = {
 export const NO_TIME_LIMIT = -1
 
 export const MAX_POINTS = 1000
+
+/**
+ * Game codes players type to join: 5 characters from an alphabet without
+ * look-alikes (no 0/O, no 1/I/L), so a code read aloud or off a projector is
+ * never ambiguous. There is no E either: the join link carries the code as a
+ * URL search param, and the router would read a code like "2E345" as a number.
+ */
+export const INVITE_CODE_LENGTH = 5
+
+export const INVITE_CODE_ALPHABET = "ABCDFGHJKMNPQRSTUVWXYZ23456789"
 
 export const QUESTION_TYPES = {
   SINGLE: "single",

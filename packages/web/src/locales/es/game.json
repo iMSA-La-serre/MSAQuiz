@@ -1,4 +1,5 @@
 {
+  "codeLabel": "Código de la partida",
   "confirm": "Confirmar",
   "correct": "¡Bien!",
   "finale": {
@@ -7,14 +8,13 @@
     "points": "pts",
     "winner": "Mejor puntuación"
   },
-  "gamePinLabel": "PIN del juego:",
+  "gameCodeLabel": "Código de la partida:",
   "hud": {
     "answers": "Respuestas",
     "time": "Tiempo"
   },
   "joinInstruction": "Únete al juego en",
   "leaderboard": "Clasificación",
-  "pinLabel": "Código PIN",
   "playersJoined": "Jugadores conectados: ",
   "pollAnswered": "¡Voto registrado!",
   "pollNoVote": "No has votado",

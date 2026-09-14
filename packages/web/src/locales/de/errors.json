@@ -1,6 +1,6 @@
 {
   "auth": {
-    "invalidInviteCode": "Ungültiger Einladungscode",
+    "invalidInviteCode": "Ungültiger Spielcode",
     "usernameTooLong": "Der Benutzername darf nicht mehr als 20 Zeichen haben",
     "usernameTooShort": "Der Benutzername muss mindestens 4 Zeichen haben"
   },

@@ -1,6 +1,6 @@
 {
   "auth": {
-    "invalidInviteCode": "招待コードが無効です",
+    "invalidInviteCode": "ゲームコードが無効です",
     "usernameTooLong": "ユーザー名は20文字以内にしてください",
     "usernameTooShort": "ユーザー名は4文字以上にしてください"
   },

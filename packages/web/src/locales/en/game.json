@@ -1,4 +1,5 @@
 {
+  "codeLabel": "Game code",
   "confirm": "Confirm",
   "correct": "Nice!",
   "finale": {
@@ -7,14 +8,13 @@
     "points": "pts",
     "winner": "Top score"
   },
-  "gamePinLabel": "Game PIN:",
+  "gameCodeLabel": "Game code:",
   "hud": {
     "answers": "Answers",
     "time": "Time"
   },
   "joinInstruction": "Join the game at",
   "leaderboard": "Leaderboard",
-  "pinLabel": "PIN Code",
   "playersJoined": "Players Joined: ",
   "pollAnswered": "Vote recorded!",
   "pollNoVote": "You didn't vote",

@@ -1,12 +1,13 @@
 import { EVENTS } from "@razzia/common/constants"
 import Button from "@razzia/web/components/Button"
 import Card from "@razzia/web/components/Card"
-import PinInput from "@razzia/web/components/PinInput"
+import CodeInput from "@razzia/web/components/CodeInput"
 import {
   useEvent,
   useSocket,
 } from "@razzia/web/features/game/contexts/socket-context"
 import { usePlayerStore } from "@razzia/web/features/game/stores/player"
+import { GAME_CODE_STORAGE_KEY } from "@razzia/web/features/game/utils/constants"
 import { useSearch } from "@tanstack/react-router"
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -15,7 +16,7 @@ const Room = () => {
   const { socket, isConnected } = useSocket()
   const { join } = usePlayerStore()
   const [invitation, setInvitation] = useState("")
-  const { pin } = useSearch({ from: "/(auth)/" })
+  const { code } = useSearch({ from: "/(auth)/" })
   const hasJoinedRef = useRef(false)
   const { t } = useTranslation()
 
@@ -24,28 +25,32 @@ const Room = () => {
   }
 
   useEvent(EVENTS.GAME.SUCCESS_ROOM, (gameId) => {
-    const pinToSave = invitation.replace(/\s/gu, "") || pin
+    const codeToSave = (invitation.replace(/\s/gu, "") || code)?.toUpperCase()
 
-    if (pinToSave) {
-      localStorage.setItem("game_pin", pinToSave)
+    if (codeToSave) {
+      localStorage.setItem(GAME_CODE_STORAGE_KEY, codeToSave)
     }
 
     join(gameId)
   })
 
   useEffect(() => {
-    if (!isConnected || !pin || hasJoinedRef.current) {
+    if (!isConnected || !code || hasJoinedRef.current) {
       return
     }
 
-    socket.emit("player:join", pin)
+    socket.emit(EVENTS.PLAYER.JOIN, code)
     hasJoinedRef.current = true
-  }, [pin, isConnected, socket])
+  }, [code, isConnected, socket])
 
   return (
     <Card>
-      <p className="mb-2 text-lg font-semibold">{t("game:pinLabel")}</p>
-      <PinInput value={invitation} onChange={setInvitation} />
+      <p className="mb-2 text-lg font-semibold">{t("game:codeLabel")}</p>
+      <CodeInput
+        value={invitation}
+        onChange={setInvitation}
+        ariaLabel={t("game:codeLabel")}
+      />
       <Button className="mt-4" onClick={handleJoin}>
         {t("common:submit")}
       </Button>

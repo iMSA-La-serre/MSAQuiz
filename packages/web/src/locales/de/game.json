@@ -1,4 +1,5 @@
 {
+  "codeLabel": "Spielcode",
   "confirm": "Bestätigen",
   "correct": "Richtig!",
   "finale": {
@@ -7,14 +8,13 @@
     "points": "Pkt.",
     "winner": "Bestes Ergebnis"
   },
-  "gamePinLabel": "Spiel-PIN:",
+  "gameCodeLabel": "Spielcode:",
   "hud": {
     "answers": "Antworten",
     "time": "Zeit"
   },
   "joinInstruction": "Tritt dem Spiel bei auf",
   "leaderboard": "Bestenliste",
-  "pinLabel": "PIN-Code",
   "playersJoined": "Verbundene Spieler: ",
   "pollAnswered": "Stimme gespeichert!",
   "pollNoVote": "Sie haben nicht abgestimmt",

@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next"
 import { z } from "zod"
 
 const searchSchema = z.object({
-  pin: z.coerce.string().optional(),
+  code: z.coerce.string().optional(),
 })
 
 const AuthLayout = () => {
