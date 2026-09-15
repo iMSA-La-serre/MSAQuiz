@@ -18,6 +18,6 @@ Every sound in the app is now original. None of the sounds inherited from Razzia
 
 ## Adding or replacing a sound
 
-- **Synthesised sounds** live in `packages/web/scripts/generate-sounds.ts`. The script uses no samples and is deterministic: run `pnpm --filter @razzia/web sounds:generate` and it rebuilds the exact same files, which is our proof of authorship.
+- **Synthesised sounds** live in `packages/web/scripts/`: `generate-sounds.ts` writes the files, `sound-kit.ts` holds the shared building blocks, and `answers-loop.ts` composes the answer-time music. The scripts use no samples and are deterministic: run `pnpm --filter @razzia/web sounds:generate` and it rebuilds the exact same files, which is our proof of authorship.
 - **Recorded or downloaded sounds** are only accepted with a licence that allows redistribution (e.g. CC0). Keep a copy of the licence page and fill in the author, source URL and date in the table above.
 - Strip metadata before committing (`ffmpeg -i in.wav -map_metadata -1 out.wav`), so files carry no leftover tags from another tool or library.
