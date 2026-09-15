@@ -1,12 +1,14 @@
 @import "tailwindcss";
 
+/* Default look = the La Serre brand guidelines (RGB palette, Work Sans). A
+config/branding/theme.json can still override any of these tokens. */
 @theme {
-  --color-primary: #0b7a75;
-  --color-secondary: #102a2e;
-  --color-answer-1: #e69f00;
-  --color-answer-2: #56b4e9;
-  --color-answer-3: #3dbfa0;
-  --color-answer-4: #cc79a7;
+  --color-primary: #19a96a;
+  --color-secondary: #2a3d5d;
+  --color-answer-1: #19a96a;
+  --color-answer-2: #1799ff;
+  --color-answer-3: #ffd661;
+  --color-answer-4: #005153;
 
   --color-background: var(--color-white);
 
@@ -16,7 +18,7 @@
   --color-accent-foreground: var(--color-gray-600);
   --color-foreground: var(--color-gray-700);
 
-  --font-display: "Rubik Variable", sans-serif;
+  --font-display: "Work Sans Variable", sans-serif;
 }
 
 button:not(:disabled),

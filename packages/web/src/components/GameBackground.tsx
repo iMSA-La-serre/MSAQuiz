@@ -1,4 +1,4 @@
-import defaultBackground from "@razzia/web/assets/background.png"
+import defaultBackground from "@razzia/web/assets/background.svg"
 import { getBranding, imageFallback } from "@razzia/web/branding"
 
 const GameBackground = () => {

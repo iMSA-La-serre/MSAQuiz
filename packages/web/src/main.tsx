@@ -1,4 +1,4 @@
-import "@fontsource-variable/rubik/wght.css"
+import "@fontsource-variable/work-sans/wght.css"
 import { applyBranding, loadBranding } from "@razzia/web/branding"
 import Toaster from "@razzia/web/components/Toaster"
 import { socketClient } from "@razzia/web/features/game/contexts/socket-context"

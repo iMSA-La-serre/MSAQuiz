@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="laserre-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2A3D5D" />
+      <stop offset="100%" stop-color="#0E2B2C" />
+    </linearGradient>
+  </defs>
+  <rect width="1920" height="1080" fill="url(#laserre-bg)" />
+  <circle cx="240" cy="200" r="560" fill="#19A96A" opacity="0.12" />
+  <circle cx="1700" cy="940" r="460" fill="#19A96A" opacity="0.12" />
+</svg>

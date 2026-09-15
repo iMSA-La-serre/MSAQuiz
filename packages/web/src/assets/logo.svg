@@ -9,7 +9,7 @@
       <path d="M256 34V60"/>
       <path d="M273 34H297L273 60H297"/>
     </g>
-    <path d="M186 49L199 62" fill="none" stroke="#FFD23F" stroke-width="7" stroke-linecap="round"/>
+    <path d="M186 49L199 62" fill="none" stroke="#FFD661" stroke-width="7" stroke-linecap="round"/>
     <circle cx="256" cy="20.5" r="4" fill="#FFFFFF"/>
   </g>
 </svg>
