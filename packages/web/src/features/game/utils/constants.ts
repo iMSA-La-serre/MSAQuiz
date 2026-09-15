@@ -56,12 +56,15 @@ export const GAME_STATE_COMPONENTS_MANAGER = {
 
 export const SFX = {
   ANSWERS: {
-    MUSIC: "/sounds/answersMusic.mp3",
+    MUSIC: "/sounds/answers-loop.wav",
     SOUND: "/sounds/answer-received.wav",
   },
   FINALE: "/sounds/finale.wav",
-  RESULTS_SOUND: "/sounds/results.mp3",
-  SHOW_SOUND: "/sounds/show.mp3",
+  RESULT: {
+    CORRECT: "/sounds/result-correct.wav",
+    INCORRECT: "/sounds/result-incorrect.wav",
+  },
+  SHOW_SOUND: "/sounds/question-reveal.wav",
   BOUMP_SOUND: "/sounds/countdown-tick.wav",
 } as const
 

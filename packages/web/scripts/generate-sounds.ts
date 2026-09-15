@@ -62,6 +62,11 @@ const master = (
   const fadeLength = Math.round(fadeOut * SAMPLE_RATE)
 
   return samples.map((value, i) => {
+    // A loop must not fade: its end joins its start.
+    if (fadeLength === 0) {
+      return value * gain
+    }
+
     const remaining = samples.length - 1 - i
 
     return value * gain * smoothRamp(remaining / fadeLength)
@@ -187,6 +192,200 @@ const finale = (): Float64Array => {
   return master(samples, { rmsDb: -18, peakCeilingDb: -3, fadeOut: 0.15 })
 }
 
+const midiToFrequency = (note: number): number => 440 * 2 ** ((note - 69) / 12)
+
+// A struck wooden bar, ready to be placed anywhere in time.
+const struck =
+  (note: number, partials: BarPartial[], level: number) =>
+  (t: number): number =>
+    level *
+    smoothRamp(t / 0.002) *
+    marimbaBar(t, midiToFrequency(note), partials)
+
+// A few struck notes, each starting at its own time.
+const strikes = (
+  duration: number,
+  notes: Array<{ note: number; at: number }>,
+  partials: BarPartial[],
+): Float64Array =>
+  render(duration, (t) =>
+    notes.reduce((sum, { note, at }) => {
+      const local = t - at
+
+      if (local < 0) {
+        return sum
+      }
+
+      return sum + struck(note, partials, 1)(local)
+    }, 0),
+  )
+
+// Adds a sound into a looping buffer: whatever rings past the end wraps back
+// to the start, so the loop joins without a click or a gap.
+const addToLoop = (
+  buffer: Float64Array,
+  {
+    start,
+    duration,
+    sampleAt,
+  }: { start: number; duration: number; sampleAt: (_time: number) => number },
+): void => {
+  const first = Math.round(start * SAMPLE_RATE)
+  const count = Math.round(duration * SAMPLE_RATE)
+
+  for (let i = 0; i < count; i += 1) {
+    const index = (first + i) % buffer.length
+
+    buffer[index] += sampleAt(i / SAMPLE_RATE)
+  }
+}
+
+// "Sous la serre": the calm loop heard while players answer, on the host
+// screen only. Four chords of two bars each at 96 BPM, which makes a 20 s
+// loop: a soft pad, a marimba arpeggio and a low wooden bass. Acoustic and
+// unhurried on purpose, nothing like an electronic countdown track.
+const answersLoop = (): Float64Array => {
+  const beat = 60 / 96
+  const bar = beat * 4
+  // Fmaj7, Dm7, Bbmaj7 and C6, as MIDI note numbers.
+  const chords = [
+    [53, 57, 60, 64],
+    [50, 53, 57, 60],
+    [46, 50, 53, 57],
+    [48, 52, 55, 57],
+  ]
+  // Which chord tone each eighth note of the arpeggio plays, bar by bar.
+  const patterns = [
+    [0, 1, 2, 3, 4, 3, 2, 1],
+    [4, 2, 3, 1, 2, 0, 1, 2],
+  ]
+  const arpeggio: BarPartial[] = [
+    { ratio: 1, amplitude: 1, decay: 0.3 },
+    { ratio: 3.93, amplitude: 0.18, decay: 0.05 },
+    { ratio: 9.2, amplitude: 0.04, decay: 0.012 },
+  ]
+  const bass: BarPartial[] = [
+    { ratio: 1, amplitude: 1, decay: 0.7 },
+    { ratio: 3.93, amplitude: 0.1, decay: 0.08 },
+  ]
+  const buffer = new Float64Array(
+    Math.round(bar * 2 * chords.length * SAMPLE_RATE),
+  )
+
+  chords.forEach((chord, chordIndex) => {
+    const chordStart = chordIndex * bar * 2
+    const padLength = bar * 2 + 0.6
+
+    // The pad holds the chord for two bars and fades into the next one.
+    for (const note of chord) {
+      const frequency = midiToFrequency(note)
+
+      addToLoop(buffer, {
+        start: chordStart,
+        duration: padLength,
+        sampleAt: (t) => {
+          const envelope =
+            smoothRamp(t / 0.5) * smoothRamp((padLength - t) / 0.8)
+
+          return (
+            0.05 *
+            envelope *
+            (Math.sin(2 * Math.PI * frequency * t) +
+              0.3 * Math.sin(4 * Math.PI * frequency * t))
+          )
+        },
+      })
+    }
+
+    const tones = [...chord.map((note) => note + 24), chord[0] + 36]
+
+    patterns.forEach((pattern, barIndex) => {
+      const barStart = chordStart + barIndex * bar
+
+      pattern.forEach((toneIndex, step) => {
+        const level = step % 4 === 0 ? 0.55 : 0.35
+
+        addToLoop(buffer, {
+          start: barStart + (step * beat) / 2,
+          duration: 1.5,
+          sampleAt: struck(tones[toneIndex], arpeggio, level),
+        })
+      })
+
+      // The bass plays the root on beats 1 and 3.
+      for (const beatIndex of [0, 2]) {
+        addToLoop(buffer, {
+          start: barStart + beatIndex * beat,
+          duration: 2.5,
+          sampleAt: struck(chord[0] - 12, bass, 0.5),
+        })
+      }
+    })
+  })
+
+  return master(buffer, { rmsDb: -17, peakCeilingDb: -3, fadeOut: 0 })
+}
+
+// "Éclosion": a question appears. Two soft notes a fifth apart, the second
+// just after the first.
+const questionReveal = (): Float64Array =>
+  master(
+    strikes(
+      0.8,
+      [
+        { note: 72, at: 0 },
+        { note: 79, at: 0.09 },
+      ],
+      [
+        { ratio: 1, amplitude: 1, decay: 0.25 },
+        { ratio: 3.93, amplitude: 0.2, decay: 0.04 },
+        { ratio: 9.2, amplitude: 0.05, decay: 0.01 },
+      ],
+    ),
+    { rmsDb: -24, peakCeilingDb: -4, fadeOut: 0.1 },
+  )
+
+// A right answer: a quick rising A major arpeggio, bright and short.
+const resultCorrect = (): Float64Array =>
+  master(
+    strikes(
+      1,
+      [
+        { note: 81, at: 0 },
+        { note: 85, at: 0.06 },
+        { note: 88, at: 0.12 },
+      ],
+      [
+        { ratio: 1, amplitude: 1, decay: 0.35 },
+        { ratio: 3.93, amplitude: 0.2, decay: 0.05 },
+        { ratio: 9.2, amplitude: 0.05, decay: 0.012 },
+      ],
+    ),
+    { rmsDb: -21, peakCeilingDb: -2, fadeOut: 0.12 },
+  )
+
+// A wrong answer: two low, muted notes falling a fourth. Gentle, never a
+// buzzer.
+const resultIncorrect = (): Float64Array =>
+  master(
+    strikes(
+      0.6,
+      [
+        { note: 62, at: 0 },
+        { note: 57, at: 0.12 },
+      ],
+      [
+        { ratio: 1, amplitude: 1, decay: 0.12 },
+        { ratio: 3.93, amplitude: 0.12, decay: 0.02 },
+      ],
+    ),
+    { rmsDb: -22, peakCeilingDb: -4, fadeOut: 0.1 },
+  )
+
 writeWav("answer-received.wav", answerReceived())
 writeWav("countdown-tick.wav", countdownTick())
 writeWav("finale.wav", finale())
+writeWav("answers-loop.wav", answersLoop())
+writeWav("question-reveal.wav", questionReveal())
+writeWav("result-correct.wav", resultCorrect())
+writeWav("result-incorrect.wav", resultIncorrect())

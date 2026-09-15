@@ -57,7 +57,9 @@ const Answers = ({
       MEDIA_TYPES.VIDEO,
     ]
 
-    if (disabledMusicMedia.includes(media?.type)) {
+    // The music plays on the host screen only: players' phones stay quiet,
+    // and a question with its own audio or video keeps the room silent.
+    if (player || disabledMusicMedia.includes(media?.type)) {
       return
     }
 

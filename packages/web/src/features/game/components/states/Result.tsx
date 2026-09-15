@@ -23,7 +23,19 @@ const Result = ({
   }
   const rankKey = rankKeyMap[rank] ?? "rank.other"
 
-  const [sfxResults] = useSound(SFX.RESULTS_SOUND, {
+  // One sound per outcome, chosen up front so a single sound loads and plays
+  // once. A poll has no right answer, so it gets the neutral chime.
+  const isPoll =
+    message === "game:pollAnswered" || message === "game:pollNoVote"
+  let resultSound: string = SFX.RESULT.INCORRECT
+
+  if (isPoll) {
+    resultSound = SFX.SHOW_SOUND
+  } else if (correct) {
+    resultSound = SFX.RESULT.CORRECT
+  }
+
+  const [sfxResults] = useSound(resultSound, {
     volume: 0.2,
   })
 

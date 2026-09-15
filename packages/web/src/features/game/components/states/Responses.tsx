@@ -20,7 +20,7 @@ const Responses = ({
   const [percentages, setPercentages] = useState<Record<string, string>>({})
   const [isMusicPlaying, setIsMusicPlaying] = useState(false)
 
-  const [sfxResults] = useSound(SFX.RESULTS_SOUND, {
+  const [sfxResults] = useSound(SFX.SHOW_SOUND, {
     volume: 0.2,
   })
 
