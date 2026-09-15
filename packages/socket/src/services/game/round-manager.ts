@@ -210,9 +210,9 @@ export class RoundManager {
 
         player.points = Math.max(0, player.points + points - penalty)
 
-        // Unscored types must not break a streak either.
+        // Unscored types must not break a run of correct answers either.
         if (scored) {
-          player.streak = isCorrect ? player.streak + 1 : 0
+          player.correctInARow = isCorrect ? player.correctInARow + 1 : 0
         }
 
         return {

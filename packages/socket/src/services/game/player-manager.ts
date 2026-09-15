@@ -44,7 +44,7 @@ export class PlayerManager {
       connected: true,
       username,
       points: 0,
-      streak: 0,
+      correctInARow: 0,
     }
 
     this.players.push(player)

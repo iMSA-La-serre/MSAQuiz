@@ -20,7 +20,8 @@ export interface Player {
   connected: boolean
   username: string
   points: number
-  streak: number
+  // Scored questions answered correctly in a row, reset by a wrong answer.
+  correctInARow: number
 }
 
 export interface Answer {

@@ -2,6 +2,7 @@
   "codeLabel": "Game code",
   "confirm": "Confirm",
   "correct": "Nice!",
+  "correctInARow": "{{count}} correct answers in a row",
   "finale": {
     "eyebrow": "Final ranking",
     "noPlayers": "No players took part",

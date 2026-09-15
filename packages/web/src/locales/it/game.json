@@ -2,6 +2,7 @@
   "codeLabel": "Codice della partita",
   "confirm": "Conferma",
   "correct": "Bravo!",
+  "correctInARow": "{{count}} risposte corrette di fila",
   "finale": {
     "eyebrow": "Classifica finale",
     "noPlayers": "Nessun giocatore ha partecipato",

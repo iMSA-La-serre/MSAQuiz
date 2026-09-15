@@ -1,5 +1,5 @@
 import type { ManagerStatusDataMap } from "@razzia/common/types/game/status"
-import Fire from "@razzia/web/features/game/components/icons/Fire"
+import { Sprout } from "lucide-react"
 import { AnimatePresence, motion, useSpring, useTransform } from "motion/react"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -25,22 +25,33 @@ const AnimatedPoints = ({ from, to }: { from: number; to: number }) => {
   return <span className="drop-shadow-md">{displayValue}</span>
 }
 
-const StreakBadge = ({ streak }: { streak: number }) => (
-  <AnimatePresence>
-    {streak >= 2 && (
-      <motion.div
-        key="streak"
-        initial={{ opacity: 0, scale: 0.5, x: -10 }}
-        animate={{ opacity: 1, scale: 1, x: 0 }}
-        exit={{ opacity: 0, scale: 0.5, x: -10 }}
-        transition={{ type: "spring", stiffness: 400, damping: 20 }}
-        className="ml-2 flex items-center gap-1 rounded-full bg-amber-700 p-1"
-      >
-        <Fire className="size-7" />
-      </motion.div>
-    )}
-  </AnimatePresence>
-)
+// From three correct answers in a row, a small "sprout" chip grows next to the
+// name with the count, in the La Serre spirit of things that grow.
+const MIN_RUN = 3
+
+const RunBadge = ({ count }: { count: number }) => {
+  const { t } = useTranslation()
+
+  return (
+    <AnimatePresence>
+      {count >= MIN_RUN && (
+        <motion.span
+          key="run"
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.25, ease: "easeOut" }}
+          aria-label={t("game:correctInARow", { count })}
+          title={t("game:correctInARow", { count })}
+          className="ml-2 flex items-center gap-1 rounded-full bg-white/20 px-2.5 py-0.5 text-xl font-bold tabular-nums"
+        >
+          <Sprout aria-hidden className="size-5" />
+          <span aria-hidden>×{count}</span>
+        </motion.span>
+      )}
+    </AnimatePresence>
+  )
+}
 
 const Leaderboard = ({ data: { oldLeaderboard, leaderboard } }: Props) => {
   const [displayedLeaderboard, setDisplayedLeaderboard] =
@@ -69,43 +80,45 @@ const Leaderboard = ({ data: { oldLeaderboard, leaderboard } }: Props) => {
       </h2>
       <div className="flex w-full flex-col gap-2">
         <AnimatePresence mode="popLayout">
-          {displayedLeaderboard.map(({ id, username, points, streak }) => (
-            <motion.div
-              key={id}
-              layout
-              initial={{ opacity: 0, y: 50 }}
-              animate={{
-                opacity: 1,
-                y: 0,
-              }}
-              exit={{
-                opacity: 0,
-                y: 50,
-                transition: { duration: 0.2 },
-              }}
-              transition={{
-                layout: {
-                  type: "spring",
-                  stiffness: 350,
-                  damping: 25,
-                },
-              }}
-              className="bg-primary flex w-full justify-between rounded-xl p-3 text-3xl font-bold text-white"
-            >
-              <span className="flex items-center gap-2 drop-shadow-md">
-                {username}
-                <StreakBadge streak={streak} />
-              </span>
-              {isAnimating ? (
-                <AnimatedPoints
-                  from={oldLeaderboard.find((u) => u.id === id)?.points ?? 0}
-                  to={leaderboard.find((u) => u.id === id)?.points ?? 0}
-                />
-              ) : (
-                <span className="drop-shadow-md">{points}</span>
-              )}
-            </motion.div>
-          ))}
+          {displayedLeaderboard.map(
+            ({ id, username, points, correctInARow }) => (
+              <motion.div
+                key={id}
+                layout
+                initial={{ opacity: 0, y: 50 }}
+                animate={{
+                  opacity: 1,
+                  y: 0,
+                }}
+                exit={{
+                  opacity: 0,
+                  y: 50,
+                  transition: { duration: 0.2 },
+                }}
+                transition={{
+                  layout: {
+                    type: "spring",
+                    stiffness: 350,
+                    damping: 25,
+                  },
+                }}
+                className="bg-primary flex w-full justify-between rounded-xl p-3 text-3xl font-bold text-white"
+              >
+                <span className="flex items-center gap-2 drop-shadow-md">
+                  {username}
+                  <RunBadge count={correctInARow} />
+                </span>
+                {isAnimating ? (
+                  <AnimatedPoints
+                    from={oldLeaderboard.find((u) => u.id === id)?.points ?? 0}
+                    to={leaderboard.find((u) => u.id === id)?.points ?? 0}
+                  />
+                ) : (
+                  <span className="drop-shadow-md">{points}</span>
+                )}
+              </motion.div>
+            ),
+          )}
         </AnimatePresence>
       </div>
     </section>

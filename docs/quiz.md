@@ -26,7 +26,7 @@ A slide has no answers, so players stay on it until the manager moves on: give i
 
 A true/false question carries its two answers for you: the editor fills them in, keeps them read-only, and lets you pick which one is correct. Only the statement is yours to write.
 
-Unscored types (`poll`, `slide`) ignore `solutions`, `maxPoints` and `penalty` — the validator strips those fields on save, and the editor hides them. A poll vote never awards points, never costs points, and never breaks a correct-answer streak; slides are skipped in the players' answer history and in the exported report.
+Unscored types (`poll`, `slide`) ignore `solutions`, `maxPoints` and `penalty` — the validator strips those fields on save, and the editor hides them. A poll vote never awards points, never costs points, and never interrupts a run of correct answers; slides are skipped in the players' answer history and in the exported report.
 
 ## Example
 

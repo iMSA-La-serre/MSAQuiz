@@ -2,6 +2,7 @@
   "codeLabel": "Spielcode",
   "confirm": "Bestätigen",
   "correct": "Richtig!",
+  "correctInARow": "{{count}} richtige Antworten in Folge",
   "finale": {
     "eyebrow": "Endstand",
     "noPlayers": "Keine Spieler haben teilgenommen",

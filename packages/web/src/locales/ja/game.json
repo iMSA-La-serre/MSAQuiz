@@ -2,6 +2,7 @@
   "codeLabel": "ゲームコード",
   "confirm": "確認",
   "correct": "正解！",
+  "correctInARow": "{{count}} 問連続正解",
   "finale": {
     "eyebrow": "最終順位",
     "noPlayers": "参加したプレイヤーはいません",
