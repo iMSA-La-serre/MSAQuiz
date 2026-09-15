@@ -10,6 +10,26 @@ config/branding/theme.json can still override any of these tokens. */
   --color-answer-3: #ffd661;
   --color-answer-4: #005153;
 
+  /* Semantic states (right/wrong, good/average/poor rates, destructive
+  actions, info). Values match the Tailwind shades these screens used. */
+  --color-success: var(--color-green-500);
+  --color-success-strong: var(--color-green-600);
+  --color-success-soft: var(--color-green-400);
+  --color-warning: var(--color-amber-500);
+  --color-danger: var(--color-red-500);
+  --color-danger-strong: var(--color-red-600);
+  --color-danger-soft: var(--color-red-400);
+  --color-danger-subtle: var(--color-red-50);
+  /* Player result icons (right/wrong), kept on the exact hex they were drawn
+  in so the result screen does not shift colour. */
+  --color-result-correct: #22c55e;
+  --color-result-wrong: #ef4444;
+  --color-info: var(--color-blue-500);
+  /* A bar or dot with nothing to rate (no answers, not a solution). */
+  --color-neutral-mark: var(--color-gray-400);
+  /* Content drawn straight on the navy page background (loader). */
+  --color-secondary-foreground: var(--color-white);
+
   --color-background: var(--color-white);
 
   --color-muted: var(--color-gray-100);

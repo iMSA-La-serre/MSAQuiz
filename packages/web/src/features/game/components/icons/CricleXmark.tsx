@@ -1,16 +1,16 @@
+import { twMerge } from "tailwind-merge"
+
 interface Props {
   className?: string
 }
 
 const CricleXmark = ({ className }: Props) => (
   <svg
-    fill="#ef4444"
     width="800px"
     height="800px"
     viewBox="0 0 56.00 56.00"
     xmlns="http://www.w3.org/2000/svg"
-    stroke="#ef4444"
-    className={className}
+    className={twMerge("fill-result-wrong stroke-result-wrong", className)}
   >
     <g strokeWidth="0" transform="translate(12.4,12.4), scale(0.6)">
       <rect
@@ -19,7 +19,7 @@ const CricleXmark = ({ className }: Props) => (
         width="56.00"
         height="56.00"
         rx="28"
-        fill="#ffffff"
+        className="fill-white"
         strokeWidth="0"
       />
     </g>

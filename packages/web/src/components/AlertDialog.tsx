@@ -9,6 +9,8 @@ interface Props {
   description: string
   confirmLabel?: string
   onConfirm: () => void
+  // Called when the dialog is dismissed without confirming (Cancel, Escape).
+  onCancel?: () => void
 }
 
 const AlertDialog = ({
@@ -17,6 +19,7 @@ const AlertDialog = ({
   description,
   confirmLabel,
   onConfirm,
+  onCancel,
 }: Props) => {
   const { t } = useTranslation()
 
@@ -29,6 +32,7 @@ const AlertDialog = ({
 
         <RadixAlertDialog.Content
           onClick={(e) => e.stopPropagation()}
+          onEscapeKeyDown={onCancel}
           className="bg-background fixed top-1/2 left-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-xl p-6 shadow-xl"
         >
           <RadixAlertDialog.Title className="text-foreground text-lg font-semibold">
@@ -41,14 +45,17 @@ const AlertDialog = ({
 
           <div className="mt-6 flex justify-end gap-2">
             <RadixAlertDialog.Cancel asChild>
-              <Button className="bg-accent text-accent-foreground px-4 py-2 text-sm font-semibold">
+              <Button
+                className="bg-accent text-accent-foreground px-4 py-2 text-sm font-semibold"
+                onClick={onCancel}
+              >
                 {t("common:cancel")}
               </Button>
             </RadixAlertDialog.Cancel>
 
             <RadixAlertDialog.Action asChild>
               <Button
-                className="bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:brightness-95 active:brightness-90"
+                className="bg-danger px-4 py-2 text-sm font-semibold text-white hover:brightness-95 active:brightness-90"
                 onClick={onConfirm}
               >
                 {confirmLabel ?? t("common:confirm")}

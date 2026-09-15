@@ -18,6 +18,11 @@
     "empty": "I partecipanti appariranno qui non appena si uniranno",
     "enlargeQr": "Ingrandisci il codice QR",
     "kick": "Rimuovi {{name}}",
+    "kickConfirm": {
+      "confirm": "Rimuovi",
+      "description": "Questa persona verrà rimossa dalla partita, ma potrà rientrare con il codice.",
+      "title": "Rimuovere {{name}}?"
+    },
     "orVisit": "oppure vai su",
     "participants": "Partecipanti",
     "scan": "Scansiona il codice QR con il telefono",

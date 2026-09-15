@@ -8,9 +8,9 @@
     "expired": "Game expired",
     "kickedByManager": "You have been kicked by the manager",
     "managerAlreadyConnected": "Manager already connected",
+    "managerCannotJoin": "You cannot join your own game",
     "managerDisconnected": "Manager disconnected",
     "noPlayersConnected": "No players connected",
-    "managerCannotJoin": "You cannot join your own game",
     "notFound": "Game not found",
     "playerAlreadyConnected": "Player already connected"
   },
@@ -26,19 +26,19 @@
   },
   "quizz": {
     "answerEmpty": "An answer cannot be empty",
-    "failedToDelete": "Failed to delete quizz",
-    "failedToSave": "Quizz is incomplete, make sure all questions have a title and at least one correct answer",
-    "failedToUpdate": "Failed to update quizz",
+    "failedToDelete": "Failed to delete quiz",
+    "failedToSave": "Quiz is incomplete, make sure all questions have a title and at least one correct answer",
+    "failedToUpdate": "Failed to update quiz",
+    "fixedAnswers": "This question type has a fixed number of answers",
     "invalidImport": "Invalid or empty import file",
     "invalidMediaUrl": "Media URL must be a valid URL",
-    "noQuestions": "A quizz must have at least one question",
+    "noQuestions": "A quiz must have at least one question",
     "noSolutions": "Select at least one correct answer",
-    "notFound": "Quizz not found",
+    "notFound": "Quiz not found",
     "questionEmpty": "Question cannot be empty",
     "subjectEmpty": "Subject cannot be empty",
     "tooFewAnswers": "A question must have at least 2 answers",
-    "tooManyAnswers": "A question cannot have more than 4 answers",
-    "fixedAnswers": "This question type has a fixed number of answers"
+    "tooManyAnswers": "A question cannot have more than 4 answers"
   },
   "route": {
     "back": "Go back home",

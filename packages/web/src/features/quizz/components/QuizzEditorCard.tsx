@@ -72,7 +72,7 @@ const QuizzEditorCard = ({
             className="border-accent flex h-4 flex-1 items-center rounded-md border px-0.5"
           >
             {question.solutions.includes(i) && (
-              <div className="ml-auto size-1.5 rounded-full bg-green-400" />
+              <div className="bg-success-soft ml-auto size-1.5 rounded-full" />
             )}
           </div>
         ))}
@@ -83,7 +83,7 @@ const QuizzEditorCard = ({
           trigger={
             <button
               onClick={(e) => e.stopPropagation()}
-              className="text-muted-foreground bg-background absolute top-1.5 right-1.5 hidden rounded-sm p-1 group-hover:block hover:bg-red-50 hover:text-red-500"
+              className="text-muted-foreground bg-background hover:bg-danger-subtle hover:text-danger absolute top-1.5 right-1.5 hidden rounded-sm p-1 group-hover:block"
             >
               <Trash2 className="size-3.5" />
             </button>

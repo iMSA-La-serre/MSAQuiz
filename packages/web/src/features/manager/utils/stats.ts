@@ -5,12 +5,12 @@ export const formatRate = (rate: number | null): string =>
 /** Green when the question went well, amber in between, red when it hurt. */
 export const rateColor = (rate: number | null): string => {
   if (rate === null) {
-    return "bg-gray-400"
+    return "bg-neutral-mark"
   }
 
   if (rate >= 0.7) {
-    return "bg-green-500"
+    return "bg-success"
   }
 
-  return rate >= 0.4 ? "bg-amber-500" : "bg-red-500"
+  return rate >= 0.4 ? "bg-warning" : "bg-danger"
 }

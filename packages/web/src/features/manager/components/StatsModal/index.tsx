@@ -60,7 +60,9 @@ const QuestionCard = ({ question }: { question: QuestionStats }) => {
                 <span
                   className={clsx(
                     "flex min-w-0 flex-1 items-center gap-1 truncate",
-                    isSolution ? "text-green-600" : "text-muted-foreground",
+                    isSolution
+                      ? "text-success-strong"
+                      : "text-muted-foreground",
                   )}
                 >
                   {isSolution && <Check className="size-3 shrink-0" />}
@@ -70,7 +72,7 @@ const QuestionCard = ({ question }: { question: QuestionStats }) => {
                   <span
                     className={clsx(
                       "block h-full rounded-full",
-                      isSolution ? "bg-green-500" : "bg-gray-400",
+                      isSolution ? "bg-success" : "bg-neutral-mark",
                     )}
                     style={{ width: `${share(answer.count)}%` }}
                   />

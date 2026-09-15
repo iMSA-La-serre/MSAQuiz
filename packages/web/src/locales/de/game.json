@@ -18,6 +18,11 @@
     "empty": "Teilnehmende erscheinen hier, sobald sie beitreten",
     "enlargeQr": "QR-Code vergrößern",
     "kick": "{{name}} entfernen",
+    "kickConfirm": {
+      "confirm": "Entfernen",
+      "description": "Diese Person wird aus dem Spiel entfernt, kann aber mit dem Code wieder beitreten.",
+      "title": "{{name}} entfernen?"
+    },
     "orVisit": "oder öffne",
     "participants": "Teilnehmende",
     "scan": "Scanne den QR-Code mit deinem Handy",

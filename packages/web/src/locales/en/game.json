@@ -18,6 +18,11 @@
     "empty": "Participants will appear here as soon as they join",
     "enlargeQr": "Enlarge the QR code",
     "kick": "Remove {{name}}",
+    "kickConfirm": {
+      "confirm": "Remove",
+      "description": "This person will be removed from the game but can join again with the code.",
+      "title": "Remove {{name}}?"
+    },
     "orVisit": "or go to",
     "participants": "Participants",
     "scan": "Scan the QR code with your phone",

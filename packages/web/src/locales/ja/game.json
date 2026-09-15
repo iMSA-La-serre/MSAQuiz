@@ -18,6 +18,11 @@
     "empty": "参加者は参加するとここに表示されます",
     "enlargeQr": "QRコードを拡大",
     "kick": "{{name}}を退出させる",
+    "kickConfirm": {
+      "confirm": "退出させる",
+      "description": "この参加者はゲームから退出しますが、コードを使えば再び参加できます。",
+      "title": "{{name}}を退出させますか？"
+    },
     "orVisit": "または次のURLを開いてください:",
     "participants": "参加者",
     "scan": "スマートフォンでQRコードを読み取ってください",

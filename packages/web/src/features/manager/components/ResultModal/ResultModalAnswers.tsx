@@ -130,12 +130,12 @@ const ResultModalAnswers = () => {
 
               <div className="shrink-0">
                 {row.isCorrect ? (
-                  <Check className="size-5 stroke-4 text-green-500" />
+                  <Check className="text-success size-5 stroke-4" />
                 ) : (
                   <X
                     className={clsx(
                       "size-5 stroke-4",
-                      row.color ? "text-red-500" : "text-red-400",
+                      row.color ? "text-danger" : "text-danger-soft",
                     )}
                   />
                 )}

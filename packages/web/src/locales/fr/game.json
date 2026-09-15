@@ -18,6 +18,11 @@
     "empty": "Les participants apparaîtront ici dès qu'ils auront rejoint la partie",
     "enlargeQr": "Agrandir le QR code",
     "kick": "Exclure {{name}}",
+    "kickConfirm": {
+      "confirm": "Exclure",
+      "description": "Cette personne sera retirée de la partie, mais pourra la rejoindre à nouveau avec le code.",
+      "title": "Exclure {{name}} ?"
+    },
     "orVisit": "ou rendez-vous sur",
     "participants": "Participants",
     "scan": "Scannez le QR code avec votre téléphone",

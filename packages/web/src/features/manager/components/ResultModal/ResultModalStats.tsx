@@ -31,7 +31,7 @@ const ResultModalStats = () => {
                 cy="18"
                 r="15"
                 fill="none"
-                className="stroke-green-500"
+                className="stroke-success"
                 strokeWidth="6"
                 strokeLinecap="round"
                 strokeDasharray={`${correctPct * 0.94} 94`}
@@ -49,7 +49,7 @@ const ResultModalStats = () => {
           {t("manager:result.stats.playersAnswered")}
         </p>
         <div className="flex items-center gap-2">
-          <Users className="size-4 text-blue-500" />
+          <Users className="text-info size-4" />
           <span className="text-foreground text-sm font-semibold">
             {answeredCount}/{totalPlayers}
           </span>

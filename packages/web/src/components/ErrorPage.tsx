@@ -12,7 +12,7 @@ const ErrorPage = ({ error }: { error: Error }) => {
   return (
     <Background>
       <Card className="max-w-md gap-4 text-center">
-        <CircleX className="mx-auto size-12 text-red-500" />
+        <CircleX className="text-danger mx-auto size-12" />
         <div className="flex flex-col gap-1">
           <h1 className="text-xl font-bold text-gray-800">
             {t("errors:route.title")}

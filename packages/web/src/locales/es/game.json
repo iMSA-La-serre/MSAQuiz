@@ -18,6 +18,11 @@
     "empty": "Los participantes aparecerán aquí en cuanto se unan",
     "enlargeQr": "Ampliar el código QR",
     "kick": "Expulsar a {{name}}",
+    "kickConfirm": {
+      "confirm": "Expulsar",
+      "description": "Esta persona saldrá de la partida, pero podrá volver a unirse con el código.",
+      "title": "¿Expulsar a {{name}}?"
+    },
     "orVisit": "o entra en",
     "participants": "Participantes",
     "scan": "Escanea el código QR con tu móvil",

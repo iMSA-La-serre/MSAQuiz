@@ -2,6 +2,7 @@ import * as AlertDialog from "@radix-ui/react-alert-dialog"
 import { EVENTS } from "@razzia/common/constants"
 import type { Player } from "@razzia/common/types/game"
 import type { ManagerStatusDataMap } from "@razzia/common/types/game/status"
+import ConfirmDialog from "@razzia/web/components/AlertDialog"
 import {
   useEvent,
   useSocket,
@@ -11,7 +12,7 @@ import { useOnClickOutside } from "@razzia/web/hooks/useOnClickOutside"
 import { Maximize2, UsersRound, X } from "lucide-react"
 import { motion, MotionConfig } from "motion/react"
 import { QRCodeSVG } from "qrcode.react"
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 interface Props {
@@ -28,21 +29,74 @@ const Lobby = ({ data: { inviteCode = "" } }: Props) => {
   const [playerList, setPlayerList] = useState<Player[]>(players)
   const [qrOpen, setQrOpen] = useState(false)
   const qrContentRef = useRef<HTMLDivElement>(null)
+  const listRef = useRef<HTMLUListElement>(null)
+  const participantsTitleRef = useRef<HTMLHeadingElement>(null)
+  // Player whose kick dialog was opened and not cancelled: while that dialog
+  // is open (or just confirmed), focus is in the portal or on <body>, not in
+  // the row, yet the row still owns it.
+  const focusRowRef = useRef<string | null>(null)
+  // Where focus goes once the departed row is gone from the DOM.
+  const pendingFocusRef = useRef<HTMLElement | null>(null)
   const { t } = useTranslation()
 
   const joinUrl = `${window.location.origin}?code=${inviteCode}`
 
   useOnClickOutside({ ref: qrContentRef, handler: () => setQrOpen(false) })
 
+  // An open kick dialog traps focus and, on unmount, refocuses from a 0 ms
+  // timer. Hand focus over after the list commits (trap released) and after
+  // that timer, so it lands on the neighbour instead of <body>.
+  useEffect(() => {
+    const target = pendingFocusRef.current
+
+    if (!target) {
+      return
+    }
+
+    pendingFocusRef.current = null
+    setTimeout(() => target.focus(), 0)
+  }, [playerList])
+
+  // Before a player's row disappears, hand keyboard focus to the next row's
+  // kick button (or the panel title) instead of dropping it on the page. Only
+  // when this row owned focus: an unrelated player leaving moves nothing.
+  const moveFocusFromRow = (playerId: string) => {
+    const row = listRef.current?.querySelector<HTMLElement>(
+      `[data-player-id="${CSS.escape(playerId)}"]`,
+    )
+
+    if (!row) {
+      return
+    }
+
+    const owned =
+      row.contains(document.activeElement) || focusRowRef.current === playerId
+
+    if (!owned) {
+      return
+    }
+
+    const sibling = row.nextElementSibling ?? row.previousElementSibling
+    const target =
+      sibling?.querySelector<HTMLElement>("button") ??
+      participantsTitleRef.current
+
+    target?.focus()
+    pendingFocusRef.current = target
+    focusRowRef.current = null
+  }
+
   useEvent(EVENTS.MANAGER.NEW_PLAYER, (player) => {
     setPlayerList([...playerList, player])
   })
 
   useEvent(EVENTS.MANAGER.REMOVE_PLAYER, (playerId) => {
+    moveFocusFromRow(playerId)
     setPlayerList(playerList.filter((p) => p.id !== playerId))
   })
 
   useEvent(EVENTS.MANAGER.PLAYER_KICKED, (playerId) => {
+    moveFocusFromRow(playerId)
     setPlayerList(playerList.filter((p) => p.id !== playerId))
   })
 
@@ -137,7 +191,11 @@ const Lobby = ({ data: { inviteCode = "" } }: Props) => {
 
         <div className="flex min-h-72 flex-col rounded-3xl bg-black/25 p-5 text-white backdrop-blur-sm md:p-6 lg:max-h-[calc(100dvh-7rem)] lg:self-stretch">
           <div className="mb-4 flex items-center justify-between gap-3">
-            <h2 className="text-2xl font-bold md:text-3xl">
+            <h2
+              ref={participantsTitleRef}
+              tabIndex={-1}
+              className="text-2xl font-bold outline-none md:text-3xl"
+            >
               {t("game:lobby.participants")}
             </h2>
             <span
@@ -157,10 +215,14 @@ const Lobby = ({ data: { inviteCode = "" } }: Props) => {
           ) : (
             // The list scrolls inside the panel, so a crowded lobby never
             // pushes the QR code and the game code off the projected screen.
-            <ul className="grid min-h-0 content-start gap-2 overflow-y-auto sm:grid-cols-2">
+            <ul
+              ref={listRef}
+              className="grid min-h-0 content-start gap-2 overflow-y-auto sm:grid-cols-2"
+            >
               {playerList.map((player) => (
                 <motion.li
                   key={player.id}
+                  data-player-id={player.id}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.2, ease: "easeOut" }}
@@ -178,17 +240,32 @@ const Lobby = ({ data: { inviteCode = "" } }: Props) => {
                   >
                     {player.username}
                   </span>
-                  <button
-                    type="button"
-                    onClick={handleKick(player.id)}
-                    aria-label={t("game:lobby.kick", {
+                  <ConfirmDialog
+                    trigger={
+                      <button
+                        type="button"
+                        aria-label={t("game:lobby.kick", {
+                          name: player.username,
+                        })}
+                        title={t("game:lobby.kick", { name: player.username })}
+                        onClick={() => {
+                          focusRowRef.current = player.id
+                        }}
+                        className="flex size-8 shrink-0 items-center justify-center rounded-lg text-white/60 outline-none hover:bg-white/15 hover:text-white focus-visible:bg-white/15 focus-visible:text-white focus-visible:ring-2 focus-visible:ring-white"
+                      >
+                        <X className="size-5" />
+                      </button>
+                    }
+                    title={t("game:lobby.kickConfirm.title", {
                       name: player.username,
                     })}
-                    title={t("game:lobby.kick", { name: player.username })}
-                    className="flex size-8 shrink-0 items-center justify-center rounded-lg text-white/60 outline-none hover:bg-white/15 hover:text-white focus-visible:bg-white/15 focus-visible:text-white focus-visible:ring-2 focus-visible:ring-white"
-                  >
-                    <X className="size-5" />
-                  </button>
+                    description={t("game:lobby.kickConfirm.description")}
+                    confirmLabel={t("game:lobby.kickConfirm.confirm")}
+                    onConfirm={handleKick(player.id)}
+                    onCancel={() => {
+                      focusRowRef.current = null
+                    }}
+                  />
                 </motion.li>
               ))}
             </ul>

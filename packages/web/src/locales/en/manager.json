@@ -3,17 +3,17 @@
   "logout": "Logout",
   "passwordPlaceholder": "Password",
   "quizz": {
-    "create": "Create Quizz",
-    "delete": "Delete quizz",
+    "create": "Create Quiz",
+    "delete": "Delete quiz",
     "deleteConfirm": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone.",
-    "deleted": "Quizz deleted",
-    "export": "Export quizz as JSON",
+    "deleted": "Quiz deleted",
+    "export": "Export quiz as JSON",
     "import": "Import a quiz (JSON / Excel)",
     "imported": "Quiz imported",
-    "none": "No quizz created yet",
-    "notFound": "No quizz found",
-    "pleaseCreate": "Please create a quizz first",
-    "pleaseSelect": "Please select a quizz",
+    "none": "No quiz created yet",
+    "notFound": "No quiz found",
+    "pleaseCreate": "Please create a quiz first",
+    "pleaseSelect": "Please select a quiz",
     "startGame": "Start game"
   },
   "result": {
@@ -39,19 +39,19 @@
     },
     "timeLimitSuffix": "s time limit"
   },
-  "tabs": {
-    "play": "Play",
-    "quizz": "Quizz",
-    "results": "Results",
-    "stats": "Stats"
-  },
   "stats": {
     "answered": "{{count}} answer(s)",
     "gameCount": "{{count}} game(s)",
     "missing": "{{count}} unanswered",
-    "none": "No statistics yet, finish a game to see them here",
     "noQuestion": "No question to report on",
+    "none": "No statistics yet, finish a game to see them here",
     "playerCount": "{{count}} participation(s)",
     "unscored": "Not scored"
+  },
+  "tabs": {
+    "play": "Play",
+    "quizz": "Quiz",
+    "results": "Results",
+    "stats": "Stats"
   }
 }

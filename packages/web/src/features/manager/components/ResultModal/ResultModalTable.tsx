@@ -61,12 +61,12 @@ const ResultModalTable = () => {
               </td>
               <td className="px-4 py-2.5">
                 {isCorrect ? (
-                  <span className="flex items-center gap-1 text-green-600">
+                  <span className="text-success-strong flex items-center gap-1">
                     <Check className="size-4 stroke-4" />{" "}
                     {t("manager:result.table.correct")}
                   </span>
                 ) : (
-                  <span className="flex items-center gap-1 text-red-500">
+                  <span className="text-danger flex items-center gap-1">
                     <X className="size-4 stroke-4" />{" "}
                     {t("manager:result.table.incorrect")}
                   </span>
