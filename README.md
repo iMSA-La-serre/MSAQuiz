@@ -94,7 +94,7 @@ If the build fails with `TLS: server certificate not trusted` (apk) or `unable t
 docker compose -f compose.dev.yml up --build
 ```
 
-It uses port 3000 too, so stop the production container first (`docker compose down`); stop the dev one with `docker compose -f compose.dev.yml down`.
+It uses port 3000 too, so stop the production container first (`docker compose down`); stop the dev one with `docker compose -f compose.dev.yml down`. Don't run `pnpm dev` on the host at the same time either: both would open `config/msaquiz.db`, and the container fails with `SqliteError: disk I/O error` (`SQLITE_IOERR_SHMOPEN`).
 
 Dependencies live in Docker volumes and are re-synced from `pnpm-lock.yaml` at startup, so after pulling a lockfile change just restart the container. To add a dependency, update the lockfile through the container first, then restart:
 
