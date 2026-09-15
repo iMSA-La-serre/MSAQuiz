@@ -19,8 +19,9 @@ ENV NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt
 
 RUN npm install -g pnpm
 
-# ---- BUILDER ----
-FROM base AS builder
+# ---- DEPS ----
+# Dépendances installées, communes au build de prod et au mode dev.
+FROM base AS deps
 WORKDIR /app
 
 # Outils de compilation, au cas où un prebuild natif ne serait pas disponible.
@@ -32,6 +33,18 @@ COPY packages/web/package.json ./packages/web/
 COPY packages/socket/package.json ./packages/socket/
 
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
+
+# ---- DEV ----
+# Hot reload (voir compose.dev.yml) : le code est monté depuis l'hôte, Vite
+# recharge le front et tsx relance le serveur socket à chaque modification.
+# L'install au démarrage resynchronise les volumes node_modules si le lockfile
+# a changé depuis leur création.
+FROM deps AS dev
+EXPOSE 3000
+CMD ["sh", "-c", "pnpm install --frozen-lockfile --config.confirm-modules-purge=false && pnpm dev"]
+
+# ---- BUILDER ----
+FROM deps AS builder
 
 COPY . .
 

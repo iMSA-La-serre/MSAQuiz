@@ -15,6 +15,7 @@ docs
 *.md
 event.json
 compose.yml
+compose.dev.yml
 .prettierignore
 .prettierrc.json
 oxlint.config.ts

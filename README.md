@@ -87,6 +87,21 @@ The application will be available at http://localhost:3000
 **Corporate network (TLS-intercepting proxy):**
 If the build fails with `TLS: server certificate not trusted` (apk) or `unable to get local issuer certificate` (npm/pnpm), export the proxy's root certificate in PEM format (Base-64) into `docker/certs/` (e.g. `docker/certs/corporate-root-ca.crt`), then rebuild. Files in that folder are gitignored.
 
+**Development with hot reload:**
+[compose.dev.yml](/compose.dev.yml) runs the dev servers instead of the production build: the repository is mounted into the container, Vite reloads the front-end and the socket server restarts on every file change.
+
+```bash
+docker compose -f compose.dev.yml up --build
+```
+
+It uses port 3000 too, so stop the production container first (`docker compose down`); stop the dev one with `docker compose -f compose.dev.yml down`.
+
+Dependencies live in Docker volumes and are re-synced from `pnpm-lock.yaml` at startup, so after pulling a lockfile change just restart the container. To add a dependency, update the lockfile through the container first, then restart:
+
+```bash
+docker compose -f compose.dev.yml run --rm msaquiz-dev pnpm add <package> --filter @razzia/web
+```
+
 ### 🛠️ Without Docker
 
 1. Clone the repository:
