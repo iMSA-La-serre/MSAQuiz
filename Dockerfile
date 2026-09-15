@@ -42,6 +42,10 @@ RUN apk add --no-cache nginx supervisor
 COPY docker/nginx.conf /etc/nginx/http.d/default.conf
 COPY docker/supervisord.conf /etc/supervisord.conf
 
+# Licence MIT de Razzia : elle doit accompagner chaque copie du logiciel. Son
+# texte est aussi affiché dans l'application (page /licences, avec les
+# licences des bibliothèques tierces générées au build dans licenses.json).
+COPY --from=builder /app/LICENSE /app/LICENSE
 COPY --from=builder /app/packages/web/dist /app/web
 COPY --from=builder /app/packages/socket/dist/index.cjs /app/socket/index.cjs
 COPY --from=builder /app/packages/socket/src/db/migrations /app/socket/migrations

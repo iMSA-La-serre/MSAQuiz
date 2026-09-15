@@ -5,6 +5,11 @@
   "connecting": "Connecting...",
   "delete": "Delete",
   "exit": "Exit",
+  "footer": {
+    "allLicenses": "Licences",
+    "license": "MIT License",
+    "poweredBy": "Powered by"
+  },
   "language": {
     "de": "Deutsch - German",
     "en": "English - English",
@@ -12,6 +17,18 @@
     "fr": "Français - French",
     "it": "Italiano - Italian",
     "ja": "日本語 - Japanese"
+  },
+  "licenses": {
+    "back": "Back",
+    "count": "{{count}} libraries",
+    "error": "The licence list could not be loaded. Try again later.",
+    "generated": "This package ships no licence file. The text below reproduces the licence it declares, with the author named in the package.",
+    "intro": "{{appName}} is built on Razzia, free software released under the MIT License. This page reproduces its licence and those of the open-source libraries the app uses.",
+    "noFile": "This package ships no licence file: its declared licence is shown above.",
+    "originalSoftware": "Original software",
+    "sourceCode": "View the source code",
+    "thirdParty": "Open-source libraries",
+    "title": "Licences"
   },
   "loading": "Loading...",
   "next": "Next",

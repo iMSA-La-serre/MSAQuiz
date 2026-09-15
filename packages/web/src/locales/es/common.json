@@ -5,6 +5,11 @@
   "connecting": "Conectando...",
   "delete": "Eliminar",
   "exit": "Salir",
+  "footer": {
+    "allLicenses": "Licencias",
+    "license": "Licencia MIT",
+    "poweredBy": "Basado en"
+  },
   "language": {
     "de": "Deutsch - Alemán",
     "en": "English - Inglés",
@@ -12,6 +17,18 @@
     "fr": "Français - Francés",
     "it": "Italiano - Italiano",
     "ja": "日本語 - Japonés"
+  },
+  "licenses": {
+    "back": "Volver",
+    "count": "{{count}} bibliotecas",
+    "error": "No se pudo cargar la lista de licencias. Inténtalo más tarde.",
+    "generated": "Este paquete no incluye archivo de licencia. El texto siguiente reproduce la licencia que declara, con el autor indicado en el paquete.",
+    "intro": "{{appName}} está construido sobre Razzia, un software libre publicado bajo licencia MIT. Esta página reproduce su licencia y las de las bibliotecas de código abierto que utiliza la aplicación.",
+    "noFile": "Este paquete no incluye archivo de licencia: su licencia declarada figura arriba.",
+    "originalSoftware": "Software original",
+    "sourceCode": "Ver el código fuente",
+    "thirdParty": "Bibliotecas de código abierto",
+    "title": "Licencias"
   },
   "loading": "Cargando...",
   "next": "Siguiente",

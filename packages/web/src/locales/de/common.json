@@ -5,6 +5,11 @@
   "connecting": "Verbinden...",
   "delete": "Löschen",
   "exit": "Beenden",
+  "footer": {
+    "allLicenses": "Lizenzen",
+    "license": "MIT-Lizenz",
+    "poweredBy": "Basiert auf"
+  },
   "language": {
     "de": "Deutsch - Deutsch",
     "en": "English - Englisch",
@@ -12,6 +17,18 @@
     "fr": "Français - Französisch",
     "it": "Italiano - Italienisch",
     "ja": "日本語 - Japanisch"
+  },
+  "licenses": {
+    "back": "Zurück",
+    "count": "{{count}} Bibliotheken",
+    "error": "Die Lizenzliste konnte nicht geladen werden. Versuche es später erneut.",
+    "generated": "Dieses Paket enthält keine Lizenzdatei. Der folgende Text gibt die angegebene Lizenz wieder, mit dem im Paket genannten Autor.",
+    "intro": "{{appName}} basiert auf Razzia, freier Software unter der MIT-Lizenz. Diese Seite gibt ihre Lizenz und die der verwendeten Open-Source-Bibliotheken wieder.",
+    "noFile": "Dieses Paket enthält keine Lizenzdatei: Die angegebene Lizenz steht oben.",
+    "originalSoftware": "Ursprüngliche Software",
+    "sourceCode": "Quellcode ansehen",
+    "thirdParty": "Open-Source-Bibliotheken",
+    "title": "Lizenzen"
   },
   "loading": "Laden...",
   "next": "Weiter",

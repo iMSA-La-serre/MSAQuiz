@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './pages/__root'
+import { Route as LicencesRouteImport } from './pages/licences'
 import { Route as authLayoutRouteImport } from './pages/(auth)/layout'
 import { Route as authIndexRouteImport } from './pages/(auth)/index'
 import { Route as PartyGameIdRouteImport } from './pages/party/$gameId'
@@ -19,6 +20,11 @@ import { Route as authManagerIndexRouteImport } from './pages/(auth)/manager/ind
 import { Route as PartyManagerGameIdRouteImport } from './pages/party/manager/$gameId'
 import { Route as ManagerQuizzQuizzIdRouteImport } from './pages/manager/quizz/$quizzId'
 
+const LicencesRoute = LicencesRouteImport.update({
+  id: '/licences',
+  path: '/licences',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const authLayoutRoute = authLayoutRouteImport.update({
   id: '/(auth)',
   getParentRoute: () => rootRouteImport,
@@ -65,6 +71,7 @@ const ManagerQuizzQuizzIdRoute = ManagerQuizzQuizzIdRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
+  '/licences': typeof LicencesRoute
   '/manager/quizz': typeof ManagerQuizzLayoutRouteWithChildren
   '/manager/config': typeof ManagerConfigRoute
   '/party/$gameId': typeof PartyGameIdRoute
@@ -75,6 +82,7 @@ export interface FileRoutesByFullPath {
   '/manager/quizz/': typeof ManagerQuizzIndexRoute
 }
 export interface FileRoutesByTo {
+  '/licences': typeof LicencesRoute
   '/manager/config': typeof ManagerConfigRoute
   '/party/$gameId': typeof PartyGameIdRoute
   '/': typeof authIndexRoute
@@ -86,6 +94,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/(auth)': typeof authLayoutRouteWithChildren
+  '/licences': typeof LicencesRoute
   '/manager/quizz': typeof ManagerQuizzLayoutRouteWithChildren
   '/manager/config': typeof ManagerConfigRoute
   '/party/$gameId': typeof PartyGameIdRoute
@@ -98,6 +107,7 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/licences'
     | '/manager/quizz'
     | '/manager/config'
     | '/party/$gameId'
@@ -108,6 +118,7 @@ export interface FileRouteTypes {
     | '/manager/quizz/'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/licences'
     | '/manager/config'
     | '/party/$gameId'
     | '/'
@@ -118,6 +129,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/(auth)'
+    | '/licences'
     | '/manager/quizz'
     | '/manager/config'
     | '/party/$gameId'
@@ -130,6 +142,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   authLayoutRoute: typeof authLayoutRouteWithChildren
+  LicencesRoute: typeof LicencesRoute
   ManagerQuizzLayoutRoute: typeof ManagerQuizzLayoutRouteWithChildren
   ManagerConfigRoute: typeof ManagerConfigRoute
   PartyGameIdRoute: typeof PartyGameIdRoute
@@ -138,6 +151,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/licences': {
+      id: '/licences'
+      path: '/licences'
+      fullPath: '/licences'
+      preLoaderRoute: typeof LicencesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/(auth)': {
       id: '/(auth)'
       path: ''
@@ -233,6 +253,7 @@ const ManagerQuizzLayoutRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   authLayoutRoute: authLayoutRouteWithChildren,
+  LicencesRoute: LicencesRoute,
   ManagerQuizzLayoutRoute: ManagerQuizzLayoutRouteWithChildren,
   ManagerConfigRoute: ManagerConfigRoute,
   PartyGameIdRoute: PartyGameIdRoute,

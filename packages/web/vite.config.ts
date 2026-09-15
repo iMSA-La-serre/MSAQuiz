@@ -7,6 +7,7 @@ import path from "node:path"
 import { fileURLToPath } from "url"
 import { defineConfig, type Plugin } from "vite"
 import { version } from "../../package.json"
+import { collectThirdPartyLicenses } from "./scripts/third-party-licenses"
 
 const brandingDir = fileURLToPath(
   new URL("../../config/branding", import.meta.url),
@@ -63,6 +64,50 @@ const brandingServer = (): Plugin => ({
   },
 })
 
+/**
+ * Serves `/licenses.json`, the licences of every open-source package the app
+ * depends on, read by the licences page. Emitted as a static file at build time
+ * and computed on request in `vite dev`.
+ */
+const thirdPartyLicenses = (): Plugin => {
+  let json: string | null = null
+
+  const getJson = () => {
+    json ??= JSON.stringify(
+      collectThirdPartyLicenses(
+        ["./", "../socket", "../common"].map((dir) =>
+          fileURLToPath(new URL(dir, import.meta.url)),
+        ),
+      ),
+    )
+
+    return json
+  }
+
+  return {
+    name: "msaquiz-third-party-licenses",
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        if (req.url?.split("?")[0] !== "/licenses.json") {
+          next()
+
+          return
+        }
+
+        res.setHeader("Content-Type", "application/json")
+        res.end(getJson())
+      })
+    },
+    generateBundle() {
+      this.emitFile({
+        type: "asset",
+        fileName: "licenses.json",
+        source: getJson(),
+      })
+    },
+  }
+}
+
 export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(version),
@@ -77,6 +122,7 @@ export default defineConfig({
     react(),
     tailwindcss(),
     brandingServer(),
+    thirdPartyLicenses(),
   ],
   resolve: {
     alias: {
