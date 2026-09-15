@@ -124,44 +124,43 @@ export const MEDIA_TYPES = {
   AUDIO: "audio",
 } as const
 
+// Seeded on first start: one question of each answerable type, so a new
+// instance can run a full game straight away.
 export const EXAMPLE_QUIZZ = {
-  subject: "Example Quizz",
+  subject: "Quiz d'exemple",
   questions: [
     {
-      question: "What is good answer ?",
-      answers: ["No", "Good answer", "No", "No"],
+      type: QUESTION_TYPES.SINGLE,
+      question:
+        "Combien de temps met la lumière du Soleil pour atteindre la Terre ?",
+      answers: ["8 secondes", "8 minutes", "8 heures", "8 jours"],
       solutions: [1],
+      cooldown: 5,
+      time: 20,
+    },
+    {
+      type: QUESTION_TYPES.TRUEFALSE,
+      question: "D'un point de vue botanique, la tomate est un fruit.",
+      answers: ["Vrai", "Faux"],
+      solutions: [0],
       cooldown: 5,
       time: 15,
     },
     {
-      question: "What is good answer with image ?",
-      answers: ["No", "No", "No", "Good answer"],
-      media: {
-        type: MEDIA_TYPES.IMAGE,
-        url: "https://placehold.co/600x400.png",
-      },
-      solutions: [3],
+      type: QUESTION_TYPES.MULTI,
+      question: "Lesquelles de ces planètes sont des géantes gazeuses ?",
+      answers: ["Jupiter", "Mars", "Saturne", "Vénus"],
+      solutions: [0, 2],
+      options: { scoringMode: SCORING_MODES.BALANCED },
       cooldown: 5,
       time: 20,
     },
     {
-      question: "What is good answer with two answers ?",
-      answers: ["Good answer", "No"],
-      media: {
-        type: MEDIA_TYPES.IMAGE,
-        url: "https://placehold.co/600x400.png",
-      },
-      solutions: [0],
+      type: QUESTION_TYPES.POLL,
+      question: "Quel format préférez-vous pour les prochains quiz ?",
+      answers: ["En équipe", "En solo", "Les deux"],
       cooldown: 5,
-      time: 20,
-    },
-    {
-      question: "Which of these are primary colors ?",
-      answers: ["Red", "Green", "Blue", "Yellow"],
-      solutions: [0, 2, 3],
-      cooldown: 5,
-      time: 20,
+      time: 15,
     },
   ],
 } as const

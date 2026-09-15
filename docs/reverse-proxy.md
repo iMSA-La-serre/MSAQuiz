@@ -1,12 +1,12 @@
 # Reverse Proxy
 
-Razzia's container serves everything on a single port (`3000`): static assets, the manager UI, and a WebSocket endpoint at `/ws` (used by [Socket.IO](https://socket.io/)) which is proxied internally to the socket server.
+MSAQuiz's container serves everything on a single port (`3000`): static assets, the manager UI, and a WebSocket endpoint at `/ws` (used by [Socket.IO](https://socket.io/)) which is proxied internally to the socket server.
 
-If you put Razzia behind your own reverse proxy (to add a domain name, HTTPS, or run several apps on one host), the only requirement is that the proxy forwards **WebSocket upgrade requests** through to the container. Without this, the app loads but never connects (players stay stuck on "connecting").
+If you put MSAQuiz behind your own reverse proxy (to add a domain name, HTTPS, or run several apps on one host), the only requirement is that the proxy forwards **WebSocket upgrade requests** through to the container. Without this, the app loads but never connects (players stay stuck on "connecting").
 
-> **Single instance only**: game state is kept in memory by the socket server, so you can only run **one** Razzia container/replica at a time. Do not load-balance across multiple instances.
+> **Single instance only**: game state is kept in memory by the socket server, so you can only run **one** MSAQuiz container/replica at a time. Do not load-balance across multiple instances.
 
-In all examples below, `razzia` resolves to wherever the container is reachable (e.g. `localhost:3000`, or a Docker Compose service name on the same network).
+In all examples below, `msaquiz` resolves to wherever the container is reachable (e.g. `localhost:3000`, or a Docker Compose service name on the same network).
 
 These are basic configs to get you started, adjust them (HTTPS, auth, etc.) to fit your own setup.
 
@@ -18,7 +18,7 @@ server {
     server_name quiz.example.com;
 
     location / {
-        proxy_pass http://razzia:3000;
+        proxy_pass http://msaquiz:3000;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -40,15 +40,15 @@ Traefik proxies WebSocket upgrades automatically — no extra config needed. Exa
 
 ```yaml
 services:
-  razzia:
-    image: ralex91/razzia:latest
+  msaquiz:
+    build: . # built from this repository, there is no public image
     volumes:
       - ./config:/app/config
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.razzia.rule=Host(`quiz.example.com`)"
-      - "traefik.http.routers.razzia.entrypoints=web"
-      - "traefik.http.services.razzia.loadbalancer.server.port=3000"
+      - "traefik.http.routers.msaquiz.rule=Host(`quiz.example.com`)"
+      - "traefik.http.routers.msaquiz.entrypoints=web"
+      - "traefik.http.services.msaquiz.loadbalancer.server.port=3000"
     networks:
       - traefik
 ```
@@ -59,7 +59,7 @@ Caddy detects and proxies WebSocket upgrades automatically with a plain `reverse
 
 ```caddyfile
 quiz.example.com {
-    reverse_proxy razzia:3000
+    reverse_proxy msaquiz:3000
 }
 ```
 

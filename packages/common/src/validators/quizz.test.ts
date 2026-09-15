@@ -1,4 +1,8 @@
-import { QUESTION_TYPES, SCORING_MODES } from "@razzia/common/constants"
+import {
+  EXAMPLE_QUIZZ,
+  QUESTION_TYPES,
+  SCORING_MODES,
+} from "@razzia/common/constants"
 import { quizzValidator } from "@razzia/common/validators/quizz"
 import { describe, expect, it } from "vitest"
 
@@ -187,5 +191,12 @@ describe("accepted edge cases", () => {
     const media = { type: "image", url: "https://example.org/image.png" }
 
     expect(parse({ ...SINGLE_QUESTION, media }).media?.url).toBe(media.url)
+  })
+})
+
+describe("example quiz", () => {
+  // The first-start seed silently skips a quiz that does not validate.
+  it("passes validation", () => {
+    expect(quizzValidator.safeParse(EXAMPLE_QUIZZ).success).toBe(true)
   })
 })

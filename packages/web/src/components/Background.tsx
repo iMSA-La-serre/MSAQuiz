@@ -1,5 +1,9 @@
 import defaultLogo from "@razzia/web/assets/logo.svg"
-import { getBranding, imageFallback } from "@razzia/web/branding"
+import {
+  DEFAULT_APP_NAME,
+  getBranding,
+  imageFallback,
+} from "@razzia/web/branding"
 import {
   RAZZIA_COPYRIGHT,
   RAZZIA_REPOSITORY,
@@ -11,7 +15,7 @@ import { useTranslation } from "react-i18next"
 const Background = ({ children }: PropsWithChildren) => {
   const branding = getBranding()
   const logo = branding?.logo ?? defaultLogo
-  const appName = branding?.appName ?? "Razzia"
+  const appName = branding?.appName ?? DEFAULT_APP_NAME
   const { t } = useTranslation()
 
   return (

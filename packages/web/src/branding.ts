@@ -1,6 +1,10 @@
 import type { ReactEventHandler } from "react"
 import { z } from "zod"
 
+// Name shown when no theme overrides it (page title, logo alt text, footer,
+// licences page). The Razzia attribution is kept separately in features/legal.
+export const DEFAULT_APP_NAME = "MSAQuiz"
+
 const brandingSchema = z.object({
   appName: z.string().optional(),
   colors: z.record(z.string(), z.string()).optional(),

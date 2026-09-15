@@ -21,11 +21,7 @@ export const seedDatabase = () => {
   const hasQuizz = db.select({ id: quizzes.id }).from(quizzes).limit(1).all()
 
   if (hasQuizz.length === 0) {
-    // Sujet francisé (l'EXAMPLE_QUIZZ upstream s'appelle "Example Quizz").
-    const parsed = quizzValidator.safeParse({
-      ...EXAMPLE_QUIZZ,
-      subject: "Quiz d'exemple",
-    })
+    const parsed = quizzValidator.safeParse(EXAMPLE_QUIZZ)
 
     if (parsed.success) {
       db.insert(quizzes)

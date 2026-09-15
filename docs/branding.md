@@ -9,7 +9,7 @@ Create `config/branding/theme.json`:
 ```json
 {
   "appName": "My Quiz",
-  "colors": { "primary": "#ff9900", "secondary": "#1a140b" },
+  "colors": { "primary": "#1d4ed8", "secondary": "#0f172a" },
   "answerColors": ["#e69f00", "#56b4e9", "#3dbfa0", "#cc79a7"],
   "font": {
     "family": "Rubik",

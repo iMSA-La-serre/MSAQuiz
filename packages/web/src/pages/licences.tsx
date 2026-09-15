@@ -1,4 +1,4 @@
-import { getBranding } from "@razzia/web/branding"
+import { DEFAULT_APP_NAME, getBranding } from "@razzia/web/branding"
 import {
   RAZZIA_COPYRIGHT,
   RAZZIA_LICENSE,
@@ -12,7 +12,7 @@ import { useTranslation } from "react-i18next"
 
 const LicencesPage = () => {
   const { t } = useTranslation()
-  const appName = getBranding()?.appName ?? "Razzia"
+  const appName = getBranding()?.appName ?? DEFAULT_APP_NAME
   const [libraries, setLibraries] = useState<ThirdPartyLicense[] | null>(null)
   const [failed, setFailed] = useState(false)
 

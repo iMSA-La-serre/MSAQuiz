@@ -1,6 +1,6 @@
 # WebSocket protocol
 
-Razzia's client-server communication runs entirely over [Socket.IO](https://socket.io/), on the `/ws` path. This document describes the **player-facing** part of the protocol, so you can build an alternative client, for example firmware for an ESP32-based physical buzzer for kids, instead of using the web UI.
+MSAQuiz's client-server communication runs entirely over [Socket.IO](https://socket.io/), on the `/ws` path. This document describes the **player-facing** part of the protocol, so you can build an alternative client, for example firmware for an ESP32-based physical buzzer for kids, instead of using the web UI.
 
 > This protocol is internal and not version-stabilized. It can change between releases without a deprecation period. Check this file against the version you deploy.
 
