@@ -16,16 +16,8 @@ const GameLayout = () => {
     }
   }, [connect, isConnected])
 
-  useEffect(() => {
-    document.body.classList.add("bg-secondary")
-
-    return () => {
-      document.body.classList.remove("bg-secondary")
-    }
-  }, [])
-
   return (
-    <div className="bg-secondary antialiased">
+    <div className="antialiased">
       <Outlet />
     </div>
   )
@@ -38,12 +30,12 @@ export const Route = createRootRoute({
     </SocketProvider>
   ),
   errorComponent: ({ error }) => (
-    <div className="bg-secondary antialiased">
+    <div className="antialiased">
       <ErrorPage error={error} />
     </div>
   ),
   notFoundComponent: () => (
-    <div className="bg-secondary antialiased">
+    <div className="antialiased">
       <NotFound />
     </div>
   ),

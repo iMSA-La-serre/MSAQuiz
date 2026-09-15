@@ -1,5 +1,6 @@
 import { EVENTS } from "@razzia/common/constants"
 import type { QuizzWithId } from "@razzia/common/types/game"
+import GameBackground from "@razzia/web/components/GameBackground"
 import Loader from "@razzia/web/components/Loader"
 import {
   useEvent,
@@ -29,8 +30,9 @@ const QuizzEditPage = () => {
 
   if (!quizz) {
     return (
-      <div className="bg-muted flex h-svh items-center justify-center">
-        <Loader className="text-background max-h-23" />
+      <div className="relative flex h-svh items-center justify-center">
+        <GameBackground />
+        <Loader className="text-background relative max-h-23" />
       </div>
     )
   }

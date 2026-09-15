@@ -1,5 +1,6 @@
 import { EVENTS } from "@razzia/common/constants"
 import { STATUS } from "@razzia/common/types/game/status"
+import GameBackground from "@razzia/web/components/GameBackground"
 import GameWrapper from "@razzia/web/features/game/components/GameWrapper"
 import {
   socketClient,
@@ -94,7 +95,7 @@ const ManagerGamePage = () => {
       : null
 
   if (!status) {
-    return null
+    return <GameBackground />
   }
 
   return (

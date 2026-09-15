@@ -1,4 +1,5 @@
 import { DEFAULT_APP_NAME, getBranding } from "@razzia/web/branding"
+import GameBackground from "@razzia/web/components/GameBackground"
 import {
   RAZZIA_COPYRIGHT,
   RAZZIA_LICENSE,
@@ -38,8 +39,9 @@ const LicencesPage = () => {
   }, [])
 
   return (
-    <main className="min-h-dvh px-4 py-10 text-white">
-      <div className="mx-auto flex max-w-3xl flex-col gap-8">
+    <main className="relative min-h-dvh px-4 py-10 text-white">
+      <GameBackground />
+      <div className="relative mx-auto flex max-w-3xl flex-col gap-8">
         <header className="flex flex-col gap-4">
           <Link
             to="/"

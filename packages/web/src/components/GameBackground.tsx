@@ -5,7 +5,7 @@ const GameBackground = () => {
   const background = getBranding()?.background ?? defaultBackground
 
   return (
-    <div className="fixed top-0 left-0 h-full w-full">
+    <div className="bg-secondary pointer-events-none fixed inset-0">
       <img
         className="pointer-events-none h-full w-full object-cover select-none"
         src={background}

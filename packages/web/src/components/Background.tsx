@@ -4,6 +4,7 @@ import {
   getBranding,
   imageFallback,
 } from "@razzia/web/branding"
+import GameBackground from "@razzia/web/components/GameBackground"
 import {
   RAZZIA_COPYRIGHT,
   RAZZIA_REPOSITORY,
@@ -20,10 +21,7 @@ const Background = ({ children }: PropsWithChildren) => {
 
   return (
     <section className="relative flex min-h-dvh flex-col items-center">
-      <div className="absolute h-full max-h-svh w-full overflow-hidden">
-        <div className="bg-primary/15 absolute top-[-70vmin] left-[-50vmin] min-h-[120vmin] min-w-[120vmin] rotate-20 rounded-4xl" />
-        <div className="bg-primary/15 absolute right-[-10vmin] bottom-[-45vmin] min-h-[75vmin] min-w-[75vmin] rotate-20 rounded-4xl" />
-      </div>
+      <GameBackground />
 
       <div className="relative flex w-full flex-1 flex-col items-center justify-center py-8">
         <img
