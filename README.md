@@ -84,6 +84,9 @@ The folder will be created automatically on first run with an example quiz to ge
 
 The application will be available at http://localhost:3000
 
+**Corporate network (TLS-intercepting proxy):**
+If the build fails with `TLS: server certificate not trusted` (apk) or `unable to get local issuer certificate` (npm/pnpm), export the proxy's root certificate in PEM format (Base-64) into `docker/certs/` (e.g. `docker/certs/corporate-root-ca.crt`), then rebuild. Files in that folder are gitignored.
+
 ### 🛠️ Without Docker
 
 1. Clone the repository:

@@ -2,6 +2,21 @@
 # Node 24 LTS: prebuilds natifs (better-sqlite3) garantis, et même ABI
 # entre le builder et le runner (le module natif est copié de l'un à l'autre).
 FROM node:24-alpine AS base
+
+# Réseau d'entreprise dont le proxy intercepte le TLS : le certificat racine du
+# proxy (format PEM, .crt ou .pem) déposé dans docker/certs/ est ajouté au
+# magasin système, pour qu'apk, npm et pnpm lui fassent confiance. Sans
+# certificat dans ce dossier, cette étape ne change rien.
+RUN --mount=type=bind,source=docker/certs,target=/tmp/certs \
+    for cert in /tmp/certs/*.crt /tmp/certs/*.pem; do \
+      if [ -f "$cert" ]; then \
+        grep -q "BEGIN CERTIFICATE" "$cert" \
+          || { echo "$cert n'est pas au format PEM (Base-64)" >&2; exit 1; }; \
+        { echo; cat "$cert"; } >> /etc/ssl/certs/ca-certificates.crt; \
+      fi; \
+    done
+ENV NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt
+
 RUN npm install -g pnpm
 
 # ---- BUILDER ----
