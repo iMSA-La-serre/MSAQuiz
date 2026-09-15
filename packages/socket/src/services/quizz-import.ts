@@ -3,16 +3,16 @@
 import type Excel from "exceljs"
 
 /**
- * Parses a quiz spreadsheet (Kahoot export/template compatible) into the
- * quizz payload expected by `quizzValidator`.
+ * Parses a quiz spreadsheet into the quizz payload expected by
+ * `quizzValidator`.
  *
  * Two layouts are supported:
  * - a header row containing "Question", "Answer 1..4" (or "Réponse"),
  *   "Time"/"Temps" and "Correct" columns, data on the following rows;
- * - the Kahoot template fixed layout (columns B..H, data from row 9).
+ * - a fixed template layout (columns B..H, data from row 9).
  */
 
-const KAHOOT_LAYOUT = {
+const TEMPLATE_LAYOUT = {
   headerRow: 8,
   question: 2,
   answers: [3, 4, 5, 6],
@@ -96,11 +96,11 @@ export const parseQuizzXlsx = async (
   const [sheet] = workbook.worksheets
 
   const columns: ColumnMap = findColumns(sheet) ?? {
-    firstDataRow: KAHOOT_LAYOUT.headerRow + 1,
-    question: KAHOOT_LAYOUT.question,
-    answers: KAHOOT_LAYOUT.answers,
-    time: KAHOOT_LAYOUT.time,
-    correct: KAHOOT_LAYOUT.correct,
+    firstDataRow: TEMPLATE_LAYOUT.headerRow + 1,
+    question: TEMPLATE_LAYOUT.question,
+    answers: TEMPLATE_LAYOUT.answers,
+    time: TEMPLATE_LAYOUT.time,
+    correct: TEMPLATE_LAYOUT.correct,
   }
 
   const questions = []

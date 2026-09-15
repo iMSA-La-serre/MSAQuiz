@@ -8,7 +8,7 @@ Everything happens in the manager dashboard, **Quizz** tab:
 
 - **Quiz editor** (recommended): build the questions in the browser, saved straight to the database.
 - **JSON import**: the upload button accepts a `.json` file in the format described below. This is what the export button produces (minus the `id`, which the database assigns on import).
-- **Kahoot import**: the same button accepts a `.xlsx` file exported from Kahoot, see [Importing from Kahoot](#importing-from-kahoot).
+- **Spreadsheet import**: the same button accepts a `.xlsx` file, see [Importing a spreadsheet](#importing-a-spreadsheet).
 
 You can keep as many quizzes as you like; you pick one when starting a game.
 
@@ -116,12 +116,12 @@ For `multi` questions only. With `s` = number of solutions, `x` = correct answer
 | `balanced` (default) | `max((x - y) / s, 0)` | Partial credit, wrong picks cancel out correct ones.          |
 | `lenient`            | `x / s`               | Partial credit, wrong picks are free.                         |
 
-## Importing from Kahoot
+## Importing a spreadsheet
 
 The importer reads the **first worksheet** of a `.xlsx` file (2 MB max) and uses the file name as the quiz title. Two layouts are supported:
 
 - **any sheet with a header row**: it is looked for in the first 30 rows and must contain a `Question` column, at least two `Answer` columns (`Réponse`, `Respuesta`, `Antwort` and `Risposta` are recognised too) and a `Correct` column; a `Time` column (`Temps`, `Tiempo`, `Zeit`) is optional. Data starts on the next row.
-- **the official Kahoot template**: columns B to H, data from row 9. Used as a fallback when no header row is found.
+- **the fixed template layout** (the layout of the Kahoot! quiz spreadsheet template): columns B to H, data from row 9. Used as a fallback when no header row is found.
 
 Conversion rules:
 
@@ -130,7 +130,9 @@ Conversion rules:
 - `Time` is clamped to 5-120 seconds (20 by default), and `cooldown` is set to 5 seconds.
 - rows without a question, with fewer than 2 answers, or without a usable `Correct` value are skipped. If nothing usable is left, the import fails and nothing is saved.
 
-Media, polls and slides are not part of the Kahoot format: add them afterwards in the editor.
+The importer only creates `single` and `multi` questions: add media, true/false questions, polls and slides afterwards in the editor.
+
+> **Trademark note**: Kahoot! is a trademark of its owner, which is not affiliated with MSAQuiz and does not endorse or sponsor it. The name is only used to say which spreadsheet files the importer can read.
 
 ## Legacy quizzes
 

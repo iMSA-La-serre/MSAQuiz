@@ -5,7 +5,7 @@
 
 MSAQuiz is iMSA's internal quiz platform: create quizzes, host live games, and collect results — self-hosted on our own infrastructure. It is built on top of [Razzia](https://github.com/Ralex91/Razzia), an open-source quiz platform by Ralex91.
 
-> **Disclaimer**: MSAQuiz/Razzia are independent, open-source software projects, not affiliated with, endorsed by, or sponsored by any third-party quiz platform or service. Any resemblance to other quiz platforms is purely incidental.
+> **Disclaimer**: Neither MSAQuiz nor Razzia, the open-source project it is built on, is affiliated with, endorsed by or sponsored by any third-party quiz platform or service.
 
 <p align="center">
   <img width="30%" src=".github/previews/1.png" alt="Login">
@@ -28,7 +28,7 @@ git cherry-pick <sha>                       # pick only what we want
 **Differences vs upstream:**
 
 - **SQLite persistence** — quizzes and game results live in a database (`config/msaquiz.db`), not in JSON files. Schema is ready for user accounts (Microsoft SSO planned).
-- **Excel import** — import quizzes from `.xlsx` files (Kahoot template/export compatible).
+- **Excel import** — import quizzes from `.xlsx` spreadsheets.
 - **Excel export** — download any game result as an `.xlsx` report.
 - **Poll, true/false & info-slide question types** — in addition to upstream's single/multi.
 - **Per-question statistics** — success rates aggregated across every game of a quizz.
@@ -160,9 +160,11 @@ Quizzes can be created three ways, all from the manager dashboard:
 
 - **Quiz Editor** (recommended) — full editor with media, timers and question types.
 - **JSON import** — a file matching the format below.
-- **Excel import (`.xlsx`)** — compatible with the **Kahoot quiz template/export**: a header row containing `Question`, `Answer 1..4`, `Time limit`, `Correct answer(s)` (1-based, comma-separated), data on the following rows — or the exact Kahoot template layout (columns B–H, data from row 9). Questions with several correct answers become multi-select (strict scoring).
+- **Excel import (`.xlsx`)** — reads quiz spreadsheets, including those exported from Kahoot! or built from its quiz template: a header row containing `Question`, `Answer 1..4`, `Time limit`, `Correct answer(s)` (1-based, comma-separated), data on the following rows — or the fixed template layout (columns B–H, data from row 9). Questions with several correct answers become multi-select (strict scoring).
 
-The JSON format, the five question types (`single`, `multi`, `truefalse`, `poll`, `slide`), the scoring modes and the exact Kahoot mapping rules are documented in **[docs/quiz.md](docs/quiz.md)**.
+> **Trademark note**: Kahoot! is a trademark of its owner, which is not affiliated with MSAQuiz and does not endorse or sponsor it. The name is only used to say which spreadsheet files the importer can read.
+
+The JSON format, the five question types (`single`, `multi`, `truefalse`, `poll`, `slide`), the scoring modes and the spreadsheet import rules are documented in **[docs/quiz.md](docs/quiz.md)**.
 
 ### 4. Game results
 
@@ -179,7 +181,7 @@ Create `config/branding/theme.json`:
 ```json
 {
   "appName": "My Quiz",
-  "colors": { "primary": "#ff9900", "secondary": "#1a140b" },
+  "colors": { "primary": "#1d4ed8", "secondary": "#0f172a" },
   "answerColors": ["#e69f00", "#56b4e9", "#3dbfa0", "#cc79a7"],
   "font": {
     "family": "Rubik",
@@ -227,7 +229,7 @@ All fields are optional — anything you omit keeps its default value.
 
 ## 📝 Contributing
 
-MSAQuiz is maintained internally by the La Serre team — open issues and merge requests on [iMSA-La-serre/MSAQuiz](https://github.com/iMSA-La-serre/MSAQuiz).
+MSAQuiz is maintained internally by the La Serre team — open issues and pull requests on [iMSA-La-serre/MSAQuiz](https://github.com/iMSA-La-serre/MSAQuiz).
 
 ### Tests
 
@@ -238,7 +240,7 @@ pnpm test        # once, as CI does
 pnpm test:watch  # while developing
 ```
 
-They cover the pure logic — quiz validation, the scoring of all four question types, the point curves and the Kahoot spreadsheet parser — and run on every pull request. Test files sit next to the code they cover (`*.test.ts`).
+They cover the pure logic — quiz validation, the scoring of every question type, the point curves and the spreadsheet import parser — and run on every pull request. Test files sit next to the code they cover (`*.test.ts`).
 
 Keep them away from the database: importing anything that reaches `repositories/` or `db/` opens SQLite as a side effect, so stub those modules instead (see `packages/socket/src/utils/game.test.ts`).
 

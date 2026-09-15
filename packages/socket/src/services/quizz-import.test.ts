@@ -40,7 +40,7 @@ const importXlsx = async (rows: Cell[][], firstRow = 1, colOffset = 0) => {
   ])
 
   return quizzValidator.parse(
-    await parseQuizzXlsx(await buildXlsx(padded, firstRow), "Import Kahoot"),
+    await parseQuizzXlsx(await buildXlsx(padded, firstRow), "Import tableur"),
   )
 }
 
@@ -59,7 +59,7 @@ describe("header detection", () => {
       ],
     ])
 
-    expect(quizz.subject).toBe("Import Kahoot")
+    expect(quizz.subject).toBe("Import tableur")
     expect(quizz.questions).toHaveLength(1)
     expect(quizz.questions[0]).toMatchObject({
       type: QUESTION_TYPES.SINGLE,
@@ -84,7 +84,7 @@ describe("header detection", () => {
     })
   })
 
-  it("falls back to the Kahoot template layout, data from row 9", async () => {
+  it("falls back to the fixed template layout, data from row 9", async () => {
     const quizz = await importXlsx(
       [["Capitale de l'Italie ?", "Rome", "Milan", "Turin", "Naples", 20, "1"]],
       9,
