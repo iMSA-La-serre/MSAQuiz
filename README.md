@@ -34,7 +34,7 @@ git cherry-pick <sha>                       # pick only what we want
 - **Per-question statistics** — success rates aggregated across every game of a quizz.
 - The footer displays the branded app name (from `config/branding`).
 
-The default look follows the La Serre brand guidelines (palette, Work Sans, background). The deployment volume (`config/branding/`) can still override it, for example to show the La Serre logo.
+The default look follows the La Serre brand guidelines (logo, palette, Work Sans, background). The deployment volume (`config/branding/`) can still override any of it.
 
 > Note: internal package names (`@razzia/web`, `@razzia/socket`, `@razzia/common`) are kept as-is on purpose — renaming them would create massive, pointless divergence from upstream.
 
