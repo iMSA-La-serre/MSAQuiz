@@ -1,7 +1,22 @@
 {
+  "answer": {
+    "multiEmpty": "Wähle mindestens eine Antwort",
+    "multiHint": "Mehrere Antworten möglich",
+    "pollHint": "Umfrage: keine richtige Antwort",
+    "slideHint": "Folge der Folie auf dem Bildschirm"
+  },
+  "band": {
+    "answersLabel": "Eingegangene Antworten: {{count}} von {{total}}",
+    "noLimit": "Ohne Zeitlimit",
+    "open": "Du kannst jetzt antworten",
+    "reading": "Lesezeit",
+    "readingLabel": "Lesezeit: Antworten in {{count}} s freigegeben",
+    "score": "Punktestand",
+    "timeLeft": "Verbleibende Zeit: {{count}} s"
+  },
   "codeLabel": "Spielcode",
   "confirm": "Bestätigen",
-  "correct": "Richtig!",
+  "correct": "Richtige Antwort",
   "correctInARow": "{{count}} richtige Antworten in Folge",
   "finale": {
     "eyebrow": "Endstand",
@@ -14,6 +29,7 @@
     "time": "Zeit"
   },
   "leaderboard": "Bestenliste",
+  "leaderboardAfter": "Nach Frage {{number}} von {{total}}",
   "lobby": {
     "empty": "Teilnehmende erscheinen hier, sobald sie beitreten",
     "enlargeQr": "QR-Code vergrößern",
@@ -28,23 +44,26 @@
     "scan": "Scanne den QR-Code mit deinem Handy",
     "title": "Am Spiel teilnehmen"
   },
-  "pollAnswered": "Stimme gespeichert!",
+  "noAnswer": "Keine Antwort",
+  "pollAnswered": "Stimme gespeichert",
   "pollNoVote": "Sie haben nicht abgestimmt",
   "prepared": {
     "outOf": "von {{total}}",
     "title": "Frage {{number}}"
   },
-  "rank": {
-    "1": "1. Platz",
-    "2": "2. Platz",
-    "3": "3. Platz",
-    "other": "{{rank}}. Platz"
-  },
-  "rankSuffix": ". Platz",
   "reconnect": "Erneut verbinden",
   "reconnectTitle": "Du warst in einem Spiel",
-  "resultBehind": ", hinter ",
-  "resultTop": "Du hast ",
+  "responses": {
+    "correct": "Richtige Antwort",
+    "label": "Verteilung der Antworten",
+    "noAnswer": "Ohne Antwort: {{count}}",
+    "rowLabel": "{{letter}}: {{count}} von {{total}} ({{percent}})"
+  },
+  "result": {
+    "outOf": "von {{total}}",
+    "rankLabel": "Platz",
+    "total": "Gesamt"
+  },
   "slideInfo": "Keine Antwort erforderlich",
   "start": {
     "eyebrow": "Das Quiz beginnt",
@@ -52,7 +71,10 @@
   },
   "startGame": "Spiel starten",
   "usernamePlaceholder": "Benutzername hier",
+  "wait": {
+    "sent": "Antwort gesendet"
+  },
   "waitingForAnswers": "Warten auf die Antworten der Spieler",
   "waitingForPlayers": "Warten auf Spieler",
-  "wrong": "Schade"
+  "wrong": "Diesmal nicht"
 }

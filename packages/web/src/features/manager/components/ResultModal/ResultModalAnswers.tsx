@@ -1,9 +1,6 @@
 import { MEDIA_TYPES, NO_TIME_LIMIT } from "@razzia/common/constants"
 import type { QuestionMedia } from "@razzia/common/types/game"
-import {
-  ANSWERS_COLORS,
-  ANSWERS_LABELS,
-} from "@razzia/web/features/game/utils/constants"
+import AnswerChip from "@razzia/web/features/game/components/AnswerChip"
 import { useResultModal } from "@razzia/web/features/manager/contexts/result-modal-context"
 import clsx from "clsx"
 import { Check, Clock, ImageOff, Music, Video, X } from "lucide-react"
@@ -13,8 +10,8 @@ interface AnswerRow {
   label: string
   count: number
   isCorrect: boolean
-  color: string | null
-  answerLabel: string | null
+  // Answer position, null for the "no answer" row.
+  index: number | null
 }
 
 const MediaPreview = ({ media }: { media?: QuestionMedia }) => {
@@ -64,15 +61,13 @@ const ResultModalAnswers = () => {
         pa.answerIds?.includes(ai),
       ).length,
       isCorrect: questionResult.solutions.includes(ai),
-      color: ANSWERS_COLORS[ai % 4],
-      answerLabel: ANSWERS_LABELS[ai % 4],
+      index: ai,
     })),
     {
       label: t("manager:result.noAnswer"),
       count: noAnswerCount,
       isCorrect: false,
-      color: null,
-      answerLabel: null,
+      index: null,
     },
   ]
 
@@ -105,15 +100,8 @@ const ResultModalAnswers = () => {
         <div className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-x-3 gap-y-1.5 md:gap-y-2">
           {rows.map((row, i) => (
             <div key={i} className="contents">
-              {row.color && row.answerLabel ? (
-                <div
-                  className={clsx(
-                    "flex size-6 shrink-0 items-center justify-center rounded-md text-xs font-bold text-white",
-                    row.color,
-                  )}
-                >
-                  {row.answerLabel}
-                </div>
+              {row.index !== null ? (
+                <AnswerChip index={row.index} size="sm" />
               ) : (
                 <div className="border-accent flex size-6 shrink-0 items-center justify-center rounded-md border-2 bg-white">
                   <X className="text-muted-foreground size-3 stroke-4" />
@@ -122,7 +110,7 @@ const ResultModalAnswers = () => {
 
               <span
                 className={clsx("min-w-0 truncate text-sm font-medium", {
-                  "text-muted-foreground": !row.color,
+                  "text-muted-foreground": row.index === null,
                 })}
               >
                 {row.label}
@@ -135,7 +123,7 @@ const ResultModalAnswers = () => {
                   <X
                     className={clsx(
                       "size-5 stroke-4",
-                      row.color ? "text-danger" : "text-danger-soft",
+                      row.index === null ? "text-danger-soft" : "text-danger",
                     )}
                   />
                 )}

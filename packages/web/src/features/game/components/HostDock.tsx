@@ -1,0 +1,127 @@
+import { STATUS, type Status } from "@razzia/common/types/game/status"
+import Button from "@razzia/web/components/Button"
+import { MANAGER_SKIP_BTN } from "@razzia/web/features/game/utils/constants"
+import clsx from "clsx"
+import { ArrowRight, LogOut, type LucideIcon, SkipForward } from "lucide-react"
+import { useEffect } from "react"
+import { useTranslation } from "react-i18next"
+
+interface Props {
+  statusName: Status | undefined
+  disabled: boolean
+  onNext: () => void
+}
+
+interface DockAction {
+  icon: LucideIcon
+  className: string
+  // Whether a presentation clicker (right arrow, page down) triggers it.
+  presenterKeys: boolean
+}
+
+const QUIET = "bg-white/15 text-white hover:bg-white/25"
+
+const ACTIONS: Partial<Record<Status, DockAction>> = {
+  [STATUS.SELECT_ANSWER]: {
+    icon: SkipForward,
+    className: QUIET,
+    presenterKeys: true,
+  },
+  [STATUS.SHOW_RESPONSES]: {
+    icon: ArrowRight,
+    className: "bg-primary text-white",
+    presenterKeys: true,
+  },
+  [STATUS.SHOW_LEADERBOARD]: {
+    icon: ArrowRight,
+    className: "bg-primary text-white",
+    presenterKeys: true,
+  },
+  // Leaving the final ranking is not a "next": a clicker must not do it.
+  [STATUS.FINISHED]: { icon: LogOut, className: QUIET, presenterKeys: false },
+}
+
+const PRESENTER_KEYS = new Set(["ArrowRight", "PageDown"])
+
+// Where the arrow keys already mean something (typing, choosing, seeking).
+const OWN_KEYS_SELECTOR = "input, textarea, select, button, video, audio"
+
+const DOCK_BUTTON_ATTRIBUTE = "data-host-dock"
+
+const hasOwnKeys = (target: EventTarget | null) => {
+  if (!(target instanceof HTMLElement)) {
+    return false
+  }
+
+  // The dock button itself stays focused after a mouse click: the clicker
+  // must keep working then.
+  if (target.hasAttribute(DOCK_BUTTON_ATTRIBUTE)) {
+    return false
+  }
+
+  return target.isContentEditable || target.closest(OWN_KEYS_SELECTOR) !== null
+}
+
+// Host controls at the bottom right of every in-game screen but the lobby.
+// Always rendered, even empty, so content never jumps when a button appears.
+const HostDock = ({ statusName, disabled, onNext }: Props) => {
+  const { t } = useTranslation()
+  const label = statusName ? MANAGER_SKIP_BTN[statusName] : null
+  const action = statusName ? ACTIONS[statusName] : undefined
+  const listensToKeys = Boolean(label && action?.presenterKeys) && !disabled
+
+  useEffect(() => {
+    if (!listensToKeys) {
+      return
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const modified =
+        event.altKey || event.ctrlKey || event.metaKey || event.shiftKey
+
+      if (
+        !PRESENTER_KEYS.has(event.key) ||
+        event.repeat ||
+        modified ||
+        event.defaultPrevented ||
+        hasOwnKeys(event.target)
+      ) {
+        return
+      }
+
+      event.preventDefault()
+      onNext()
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown)
+    }
+  }, [listensToKeys, onNext])
+
+  const Icon = action?.icon
+
+  return (
+    <footer className="mx-auto flex min-h-22 w-full max-w-7xl items-end justify-end px-6 pb-6">
+      {label && action && Icon && (
+        <Button
+          size="lg"
+          {...{ [DOCK_BUTTON_ATTRIBUTE]: "" }}
+          aria-disabled={disabled}
+          onClick={onNext}
+          className={clsx(
+            "focus-visible:outline-serre-yellow rounded-full px-6 py-3 text-xl font-bold focus-visible:outline-3 focus-visible:outline-offset-2",
+            action.className,
+            { "pointer-events-none opacity-70": disabled },
+          )}
+        >
+          {t(label)}
+          <Icon aria-hidden className="size-5" />
+        </Button>
+      )}
+    </footer>
+  )
+}
+
+export default HostDock

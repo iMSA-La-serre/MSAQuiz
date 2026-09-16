@@ -1,7 +1,22 @@
 {
+  "answer": {
+    "multiEmpty": "Tick at least one answer",
+    "multiHint": "Several answers possible",
+    "pollHint": "Poll: no right answer",
+    "slideHint": "Follow the slide on the screen"
+  },
+  "band": {
+    "answersLabel": "Answers received: {{count}} of {{total}}",
+    "noLimit": "No time limit",
+    "open": "You can answer now",
+    "reading": "Reading",
+    "readingLabel": "Reading time: answers open in {{count}} s",
+    "score": "Score",
+    "timeLeft": "Time left: {{count}} s"
+  },
   "codeLabel": "Game code",
   "confirm": "Confirm",
-  "correct": "Nice!",
+  "correct": "Correct answer",
   "correctInARow": "{{count}} correct answers in a row",
   "finale": {
     "eyebrow": "Final ranking",
@@ -14,6 +29,7 @@
     "time": "Time"
   },
   "leaderboard": "Leaderboard",
+  "leaderboardAfter": "After question {{number}} of {{total}}",
   "lobby": {
     "empty": "Participants will appear here as soon as they join",
     "enlargeQr": "Enlarge the QR code",
@@ -28,23 +44,26 @@
     "scan": "Scan the QR code with your phone",
     "title": "Join the game"
   },
-  "pollAnswered": "Vote recorded!",
+  "noAnswer": "No answer",
+  "pollAnswered": "Vote recorded",
   "pollNoVote": "You didn't vote",
   "prepared": {
     "outOf": "of {{total}}",
     "title": "Question {{number}}"
   },
-  "rank": {
-    "1": "1st place",
-    "2": "2nd place",
-    "3": "3rd place",
-    "other": "{{rank}}th place"
-  },
-  "rankSuffix": " place",
   "reconnect": "Reconnect",
   "reconnectTitle": "You were in a game",
-  "resultBehind": ", behind ",
-  "resultTop": "You finished ",
+  "responses": {
+    "correct": "Correct answer",
+    "label": "Answer breakdown",
+    "noAnswer": "No answer: {{count}}",
+    "rowLabel": "{{letter}}: {{count}} of {{total}} ({{percent}})"
+  },
+  "result": {
+    "outOf": "of {{total}}",
+    "rankLabel": "Rank",
+    "total": "Total"
+  },
   "slideInfo": "No answer needed",
   "start": {
     "eyebrow": "The quiz is starting",
@@ -52,7 +71,10 @@
   },
   "startGame": "Start Game",
   "usernamePlaceholder": "Username here",
+  "wait": {
+    "sent": "Answer sent"
+  },
   "waitingForAnswers": "Waiting for the players to answer",
   "waitingForPlayers": "Waiting for players",
-  "wrong": "Too bad"
+  "wrong": "Not this time"
 }

@@ -1,9 +1,5 @@
-import {
-  ANSWERS_COLORS,
-  ANSWERS_LABELS,
-} from "@razzia/web/features/game/utils/constants"
+import AnswerChip from "@razzia/web/features/game/components/AnswerChip"
 import { useResultModal } from "@razzia/web/features/manager/contexts/result-modal-context"
-import clsx from "clsx"
 import { Check, X } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
@@ -41,14 +37,9 @@ const ResultModalTable = () => {
                     {pa.answerIds?.map((id) => (
                       <span
                         key={id}
-                        className={clsx(
-                          "inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-white",
-                          ANSWERS_COLORS[id % 4],
-                        )}
+                        className="bg-muted text-foreground inline-flex items-center gap-1.5 rounded-md py-0.5 pr-2 pl-0.5 text-xs"
                       >
-                        <span className="font-bold">
-                          {ANSWERS_LABELS[id % 4]}
-                        </span>
+                        <AnswerChip index={id} size="sm" />
                         <span className="max-w-30 truncate">
                           {questionResult.answers[id]}
                         </span>

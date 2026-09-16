@@ -1,6 +1,7 @@
 import type { ManagerStatusDataMap } from "@razzia/common/types/game/status"
+import Points from "@razzia/web/features/game/components/ranking/Points"
+import RankChip from "@razzia/web/features/game/components/ranking/RankChip"
 import { SFX } from "@razzia/web/features/game/utils/constants"
-import clsx from "clsx"
 import { motion, MotionConfig, useReducedMotion } from "motion/react"
 import { useEffect } from "react"
 import { useTranslation } from "react-i18next"
@@ -8,51 +9,6 @@ import useSound from "use-sound"
 
 interface Props {
   data: ManagerStatusDataMap["FINISHED"]
-}
-
-const RankChip = ({ rank, large }: { rank: number; large?: boolean }) => (
-  <span
-    className={clsx(
-      "flex shrink-0 items-center justify-center rounded-lg font-bold tabular-nums",
-      large
-        ? "text-primary size-14 bg-white text-3xl md:size-16 md:text-4xl"
-        : "size-10 bg-white/15 text-xl",
-    )}
-  >
-    {rank}
-  </span>
-)
-
-const Points = ({
-  value,
-  large,
-  className,
-}: {
-  value: number
-  large?: boolean
-  className?: string
-}) => {
-  const { t } = useTranslation()
-
-  return (
-    <p
-      className={clsx(
-        "shrink-0 font-bold tabular-nums",
-        large ? "text-3xl md:text-5xl" : "text-xl md:text-2xl",
-        className,
-      )}
-    >
-      {value}
-      <span
-        className={clsx(
-          "ml-1 font-semibold text-white/75",
-          large ? "text-lg md:text-2xl" : "text-base",
-        )}
-      >
-        {t("game:finale.points")}
-      </span>
-    </p>
-  )
 }
 
 const FinalRanking = ({ data: { subject, top } }: Props) => {
@@ -105,7 +61,9 @@ const FinalRanking = ({ data: { subject, top } }: Props) => {
               )}
               <RankChip rank={1} large />
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold tracking-[0.15em] text-white/80 uppercase">
+                {/* Solid white at 20 px bold: smaller or translucent text
+                fails on the green card. */}
+                <p className="text-xl font-bold tracking-[0.15em] text-white uppercase">
                   {t("game:finale.winner")}
                 </p>
                 <p className="truncate text-3xl font-bold md:text-5xl">
@@ -116,6 +74,7 @@ const FinalRanking = ({ data: { subject, top } }: Props) => {
                 value={winner.points}
                 large
                 className="col-start-2 md:col-auto"
+                unitClassName="text-xl font-bold text-white md:text-2xl md:font-semibold"
               />
             </motion.div>
 

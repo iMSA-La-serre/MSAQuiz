@@ -1,16 +1,15 @@
 import { EVENTS, MEDIA_TYPES, NO_TIME_LIMIT } from "@razzia/common/constants"
 import type { QuestionMediaType } from "@razzia/common/types/game"
 import type { CommonStatusDataMap } from "@razzia/common/types/game/status"
-import QuestionMedia from "@razzia/web/components/QuestionMedia"
+import QuestionStage from "@razzia/web/features/game/components/question/QuestionStage"
 import {
   useEvent,
   useSocket,
 } from "@razzia/web/features/game/contexts/socket-context"
 import { usePlayerStore } from "@razzia/web/features/game/stores/player"
+import { useQuestionStore } from "@razzia/web/features/game/stores/question"
 import { SFX } from "@razzia/web/features/game/utils/constants"
-import { QUESTION_REGISTRY } from "@razzia/web/features/questions"
 import { useEffect, useState } from "react"
-import { useTranslation } from "react-i18next"
 import useSound from "use-sound"
 
 interface Props {
@@ -22,10 +21,11 @@ const Answers = ({
 }: Props) => {
   const { socket } = useSocket()
   const { player, gameId } = usePlayerStore()
+  const setLastAnswer = useQuestionStore((state) => state.setLastAnswer)
 
-  const [cooldown, setCooldown] = useState(time)
-  const [totalAnswer, setTotalAnswer] = useState(0)
-  const { t } = useTranslation()
+  // Follows the server's game:cooldown ticks (time - 1 down to 1).
+  const [remaining, setRemaining] = useState(time)
+  const [answered, setAnswered] = useState(0)
 
   const [sfxPop] = useSound(SFX.ANSWERS.SOUND, {
     volume: 0.1,
@@ -48,6 +48,7 @@ const Answers = ({
         answerKeys,
       },
     })
+    setLastAnswer(answerKeys)
     sfxPop()
   }
 
@@ -72,54 +73,29 @@ const Answers = ({
   }, [playMusic])
 
   useEvent(EVENTS.GAME.COOLDOWN, (sec) => {
-    setCooldown(sec)
+    setRemaining(sec)
   })
 
   useEvent(EVENTS.GAME.PLAYER_ANSWER, (count) => {
-    setTotalAnswer(count)
+    setAnswered(count)
     sfxPop()
   })
 
-  const { AnswerComponent } = QUESTION_REGISTRY[questionType]
-
   return (
-    <div className="flex h-full flex-1 flex-col justify-between">
-      <div className="mx-auto inline-flex h-full w-full max-w-7xl flex-1 flex-col items-center justify-center gap-5">
-        <h2 className="text-center text-2xl font-bold text-white drop-shadow-lg md:text-4xl lg:text-5xl">
-          {question}
-        </h2>
-
-        <QuestionMedia media={media} alt={question} />
-      </div>
-
-      <div>
-        <div className="mx-auto mb-4 flex w-full max-w-7xl justify-between gap-1 px-2 text-lg font-bold text-white md:text-xl">
-          {time !== NO_TIME_LIMIT && (
-            <div className="flex flex-col items-center rounded-lg bg-black/40 px-4 text-lg font-bold">
-              <span className="translate-y-1 text-sm">
-                {t("game:hud.time")}
-              </span>
-              <span>{cooldown}</span>
-            </div>
-          )}
-          <div className="flex flex-col items-center rounded-lg bg-black/40 px-4 text-lg font-bold">
-            <span className="translate-y-1 text-sm">
-              {t("game:hud.answers")}
-            </span>
-            <span>
-              {totalAnswer}/{totalPlayer}
-            </span>
-          </div>
-        </div>
-
-        <AnswerComponent
-          answers={answers}
-          options={options}
-          onSubmit={handleSubmit}
-          readOnly={!player}
-        />
-      </div>
-    </div>
+    <QuestionStage
+      phase="answering"
+      question={question}
+      answers={answers}
+      questionType={questionType}
+      media={media}
+      time={time}
+      totalPlayers={totalPlayer}
+      answered={answered}
+      remaining={time === NO_TIME_LIMIT ? null : remaining}
+      options={options}
+      onSubmit={handleSubmit}
+      isHost={!player}
+    />
   )
 }
 

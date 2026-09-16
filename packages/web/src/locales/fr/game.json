@@ -1,7 +1,22 @@
 {
+  "answer": {
+    "multiEmpty": "Cochez au moins une réponse",
+    "multiHint": "Plusieurs réponses possibles",
+    "pollHint": "Sondage : pas de bonne réponse",
+    "slideHint": "Suivez la diapo à l'écran"
+  },
+  "band": {
+    "answersLabel": "Réponses reçues : {{count}} sur {{total}}",
+    "noLimit": "Sans limite",
+    "open": "Vous pouvez répondre",
+    "reading": "Lecture",
+    "readingLabel": "Lecture de la question : réponses ouvertes dans {{count}} s",
+    "score": "Score",
+    "timeLeft": "Temps restant : {{count}} s"
+  },
   "codeLabel": "Code de la partie",
   "confirm": "Valider",
-  "correct": "Bravo !",
+  "correct": "Bonne réponse",
   "correctInARow": "{{count}} bonnes réponses d'affilée",
   "finale": {
     "eyebrow": "Classement final",
@@ -14,6 +29,7 @@
     "time": "Temps"
   },
   "leaderboard": "Classement",
+  "leaderboardAfter": "Après la question {{number}} sur {{total}}",
   "lobby": {
     "empty": "Les participants apparaîtront ici dès qu'ils auront rejoint la partie",
     "enlargeQr": "Agrandir le QR code",
@@ -28,23 +44,26 @@
     "scan": "Scannez le QR code avec votre téléphone",
     "title": "Rejoindre la partie"
   },
-  "pollAnswered": "Vote enregistré !",
+  "noAnswer": "Pas de réponse",
+  "pollAnswered": "Vote enregistré",
   "pollNoVote": "Vous n'avez pas voté",
   "prepared": {
     "outOf": "sur {{total}}",
     "title": "Question {{number}}"
   },
-  "rank": {
-    "1": "1er",
-    "2": "2ème place",
-    "3": "3ème place",
-    "other": "{{rank}}ème place"
-  },
-  "rankSuffix": "e place",
   "reconnect": "Reconnecter",
   "reconnectTitle": "Vous étiez dans une partie",
-  "resultBehind": ", derrière ",
-  "resultTop": "Tu es ",
+  "responses": {
+    "correct": "Bonne réponse",
+    "label": "Répartition des réponses",
+    "noAnswer": "Sans réponse : {{count}}",
+    "rowLabel": "{{letter}} : {{count}} sur {{total}} ({{percent}})"
+  },
+  "result": {
+    "outOf": "sur {{total}}",
+    "rankLabel": "Rang",
+    "total": "Total"
+  },
   "slideInfo": "Aucune réponse attendue",
   "start": {
     "eyebrow": "Le quiz commence",
@@ -52,7 +71,10 @@
   },
   "startGame": "Démarrer la partie",
   "usernamePlaceholder": "Pseudo",
+  "wait": {
+    "sent": "Réponse envoyée"
+  },
   "waitingForAnswers": "En attente des réponses des joueurs",
   "waitingForPlayers": "En attente des joueurs",
-  "wrong": "Dommage"
+  "wrong": "Pas cette fois"
 }

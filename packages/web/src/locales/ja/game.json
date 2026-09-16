@@ -1,7 +1,22 @@
 {
+  "answer": {
+    "multiEmpty": "少なくとも1つ選んでください",
+    "multiHint": "複数回答可",
+    "pollHint": "アンケート：正解はありません",
+    "slideHint": "画面のスライドをご覧ください"
+  },
+  "band": {
+    "answersLabel": "回答数：{{total}}人中{{count}}人",
+    "noLimit": "時間制限なし",
+    "open": "回答できます",
+    "reading": "読む時間",
+    "readingLabel": "読む時間：あと{{count}}秒で回答開始",
+    "score": "スコア",
+    "timeLeft": "残り{{count}}秒"
+  },
   "codeLabel": "ゲームコード",
   "confirm": "確認",
-  "correct": "正解！",
+  "correct": "正解",
   "correctInARow": "{{count}} 問連続正解",
   "finale": {
     "eyebrow": "最終順位",
@@ -14,6 +29,7 @@
     "time": "時間"
   },
   "leaderboard": "リーダーボード",
+  "leaderboardAfter": "第{{number}}問終了時点（全{{total}}問）",
   "lobby": {
     "empty": "参加者は参加するとここに表示されます",
     "enlargeQr": "QRコードを拡大",
@@ -28,23 +44,26 @@
     "scan": "スマートフォンでQRコードを読み取ってください",
     "title": "ゲームに参加"
   },
-  "pollAnswered": "投票を記録しました！",
+  "noAnswer": "未回答",
+  "pollAnswered": "投票しました",
   "pollNoVote": "投票しませんでした",
   "prepared": {
     "outOf": "全{{total}}問中",
     "title": "第{{number}}問"
   },
-  "rank": {
-    "1": "1位",
-    "2": "2位",
-    "3": "3位",
-    "other": "{{rank}}位"
-  },
-  "rankSuffix": "位",
   "reconnect": "再接続",
   "reconnectTitle": "ゲームに参加していました",
-  "resultBehind": "、差は ",
-  "resultTop": "あなたの順位は ",
+  "responses": {
+    "correct": "正解",
+    "label": "回答の内訳",
+    "noAnswer": "未回答：{{count}}",
+    "rowLabel": "{{letter}}：{{total}}人中{{count}}人（{{percent}}）"
+  },
+  "result": {
+    "outOf": "/ {{total}}人",
+    "rankLabel": "順位",
+    "total": "合計"
+  },
   "slideInfo": "回答は不要です",
   "start": {
     "eyebrow": "クイズが始まります",
@@ -52,7 +71,10 @@
   },
   "startGame": "ゲーム開始",
   "usernamePlaceholder": "ユーザー名を入力",
+  "wait": {
+    "sent": "回答を送信しました"
+  },
   "waitingForAnswers": "プレイヤーの回答を待っています",
   "waitingForPlayers": "プレイヤーを待っています",
-  "wrong": "残念！"
+  "wrong": "不正解"
 }

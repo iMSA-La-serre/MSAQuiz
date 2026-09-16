@@ -1,7 +1,22 @@
 {
+  "answer": {
+    "multiEmpty": "Marca al menos una respuesta",
+    "multiHint": "Varias respuestas posibles",
+    "pollHint": "Encuesta: no hay respuesta correcta",
+    "slideHint": "Sigue la diapositiva en la pantalla"
+  },
+  "band": {
+    "answersLabel": "Respuestas recibidas: {{count}} de {{total}}",
+    "noLimit": "Sin límite",
+    "open": "Ya puedes responder",
+    "reading": "Lectura",
+    "readingLabel": "Tiempo de lectura: respuestas en {{count}} s",
+    "score": "Puntuación",
+    "timeLeft": "Tiempo restante: {{count}} s"
+  },
   "codeLabel": "Código de la partida",
   "confirm": "Confirmar",
-  "correct": "¡Bien!",
+  "correct": "Respuesta correcta",
   "correctInARow": "{{count}} respuestas correctas seguidas",
   "finale": {
     "eyebrow": "Clasificación final",
@@ -14,6 +29,7 @@
     "time": "Tiempo"
   },
   "leaderboard": "Clasificación",
+  "leaderboardAfter": "Tras la pregunta {{number}} de {{total}}",
   "lobby": {
     "empty": "Los participantes aparecerán aquí en cuanto se unan",
     "enlargeQr": "Ampliar el código QR",
@@ -28,23 +44,26 @@
     "scan": "Escanea el código QR con tu móvil",
     "title": "Unirse a la partida"
   },
-  "pollAnswered": "¡Voto registrado!",
+  "noAnswer": "Sin respuesta",
+  "pollAnswered": "Voto registrado",
   "pollNoVote": "No has votado",
   "prepared": {
     "outOf": "de {{total}}",
     "title": "Pregunta {{number}}"
   },
-  "rank": {
-    "1": "1er puesto",
-    "2": "2do puesto",
-    "3": "3er puesto",
-    "other": "Puesto {{rank}}"
-  },
-  "rankSuffix": " puesto",
   "reconnect": "Reconectar",
   "reconnectTitle": "Estabas en una partida",
-  "resultBehind": ", detrás de ",
-  "resultTop": "Terminaste ",
+  "responses": {
+    "correct": "Respuesta correcta",
+    "label": "Reparto de respuestas",
+    "noAnswer": "Sin respuesta: {{count}}",
+    "rowLabel": "{{letter}}: {{count}} de {{total}} ({{percent}})"
+  },
+  "result": {
+    "outOf": "de {{total}}",
+    "rankLabel": "Puesto",
+    "total": "Total"
+  },
   "slideInfo": "No se requiere respuesta",
   "start": {
     "eyebrow": "El cuestionario empieza",
@@ -52,7 +71,10 @@
   },
   "startGame": "Iniciar juego",
   "usernamePlaceholder": "Nombre de usuario aquí",
+  "wait": {
+    "sent": "Respuesta enviada"
+  },
   "waitingForAnswers": "Esperando que los jugadores respondan",
   "waitingForPlayers": "Esperando jugadores",
-  "wrong": "Mala suerte"
+  "wrong": "Esta vez no"
 }

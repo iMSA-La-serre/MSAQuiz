@@ -1,7 +1,5 @@
 {
-  "addAnswerPlaceholder": "回答を追加...",
   "addQuestion": "質問を追加",
-  "answersCountSuffix": "件の回答",
   "deleteQuestion": "質問を削除",
   "noQuestionYet": "まだ質問がありません",
   "question": {
@@ -50,5 +48,21 @@
   "titleQuizzPlaceholder": "クイズのタイトル...",
   "slideNoAnswers": "情報スライドには回答がありません。質問とメディアのみ表示されます。",
   "trueAnswer": "正しい",
-  "falseAnswer": "誤り"
+  "falseAnswer": "誤り",
+  "answers": {
+    "add": "回答を追加",
+    "columnAnswer": "回答",
+    "columnCorrect": "正解",
+    "correctToggle": "回答{{letter}}を正解にする",
+    "count": "{{count}}/{{max}}",
+    "hint": {
+      "multi": "正解をすべて選んでください",
+      "poll": "アンケート：正解の設定はありません",
+      "single": "正解とする回答を選んでください",
+      "truefalse": "正解を選んでください"
+    },
+    "placeholder": "回答{{letter}}",
+    "remove": "回答{{letter}}を削除",
+    "title": "回答"
+  }
 }

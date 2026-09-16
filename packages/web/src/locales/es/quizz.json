@@ -1,7 +1,5 @@
 {
-  "addAnswerPlaceholder": "Añadir una respuesta...",
   "addQuestion": "Añadir pregunta",
-  "answersCountSuffix": " respuestas",
   "deleteQuestion": "Eliminar pregunta",
   "noQuestionYet": "Aún no hay preguntas",
   "question": {
@@ -50,5 +48,21 @@
   "titleQuizzPlaceholder": "Título del cuestionario...",
   "slideNoAnswers": "Una diapositiva informativa no tiene respuestas: solo muestra la pregunta y su contenido.",
   "trueAnswer": "Verdadero",
-  "falseAnswer": "Falso"
+  "falseAnswer": "Falso",
+  "answers": {
+    "add": "Añadir una respuesta",
+    "columnAnswer": "Respuesta",
+    "columnCorrect": "Respuesta correcta",
+    "correctToggle": "Marcar la respuesta {{letter}} como correcta",
+    "count": "{{count}} de {{max}}",
+    "hint": {
+      "multi": "Marca todas las respuestas correctas",
+      "poll": "Encuesta: no hay respuesta correcta que marcar",
+      "single": "Marca la(s) respuesta(s) aceptada(s)",
+      "truefalse": "Elige la respuesta correcta"
+    },
+    "placeholder": "Respuesta {{letter}}",
+    "remove": "Eliminar la respuesta {{letter}}",
+    "title": "Respuestas"
+  }
 }

@@ -13,11 +13,12 @@ import Wait from "@razzia/web/features/game/components/states/Wait"
 
 import { STATUS } from "@razzia/common/types/game/status"
 
+// Chip colour and a readable letter colour per answer position (index.css).
 export const ANSWERS_COLORS = [
-  "bg-[var(--color-answer-1)] text-white",
-  "bg-[var(--color-answer-2)] text-white",
-  "bg-[var(--color-answer-3)] text-white",
-  "bg-[var(--color-answer-4)] text-white",
+  "bg-answer-1 text-answer-1-foreground",
+  "bg-answer-2 text-answer-2-foreground",
+  "bg-answer-3 text-answer-3-foreground",
+  "bg-answer-4 text-answer-4-foreground",
 ]
 
 export const ANSWERS_LABELS = ["A", "B", "C", "D"]

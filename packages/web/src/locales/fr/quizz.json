@@ -1,7 +1,5 @@
 {
-  "addAnswerPlaceholder": "Ajouter une réponse...",
   "addQuestion": "Ajouter une question",
-  "answersCountSuffix": " réponses",
   "deleteQuestion": "Supprimer la question",
   "noQuestionYet": "Aucune question pour l'instant",
   "question": {
@@ -50,5 +48,21 @@
   "titleQuizzPlaceholder": "Titre du quiz...",
   "slideNoAnswers": "Une diapo info n'attend pas de réponses — elle affiche simplement la question et son média.",
   "trueAnswer": "Vrai",
-  "falseAnswer": "Faux"
+  "falseAnswer": "Faux",
+  "answers": {
+    "add": "Ajouter une réponse",
+    "columnAnswer": "Réponse",
+    "columnCorrect": "Bonne réponse",
+    "correctToggle": "Marquer la réponse {{letter}} comme bonne réponse",
+    "count": "{{count}} sur {{max}}",
+    "hint": {
+      "multi": "Cochez toutes les bonnes réponses",
+      "poll": "Sondage : aucune bonne réponse à cocher",
+      "single": "Cochez la ou les réponses acceptées",
+      "truefalse": "Choisissez la bonne réponse"
+    },
+    "placeholder": "Réponse {{letter}}",
+    "remove": "Supprimer la réponse {{letter}}",
+    "title": "Réponses"
+  }
 }

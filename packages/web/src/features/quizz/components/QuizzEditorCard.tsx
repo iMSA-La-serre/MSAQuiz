@@ -65,16 +65,15 @@ const QuizzEditorCard = ({
 
       <SlideMedia media={question.media} />
 
-      <div className="grid grid-cols-2 gap-1">
+      <div className="flex flex-col gap-1">
         {question.answers.map((_, i) => (
           <div
             key={i}
-            className="border-accent flex h-4 flex-1 items-center rounded-md border px-0.5"
-          >
-            {question.solutions.includes(i) && (
-              <div className="bg-success-soft ml-auto size-1.5 rounded-full" />
+            className={clsx(
+              "h-1.5 w-full rounded-full",
+              question.solutions.includes(i) ? "bg-primary" : "bg-muted",
             )}
-          </div>
+          />
         ))}
       </div>
 

@@ -1,7 +1,5 @@
 {
-  "addAnswerPlaceholder": "Antwort hinzufügen...",
   "addQuestion": "Frage hinzufügen",
-  "answersCountSuffix": " Antworten",
   "deleteQuestion": "Frage löschen",
   "noQuestionYet": "Noch keine Fragen",
   "question": {
@@ -50,5 +48,21 @@
   "titleQuizzPlaceholder": "Quiz-Titel...",
   "slideNoAnswers": "Eine Info-Folie hat keine Antworten — sie zeigt nur die Frage und ihre Medien.",
   "trueAnswer": "Wahr",
-  "falseAnswer": "Falsch"
+  "falseAnswer": "Falsch",
+  "answers": {
+    "add": "Antwort hinzufügen",
+    "columnAnswer": "Antwort",
+    "columnCorrect": "Richtige Antwort",
+    "correctToggle": "Antwort {{letter}} als richtig markieren",
+    "count": "{{count}} von {{max}}",
+    "hint": {
+      "multi": "Alle richtigen Antworten ankreuzen",
+      "poll": "Umfrage: keine richtige Antwort zu markieren",
+      "single": "Akzeptierte Antwort(en) ankreuzen",
+      "truefalse": "Wähle die richtige Antwort"
+    },
+    "placeholder": "Antwort {{letter}}",
+    "remove": "Antwort {{letter}} entfernen",
+    "title": "Antworten"
+  }
 }

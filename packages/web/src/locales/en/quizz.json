@@ -1,7 +1,21 @@
 {
-  "addAnswerPlaceholder": "Add an answer...",
   "addQuestion": "Add question",
-  "answersCountSuffix": " answers",
+  "answers": {
+    "add": "Add an answer",
+    "columnAnswer": "Answer",
+    "columnCorrect": "Correct answer",
+    "correctToggle": "Mark answer {{letter}} as correct",
+    "count": "{{count}} of {{max}}",
+    "hint": {
+      "multi": "Tick every correct answer",
+      "poll": "Poll: no correct answer to tick",
+      "single": "Tick the accepted answer(s)",
+      "truefalse": "Choose the correct answer"
+    },
+    "placeholder": "Answer {{letter}}",
+    "remove": "Remove answer {{letter}}",
+    "title": "Answers"
+  },
   "deleteQuestion": "Delete question",
   "falseAnswer": "False",
   "noQuestionYet": "No question yet",

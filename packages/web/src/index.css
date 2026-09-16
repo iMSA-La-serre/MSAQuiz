@@ -5,10 +5,24 @@ config/branding/theme.json can still override any of these tokens. */
 @theme {
   --color-primary: #19a96a;
   --color-secondary: #2a3d5d;
-  --color-answer-1: #19a96a;
-  --color-answer-2: #1799ff;
-  --color-answer-3: #ffd661;
-  --color-answer-4: #005153;
+
+  /* La Serre charte, secondary colours (primary and secondary already exist). */
+  --color-serre-deep: #005153;
+  --color-serre-blue: #1799ff;
+  --color-serre-yellow: #ffd661;
+
+  /* Answer chips. Order is deliberate: never red/blue/yellow/green, never blue
+  at 2 or yellow at 3. The colour lives in the letter chip only. */
+  --color-answer-1: var(--color-primary);
+  --color-answer-2: var(--color-serre-yellow);
+  --color-answer-3: var(--color-serre-deep);
+  --color-answer-4: var(--color-serre-blue);
+  --color-answer-1-foreground: var(--color-secondary);
+  --color-answer-2-foreground: var(--color-secondary);
+  --color-answer-3-foreground: var(--color-white);
+  --color-answer-4-foreground: var(--color-secondary);
+
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
 
   /* Semantic states (right/wrong, good/average/poor rates, destructive
   actions, info). Values match the Tailwind shades these screens used. */
@@ -20,10 +34,6 @@ config/branding/theme.json can still override any of these tokens. */
   --color-danger-strong: var(--color-red-600);
   --color-danger-soft: var(--color-red-400);
   --color-danger-subtle: var(--color-red-50);
-  /* Player result icons (right/wrong), kept on the exact hex they were drawn
-  in so the result screen does not shift colour. */
-  --color-result-correct: #22c55e;
-  --color-result-wrong: #ef4444;
   --color-info: var(--color-blue-500);
   /* A bar or dot with nothing to rate (no answers, not a solution). */
   --color-neutral-mark: var(--color-gray-400);
@@ -46,49 +56,24 @@ button:not(:disabled),
   cursor: pointer;
 }
 
+/* MSAQuiz motion language: fade in with a short rise, never scale or bounce. */
 .anim-show {
-  animation: show 0.5s ease-out;
-}
-
-.anim-timer {
-  animation: timer 1s ease-out infinite;
+  animation: show 300ms var(--ease-out-quart) both;
 }
 
 @keyframes show {
-  0% {
-    transform: scale(0);
-  }
-  30% {
-    transform: scale(0.9);
-  }
-  60% {
-    transform: scale(0.8);
-  }
-  80% {
-    transform: scale(1);
-  }
-}
-
-@keyframes progressBar {
   from {
-    width: 0%;
+    opacity: 0;
+    transform: translateY(12px);
   }
   to {
-    width: 100%;
+    opacity: 1;
+    transform: none;
   }
 }
 
-@keyframes timer {
-  0% {
-    transform: scale(1);
-  }
-  30% {
-    transform: scale(1.4) rotate(-6deg);
-  }
-  60% {
-    transform: scale(0.8) rotate(6deg);
-  }
-  80% {
-    transform: scale(1);
+@media (prefers-reduced-motion: reduce) {
+  .anim-show {
+    animation: none;
   }
 }

@@ -20,6 +20,14 @@ export const STATUS = {
 
 export type Status = (typeof STATUS)[keyof typeof STATUS]
 
+// How a round ended for one player: scored questions give correct, wrong or
+// noAnswer, polls give voted or noVote.
+export type ResultOutcome =
+  "correct" | "wrong" | "noAnswer" | "voted" | "noVote"
+
+// A leaderboard row carries the points gained (or lost) on the last question.
+export type LeaderboardEntry = Player & { gain: number }
+
 export interface CommonStatusDataMap {
   SHOW_START: { time: number; subject: string }
   SHOW_PREPARED: {
@@ -29,8 +37,16 @@ export interface CommonStatusDataMap {
   }
   SHOW_QUESTION: {
     question: string
+    // Still image-only at this step: video and audio start with the answers.
     media?: QuestionMedia
+    // Type only, so the screen can reserve the space of the upcoming media.
+    upcomingMedia?: "video" | "audio"
     cooldown: number
+    // Shown locked during the reading time, not accepted yet.
+    answers: string[]
+    questionType: QuestionType
+    time: number
+    totalPlayer: number
   }
   SELECT_ANSWER: {
     question: string
@@ -42,15 +58,24 @@ export interface CommonStatusDataMap {
     options?: QuestionOptions
   }
   SHOW_RESULT: {
+    outcome: ResultOutcome
     correct: boolean
+    // I18n key of the heading, one per outcome.
     message: string
+    // Change actually applied to myPoints this round (a penalty after the
+    // floor at 0).
     points: number
     myPoints: number
     rank: number
-    aheadOfMe: string | null
+    totalPlayers: number
   }
   WAIT: { text: string }
-  FINISHED: { subject: string; top: Player[]; rank?: number }
+  FINISHED: {
+    subject: string
+    top: Player[]
+    rank?: number
+    totalPlayers?: number
+  }
 }
 
 interface ManagerExtraStatus {
@@ -61,8 +86,12 @@ interface ManagerExtraStatus {
     solutions: number[]
     answers: string[]
     media?: QuestionMedia
+    type: QuestionType
+    // Players who submitted an answer, the base of each answer's share.
+    totalAnswered: number
+    totalPlayers: number
   }
-  SHOW_LEADERBOARD: { oldLeaderboard: Player[]; leaderboard: Player[] }
+  SHOW_LEADERBOARD: { leaderboard: LeaderboardEntry[] }
 }
 
 export type PlayerStatusDataMap = CommonStatusDataMap

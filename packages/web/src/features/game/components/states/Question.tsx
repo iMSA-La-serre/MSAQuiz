@@ -1,40 +1,75 @@
-import { MEDIA_TYPES } from "@razzia/common/constants"
 import type { CommonStatusDataMap } from "@razzia/common/types/game/status"
+import QuestionStage from "@razzia/web/features/game/components/question/QuestionStage"
+import { usePlayerStore } from "@razzia/web/features/game/stores/player"
+import { useQuestionStore } from "@razzia/web/features/game/stores/question"
 import { SFX } from "@razzia/web/features/game/utils/constants"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import useSound from "use-sound"
 
 interface Props {
   data: CommonStatusDataMap["SHOW_QUESTION"]
 }
 
-const Question = ({ data: { question, media, cooldown } }: Props) => {
+const ignoreSubmit = () => {
+  // The rows are locked during the reading time: nothing can be sent.
+}
+
+// Reading time: the question and its answers show at once, the answers locked
+// until SELECT_ANSWER.
+const Question = ({
+  data: {
+    question,
+    media,
+    upcomingMedia,
+    cooldown,
+    answers,
+    questionType,
+    time,
+    totalPlayer,
+  },
+}: Props) => {
+  const player = usePlayerStore((state) => state.player)
+  const setLastAnswer = useQuestionStore((state) => state.setLastAnswer)
+  const [remaining, setRemaining] = useState(cooldown)
   const [sfxShow] = useSound(SFX.SHOW_SOUND, { volume: 0.5 })
 
   useEffect(() => {
     sfxShow()
   }, [sfxShow])
 
-  return (
-    <section className="relative mx-auto flex h-full w-full max-w-7xl flex-1 flex-col items-center px-4">
-      <div className="flex flex-1 flex-col items-center justify-center gap-5">
-        <h2 className="anim-show text-center text-3xl font-bold text-white drop-shadow-lg md:text-4xl lg:text-5xl">
-          {question}
-        </h2>
+  // A new question: the waiting screen no longer shows the previous answer.
+  useEffect(() => {
+    setLastAnswer(null)
+  }, [setLastAnswer])
 
-        {media?.type === MEDIA_TYPES.IMAGE && (
-          <img
-            alt={question}
-            src={media.url}
-            className="max-h-60 w-auto rounded-md sm:max-h-100"
-          />
-        )}
-      </div>
-      <div
-        className="bg-primary mb-20 h-4 self-start justify-self-end rounded-full"
-        style={{ animation: `progressBar ${cooldown}s linear forwards` }}
-      ></div>
-    </section>
+  // The server waits `cooldown` seconds: count down locally to 1, then
+  // SELECT_ANSWER replaces this screen.
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setRemaining((value) => Math.max(1, value - 1))
+    }, 1000)
+
+    return () => {
+      clearInterval(interval)
+    }
+  }, [])
+
+  return (
+    <QuestionStage
+      phase="reading"
+      question={question}
+      answers={answers}
+      questionType={questionType}
+      media={media}
+      upcomingMedia={upcomingMedia}
+      time={time}
+      cooldown={cooldown}
+      totalPlayers={totalPlayer}
+      answered={0}
+      remaining={remaining}
+      onSubmit={ignoreSubmit}
+      isHost={!player}
+    />
   )
 }
 

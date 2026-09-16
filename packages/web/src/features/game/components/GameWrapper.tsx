@@ -1,17 +1,18 @@
 import { EVENTS } from "@razzia/common/constants"
-import type { Status } from "@razzia/common/types/game/status"
+import { STATUS, type Status } from "@razzia/common/types/game/status"
 import Button from "@razzia/web/components/Button"
 import GameBackground from "@razzia/web/components/GameBackground"
 import Loader from "@razzia/web/components/Loader"
+import HostDock from "@razzia/web/features/game/components/HostDock"
+import PlayerBand from "@razzia/web/features/game/components/PlayerBand"
 import {
   useEvent,
   useSocket,
 } from "@razzia/web/features/game/contexts/socket-context"
-import { usePlayerStore } from "@razzia/web/features/game/stores/player"
 import { useQuestionStore } from "@razzia/web/features/game/stores/question"
 import { MANAGER_SKIP_BTN } from "@razzia/web/features/game/utils/constants"
 import clsx from "clsx"
-import { type PropsWithChildren, useEffect, useState } from "react"
+import { type PropsWithChildren, useEffect, useRef, useState } from "react"
 import toast from "react-hot-toast"
 import { useTranslation } from "react-i18next"
 
@@ -30,11 +31,15 @@ const GameWrapper = ({
   manager,
 }: Props) => {
   const { isConnected } = useSocket()
-  const { player } = usePlayerStore()
-  const { questionStates, setQuestionStates } = useQuestionStore()
+  const setQuestionStates = useQuestionStore((state) => state.setQuestionStates)
   const { t } = useTranslation()
   const [isDisabled, setIsDisabled] = useState(false)
+  // Set on the first press, before React renders again: a second Enter, Space
+  // or clicker press in the same instant must not send the action twice (the
+  // server would skip a question).
+  const isDisabledRef = useRef(false)
   const next = statusName ? MANAGER_SKIP_BTN[statusName] : null
+  const isLobby = statusName === STATUS.SHOW_ROOM
 
   useEvent(EVENTS.GAME.UPDATE_QUESTION, ({ current, total }) => {
     setQuestionStates({
@@ -46,14 +51,21 @@ const GameWrapper = ({
   useEvent(EVENTS.GAME.ERROR_MESSAGE, (message) => {
     toast.error(t(message))
     console.log(t(message))
+    isDisabledRef.current = false
     setIsDisabled(false)
   })
 
   useEffect(() => {
+    isDisabledRef.current = false
     setIsDisabled(false)
   }, [statusName])
 
   const handleNext = () => {
+    if (isDisabledRef.current) {
+      return
+    }
+
+    isDisabledRef.current = true
     setIsDisabled(true)
     onNext?.()
   }
@@ -62,7 +74,7 @@ const GameWrapper = ({
     <section className="relative flex min-h-dvh">
       <GameBackground />
 
-      <div className="z-10 flex w-full flex-1 flex-col justify-between">
+      <div className="z-10 flex w-full flex-1 flex-col">
         {!isConnected && !statusName ? (
           <div className="flex h-full w-full flex-1 flex-col items-center justify-center">
             <Loader className="h-30" />
@@ -72,43 +84,43 @@ const GameWrapper = ({
           </div>
         ) : (
           <>
-            <div className="flex w-full justify-between p-4">
-              {questionStates && (
-                <div className="flex items-center rounded-md bg-white p-2 px-4 text-lg font-bold text-black">
-                  {`${questionStates.current} / ${questionStates.total}`}
-                </div>
-              )}
+            {!manager && <PlayerBand />}
 
-              {manager && next && (
-                <Button
-                  className={clsx("hover:bg-accent bg-white px-4 text-black", {
-                    "pointer-events-none": isDisabled,
-                  })}
-                  onClick={handleNext}
-                >
-                  {t(next)}
-                </Button>
-              )}
+            {manager && isLobby && (
+              <div className="flex w-full justify-between p-4">
+                {next && (
+                  <Button
+                    className={clsx(
+                      "hover:bg-accent bg-white px-4 text-black",
+                      {
+                        "pointer-events-none": isDisabled,
+                      },
+                    )}
+                    onClick={handleNext}
+                  >
+                    {t(next)}
+                  </Button>
+                )}
 
-              {manager && onBack && (
-                <Button
-                  onClick={onBack}
-                  className="hover:bg-accent bg-white px-4 text-black"
-                >
-                  {t("common:exit")}
-                </Button>
-              )}
-            </div>
-
-            {children}
-
-            {!manager && (
-              <div className="z-50 flex items-center justify-between bg-white px-4 py-2 text-lg font-bold text-white">
-                <p className="text-gray-800">{player?.username}</p>
-                <div className="rounded-lg bg-gray-800 px-3 py-1 text-lg">
-                  {player?.points}
-                </div>
+                {onBack && (
+                  <Button
+                    onClick={onBack}
+                    className="hover:bg-accent bg-white px-4 text-black"
+                  >
+                    {t("common:exit")}
+                  </Button>
+                )}
               </div>
+            )}
+
+            <div className="flex flex-1 flex-col">{children}</div>
+
+            {manager && !isLobby && (
+              <HostDock
+                statusName={statusName}
+                disabled={isDisabled}
+                onNext={handleNext}
+              />
             )}
           </>
         )}

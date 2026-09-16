@@ -8,13 +8,14 @@ import {
 import type {
   Answer,
   GameResult,
-  Player,
   Question,
   QuestionResult,
   QuizzWithId,
 } from "@razzia/common/types/game"
 import type { Server, Socket } from "@razzia/common/types/game/socket"
 import {
+  type LeaderboardEntry,
+  type ResultOutcome,
   type Status,
   STATUS,
   type StatusDataMap,
@@ -49,14 +50,25 @@ export interface RoundManagerOptions {
   onGameFinished: (_result: GameResult) => void
 }
 
+// Heading shown on the player's result screen, as an i18n key.
+const RESULT_MESSAGES: Record<ResultOutcome, string> = {
+  correct: "game:correct",
+  wrong: "game:wrong",
+  noAnswer: "game:noAnswer",
+  voted: "game:pollAnswered",
+  noVote: "game:pollNoVote",
+}
+
 export class RoundManager {
   private readonly opts: RoundManagerOptions
   private started = false
   private currentQuestion = 0
   private playersAnswers: Answer[] = []
   private startTime = 0
-  private leaderboard: Player[] = []
-  private tempOldLeaderboard: Player[] | null = null
+  // Answers only count while SELECT_ANSWER is on screen: not during the
+  // reading time, and not once the results are out.
+  private acceptingAnswers = false
+  private leaderboard: LeaderboardEntry[] = []
   private questionsHistory: QuestionResult[] = []
 
   constructor(opts: RoundManagerOptions) {
@@ -132,11 +144,23 @@ export class RoundManager {
 
     const imageMedia =
       question.media?.type === MEDIA_TYPES.IMAGE ? question.media : undefined
+    const upcomingMedia =
+      question.media?.type === MEDIA_TYPES.VIDEO ||
+      question.media?.type === MEDIA_TYPES.AUDIO
+        ? question.media.type
+        : undefined
 
+    // The answers are shown during the reading time, but never the solutions:
+    // those only go to the manager with SHOW_RESPONSES.
     this.opts.broadcast(STATUS.SHOW_QUESTION, {
       question: question.question,
       media: imageMedia,
+      upcomingMedia,
       cooldown: question.cooldown,
+      answers: question.answers,
+      questionType: question.type,
+      time: question.time,
+      totalPlayer: this.opts.players.count(),
     })
 
     await sleep(question.cooldown)
@@ -146,6 +170,7 @@ export class RoundManager {
     }
 
     this.startTime = Date.now()
+    this.acceptingAnswers = true
 
     this.opts.broadcast(STATUS.SELECT_ANSWER, {
       question: question.question,
@@ -167,16 +192,10 @@ export class RoundManager {
   }
 
   private showResults(question: Question): void {
+    this.acceptingAnswers = false
+
     const { scored, acceptsAnswers } = QUESTION_TYPE_META[question.type]
     const currentPlayers = this.opts.players.getAll()
-
-    const oldLeaderboard = (() => {
-      if (this.leaderboard.length === 0) {
-        return currentPlayers.map((p) => ({ ...p }))
-      }
-
-      return this.leaderboard.map((p) => ({ ...p }))
-    })()
 
     const answerCounts = this.playersAnswers
       .flatMap(({ answerIds }) => answerIds)
@@ -207,6 +226,7 @@ export class RoundManager {
         // Unscored types (poll, slide) never penalize: voting is not "wrong".
         const penalty =
           scored && !isCorrect && playerAnswer ? (question.penalty ?? 0) : 0
+        const previousPoints = player.points
 
         player.points = Math.max(0, player.points + points - penalty)
 
@@ -215,11 +235,16 @@ export class RoundManager {
           player.correctInARow = isCorrect ? player.correctInARow + 1 : 0
         }
 
+        // The change actually applied: the floor at 0 can absorb part of a
+        // penalty, and the player must not be shown a larger loss.
+        const gain = player.points - previousPoints
+
         return {
           ...player,
           lastCorrect: isCorrect,
-          lastPoints: isCorrect ? points : -penalty,
+          lastPoints: gain,
           lastAnswered: Boolean(playerAnswer),
+          gain,
         }
       })
       .sort((a, b) => b.points - a.points)
@@ -229,34 +254,28 @@ export class RoundManager {
     // Answerless types (slide): players keep the screen until next question.
     if (acceptsAnswers) {
       sortedPlayers.forEach((player, index) => {
-        const rank = index + 1
-        const aheadPlayer = sortedPlayers[index - 1]
-
-        // Unscored types (poll): confirm the vote, or flag the missing one —
+        // Unscored types (poll): confirm the vote, or flag the missing one,
         // never claim a vote that was not cast.
-        const { correct, message } = (() => {
-          if (scored) {
-            return {
-              correct: player.lastCorrect,
-              message: player.lastCorrect ? "game:correct" : "game:wrong",
-            }
+        const outcome: ResultOutcome = (() => {
+          if (!scored) {
+            return player.lastAnswered ? "voted" : "noVote"
           }
 
-          return {
-            correct: player.lastAnswered,
-            message: player.lastAnswered
-              ? "game:pollAnswered"
-              : "game:pollNoVote",
+          if (!player.lastAnswered) {
+            return "noAnswer"
           }
+
+          return player.lastCorrect ? "correct" : "wrong"
         })()
 
         this.opts.send(player.id, STATUS.SHOW_RESULT, {
-          correct,
-          message,
+          outcome,
+          correct: scored ? player.lastCorrect : player.lastAnswered,
+          message: RESULT_MESSAGES[outcome],
           points: player.lastPoints,
           myPoints: player.points,
-          rank,
-          aheadOfMe: aheadPlayer ? aheadPlayer.username : null,
+          rank: index + 1,
+          totalPlayers: sortedPlayers.length,
         })
       })
     }
@@ -264,6 +283,8 @@ export class RoundManager {
     this.opts.send(this.opts.getManagerId(), STATUS.SHOW_RESPONSES, {
       ...question,
       responses: answerCounts,
+      totalAnswered: this.playersAnswers.length,
+      totalPlayers: currentPlayers.length,
     })
 
     // Answerless types carry nothing to report: keep them out of history.
@@ -280,11 +301,14 @@ export class RoundManager {
     }
 
     this.leaderboard = sortedPlayers
-    this.tempOldLeaderboard = oldLeaderboard
     this.playersAnswers = []
   }
 
   selectAnswer(socket: Socket, answerIds: number[]): void {
+    if (!this.acceptingAnswers) {
+      return
+    }
+
     const player = this.opts.players.findById(socket.id)
     const question = this.opts.quizz.questions[this.currentQuestion]
 
@@ -397,19 +421,15 @@ export class RoundManager {
           subject: this.opts.quizz.subject,
           top,
           rank: index + 1,
+          totalPlayers: this.leaderboard.length,
         })
       })
 
       return
     }
 
-    const oldLeaderboard = this.tempOldLeaderboard ?? this.leaderboard
-
     this.opts.send(this.opts.getManagerId(), STATUS.SHOW_LEADERBOARD, {
-      oldLeaderboard: oldLeaderboard.slice(0, 5),
       leaderboard: this.leaderboard.slice(0, 5),
     })
-
-    this.tempOldLeaderboard = null
   }
 }
