@@ -109,12 +109,10 @@ const QuestionBand = ({
   )
 
   const renderTimer = () => {
-    // Results: the ring's space stays reserved, so the band keeps the height
-    // it had on the answering screen and nothing under it moves.
+    // Results: nothing to count down. The host slot keeps its size on its
+    // own, so the band stays as tall as on the answering screen.
     if (phase === "results") {
-      return variant === "host" ? (
-        <span aria-hidden className="size-16 shrink-0 xl:size-20" />
-      ) : null
+      return null
     }
 
     if (variant === "phone" && isSlide) {
@@ -137,14 +135,17 @@ const QuestionBand = ({
       )
     }
 
+    // Without a limit the phone keeps the ring's footprint around an infinity
+    // sign: a chip with the words would take the whole line and push the
+    // question number onto a second one.
     if (!hasLimit || remaining === null) {
-      return (
-        <HintChip
-          icon={InfinityIcon}
-          className={clsx("shrink-0", {
-            "px-2.5 py-0.5 text-xs md:text-xs": variant === "phone",
-          })}
-        >
+      return variant === "phone" ? (
+        <TimerRing size="phone" tone="answer" fraction={null}>
+          <InfinityIcon aria-hidden className="size-5" />
+          <span className="sr-only">{t("game:band.noLimit")}</span>
+        </TimerRing>
+      ) : (
+        <HintChip icon={InfinityIcon} className="shrink-0">
           {t("game:band.noLimit")}
         </HintChip>
       )
@@ -240,8 +241,8 @@ const QuestionBand = ({
         </div>
       )}
 
-      {/* Fixed width, so the band never shifts between phases. */}
-      <div className="flex w-40 shrink-0 items-center justify-end gap-3 xl:w-48">
+      {/* Fixed size, ring included, so the band never shifts between phases. */}
+      <div className="flex h-16 w-40 shrink-0 items-center justify-end gap-3 xl:h-20 xl:w-48">
         {renderTimer()}
       </div>
     </div>

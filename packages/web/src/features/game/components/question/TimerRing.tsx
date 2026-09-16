@@ -5,8 +5,9 @@ type Tone = "reading" | "answer" | "warning"
 
 interface Props {
   size: "host" | "phone"
-  // Share of the time left, from 1 (full ring) to 0 (empty).
-  fraction: number
+  // Share of the time left, from 1 (full ring) to 0 (empty); null without a
+  // time limit, where only the track is drawn.
+  fraction: number | null
   tone: Tone
   children?: ReactNode
 }
@@ -23,10 +24,11 @@ const TONES: Record<Tone, string> = {
 
 // The ring drains as time runs out: a stroke around a transparent centre,
 // never a filled disc. The svg is decorative; the content in the centre (a
-// number or an icon) carries the value.
+// number or an icon) carries the value. Without a time limit only the track
+// is drawn, so the slot keeps its size with nothing to count down.
 const TimerRing = ({ size, fraction, tone, children }: Props) => {
   const strokeWidth = size === "host" ? 6 : 7
-  const filled = Math.min(1, Math.max(0, fraction))
+  const filled = fraction === null ? null : Math.min(1, Math.max(0, fraction))
 
   return (
     <div
@@ -45,19 +47,21 @@ const TimerRing = ({ size, fraction, tone, children }: Props) => {
           strokeWidth={strokeWidth}
           className="fill-none stroke-white/15"
         />
-        <circle
-          cx={32}
-          cy={32}
-          r={RADIUS}
-          strokeWidth={strokeWidth}
-          strokeLinecap="round"
-          strokeDasharray={CIRCUMFERENCE}
-          style={{ strokeDashoffset: CIRCUMFERENCE * (1 - filled) }}
-          className={clsx(
-            "fill-none transition-[stroke-dashoffset,stroke] duration-1000 ease-linear motion-reduce:transition-none",
-            TONES[tone],
-          )}
-        />
+        {filled !== null && (
+          <circle
+            cx={32}
+            cy={32}
+            r={RADIUS}
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeDasharray={CIRCUMFERENCE}
+            style={{ strokeDashoffset: CIRCUMFERENCE * (1 - filled) }}
+            className={clsx(
+              "fill-none transition-[stroke-dashoffset,stroke] duration-1000 ease-linear motion-reduce:transition-none",
+              TONES[tone],
+            )}
+          />
+        )}
       </svg>
       <div className="absolute inset-0 grid place-items-center">{children}</div>
     </div>
