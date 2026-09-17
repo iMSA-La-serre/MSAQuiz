@@ -23,6 +23,7 @@ import {
 import { CooldownTimer } from "@razzia/socket/services/game/cooldown-timer"
 import { PlayerManager } from "@razzia/socket/services/game/player-manager"
 import { QUESTION_SCORING } from "@razzia/socket/services/scoring"
+import { parseAnswerIds } from "@razzia/socket/services/scoring/answers"
 import { orderToPoint, timeToPoint } from "@razzia/socket/utils/game"
 import sleep from "@razzia/socket/utils/sleep"
 import { nanoid } from "nanoid"
@@ -324,6 +325,12 @@ export class RoundManager {
       return
     }
 
+    const acceptedIds = parseAnswerIds(question, answerIds)
+
+    if (!acceptedIds) {
+      return
+    }
+
     const points = (() => {
       if (question.time === NO_TIME_LIMIT) {
         return orderToPoint(
@@ -338,7 +345,7 @@ export class RoundManager {
 
     this.playersAnswers.push({
       playerId: player.id,
-      answerIds,
+      answerIds: acceptedIds,
       points,
     })
 

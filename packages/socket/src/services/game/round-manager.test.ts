@@ -307,6 +307,38 @@ describe("RoundManager results", () => {
     ])
   })
 
+  it("credits a repeated answer once and ignores an unknown one", async () => {
+    const game = setup(
+      [question({ type: QUESTION_TYPES.MULTI, solutions: [0, 1] }), question()],
+      [player("camille"), player("yanis"), player("samir")],
+    )
+
+    await game.reachFirstQuestion()
+    await game.openAnswers(5)
+    game.round.selectAnswer(socketOf("camille"), [0, 1])
+    game.round.selectAnswer(socketOf("yanis"), [0, 0, 0, 0, 0, 0])
+    game.round.selectAnswer(socketOf("samir"), [7])
+
+    expect(game.lastSent("samir", STATUS.WAIT)).toBeUndefined()
+
+    await game.closeAnswers()
+
+    const camille = game.lastSent("camille", STATUS.SHOW_RESULT)
+    const yanis = game.lastSent("yanis", STATUS.SHOW_RESULT)
+
+    // Same answer time: one right pick out of two is worth half the points.
+    expect(camille?.points).toBeGreaterThan(0)
+    expect(yanis?.points).toBe(Math.round((camille?.points ?? 0) / 2))
+    expect(game.lastSent("samir", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "noAnswer",
+      points: 0,
+    })
+    expect(game.lastSent(MANAGER_ID, STATUS.SHOW_RESPONSES)).toMatchObject({
+      responses: { 0: 2, 1: 1 },
+      totalAnswered: 2,
+    })
+  })
+
   it("confirms a vote or flags the missing one on a poll, with no gain", async () => {
     const game = setup(
       [question({ type: QUESTION_TYPES.POLL, solutions: [] }), question()],
