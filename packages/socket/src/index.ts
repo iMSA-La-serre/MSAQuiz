@@ -9,6 +9,7 @@ import { statsSocketHandlers } from "@razzia/socket/handlers/stats"
 import type { SocketHandler } from "@razzia/socket/handlers/types"
 import { initConfig } from "@razzia/socket/services/config"
 import Registry from "@razzia/socket/services/registry"
+import { guardSocket } from "@razzia/socket/utils/socket"
 import { Server as ServerIO } from "socket.io"
 
 const WS_PORT = 3001
@@ -37,6 +38,8 @@ io.on("connection", (socket) => {
   console.log(
     `A user connected: socketId: ${socket.id}, clientId: ${socket.handshake.auth.clientId}`,
   )
+
+  guardSocket(socket)
 
   socketHandlers.forEach((handler) => {
     handler({ io, socket })
