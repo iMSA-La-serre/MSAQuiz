@@ -54,7 +54,7 @@ const ResultModalAnswers = () => {
   const { t } = useTranslation()
 
   const noAnswerCount = totalPlayers - answeredCount
-  const { ResultSummary, optionsLabelKey } =
+  const { ResultSummary, optionsLabelKey, optionsLabel } =
     QUESTION_REGISTRY[questionResult.type]
   const { options } = questionResult
   // By default, the multi scoring mode, whatever the type it was saved with.
@@ -64,6 +64,9 @@ const ResultModalAnswers = () => {
   const optionsKey = optionsLabelKey
     ? optionsLabelKey(options)
     : defaultOptionsKey
+  const optionsText = optionsLabel
+    ? optionsLabel(t, options)
+    : optionsKey && t(optionsKey)
 
   const rows: AnswerRow[] = [
     ...questionResult.answers.map((label, ai) => ({
@@ -93,9 +96,9 @@ const ResultModalAnswers = () => {
               ? "∞"
               : `${questionResult.time}${t("manager:result.timeLimitSuffix")}`}
           </span>
-          {optionsKey && (
+          {optionsText && (
             <div className="bg-accent text-accent-foreground rounded-md px-2 py-0.5 font-semibold">
-              {t(optionsKey)}
+              {optionsText}
             </div>
           )}
         </div>

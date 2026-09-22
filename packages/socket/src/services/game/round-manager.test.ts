@@ -947,6 +947,133 @@ describe("RoundManager, wordcloud", () => {
   })
 })
 
+const ESTIMATE = question({
+  type: QUESTION_TYPES.ESTIMATE,
+  question: "Combien d'adhérents compte la caisse ?",
+  answers: [],
+  solutions: [],
+  expected: 4271,
+  options: {
+    tolerance: 5,
+    toleranceMode: "percent",
+    min: 0,
+    unit: "adhérents",
+  },
+  penalty: 50,
+})
+
+describe("RoundManager, estimate", () => {
+  it("reads the number typed and scores it within the tolerance", async () => {
+    const game = setup(
+      [ESTIMATE],
+      [player("camille"), player("yanis", 100), player("ines"), player("lea")],
+    )
+
+    await game.reachFirstQuestion()
+
+    expect(game.lastBroadcast(STATUS.SHOW_PREPARED)?.totalAnswers).toBe(0)
+    expect(game.lastBroadcast(STATUS.SHOW_QUESTION)?.answers).toEqual([])
+
+    await game.openAnswers(5)
+
+    // Indices, a number out of the bounds, a text that is no number: ignored.
+    game.round.selectAnswer(socketOf("ines"), { answerKeys: [0] })
+    game.round.selectAnswer(socketOf("ines"), { text: "-3" })
+    game.round.selectAnswer(socketOf("ines"), { text: "4 271 adhérents" })
+
+    expect(game.lastSent("ines", STATUS.WAIT)).toBeUndefined()
+
+    // 5 % of 4 271, rounded down: 4 058 to 4 484.
+    game.round.selectAnswer(socketOf("camille"), { text: "4 484" })
+    game.round.selectAnswer(socketOf("yanis"), { text: "4485" })
+    game.round.selectAnswer(socketOf("lea"), { text: "3000,0" })
+    await game.closeAnswers()
+
+    expect(game.lastSent("camille", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "correct",
+      correct: true,
+      points: 1000,
+    })
+    expect(game.lastSent("yanis", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "wrong",
+      correct: false,
+      points: -50,
+      myPoints: 50,
+    })
+    expect(game.lastSent("ines", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "noAnswer",
+      points: 0,
+    })
+
+    const responses = game.lastSent(MANAGER_ID, STATUS.SHOW_RESPONSES)
+
+    expect(responses).toMatchObject({
+      expected: 4271,
+      responses: {},
+      median: 4484,
+      totalAnswered: 3,
+      correctCount: 1,
+      partialCount: 0,
+    })
+    expect(
+      responses?.ranges?.map(({ from, to, count, correct }) => ({
+        from,
+        to,
+        count,
+        correct,
+      })),
+    ).toEqual([
+      { from: 0, to: 3557, count: 1, correct: false },
+      { from: 3558, to: 4057, count: 0, correct: false },
+      { from: 4058, to: 4484, count: 1, correct: true },
+      { from: 4485, to: 4984, count: 1, correct: false },
+      { from: 4985, to: null, count: 0, correct: false },
+    ])
+
+    game.round.showLeaderboard(game.manager)
+
+    expect(game.finished[0]?.questions[0]?.playerAnswers).toEqual([
+      { playerName: "camille", answerIds: [], value: 4484, score: 1 },
+      { playerName: "yanis", answerIds: [], value: 4485, score: 0 },
+      { playerName: "ines", answerIds: null, value: null, score: 0 },
+      { playerName: "lea", answerIds: [], value: 3000, score: 0 },
+    ])
+  })
+
+  it("counts a right value worth no points as correct, with no penalty", async () => {
+    const game = setup(
+      [{ ...ESTIMATE, maxPoints: 0, penalty: 100 }],
+      [{ ...player("camille", 500), correctInARow: 2 }],
+    )
+
+    await game.reachFirstQuestion()
+    await game.openAnswers(5)
+    game.round.selectAnswer(socketOf("camille"), { text: "4271" })
+    await game.closeAnswers()
+
+    expect(game.lastSent("camille", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "correct",
+      message: "game:correct",
+      points: 0,
+      myPoints: 500,
+    })
+    expect(game.roster()[0]?.correctInARow).toBe(3)
+  })
+
+  it("has no median and no count without an answer", async () => {
+    const game = setup([ESTIMATE], [player("camille")])
+
+    await game.reachFirstQuestion()
+    await game.openAnswers(5)
+    await game.closeAnswers()
+
+    const responses = game.lastSent(MANAGER_ID, STATUS.SHOW_RESPONSES)
+
+    expect(responses?.median).toBeNull()
+    expect(responses?.ranges?.every(({ count }) => count === 0)).toBe(true)
+  })
+})
+
 describe("RoundManager, what players receive", () => {
   // Every key a player may receive, per status. Anything else (accepted
   // answers, solutions, the correct order, a clientId) must stay server side.
@@ -991,6 +1118,7 @@ describe("RoundManager, what players receive", () => {
       [
         ORDERING,
         { ...SHORTANSWER, options: { typoTolerance: true } },
+        ESTIMATE,
         question(),
       ],
       [player("camille"), player("yanis")],
@@ -1008,6 +1136,10 @@ describe("RoundManager, what players receive", () => {
     await game.reachNextQuestion()
     await game.openAnswers(5)
     game.round.selectAnswer(socketOf("camille"), { text: "Lutece" })
+    await game.closeAnswers()
+    await game.reachNextQuestion()
+    await game.openAnswers(5)
+    game.round.selectAnswer(socketOf("camille"), { text: "4200" })
     await game.closeAnswers()
     await game.reachNextQuestion()
     await game.openAnswers(5)
@@ -1036,6 +1168,8 @@ describe("RoundManager, what players receive", () => {
 
     expect(serialized).not.toContain("Lutetia")
     expect(serialized).not.toContain("Lutèce")
+    expect(serialized).not.toContain("4271")
+    expect(serialized).not.toContain("expected")
     expect(serialized).not.toContain("clientId")
 
     const top = game.lastSent("camille", STATUS.FINISHED)?.top ?? []

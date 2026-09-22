@@ -4,6 +4,16 @@ import type {
   PlayerAnswerRecord,
   QuestionResult,
 } from "@razzia/common/types/game"
+import {
+  estimateRanges,
+  formatEstimate,
+  formatTolerance,
+  medianOf,
+  nameRange,
+  type RangeName,
+  toleranceOf,
+  unitOf,
+} from "@razzia/common/utils/estimate"
 import { isKnownType } from "@razzia/socket/services/scoring"
 import {
   hasAnswer,
@@ -84,6 +94,65 @@ const addShortAnswerRows = ({ sheet, question, answered }: QuestionRows) => {
   sheet.addRow({
     answer: "Non reconnues",
     votes: answered.filter((record) => record.answerIds.length === 0).length,
+  })
+}
+
+// Estimate: a range as the manager's screen names it.
+const rangeText = (name: RangeName, question: QuestionResult): string => {
+  const format = (value: number) => formatEstimate(value, question.options)
+
+  switch (name.kind) {
+    case "under": {
+      return `Moins de ${format(name.value)}`
+    }
+
+    case "over": {
+      return `Plus de ${format(name.value)}`
+    }
+
+    case "exactly": {
+      return format(name.value)
+    }
+
+    default: {
+      return `${formatEstimate(name.from, question.options, { withUnit: false })} à ${format(name.to)}`
+    }
+  }
+}
+
+// Estimate: the right value and its tolerance, then the values given by
+// range around it, as on the manager's screen, then their median. Each
+// player's value is in the result window.
+const addEstimateRows = ({ sheet, question, answered }: QuestionRows) => {
+  const { expected, options } = question
+  const values = answered.flatMap(({ value }) =>
+    typeof value === "number" ? [value] : [],
+  )
+  const ranges = estimateRanges(question, values)
+  const tolerance =
+    toleranceOf(options) > 0 ? `, à ${formatTolerance(options)} près` : ""
+
+  sheet.addRow({
+    answer:
+      expected === undefined
+        ? "Bonne réponse inconnue"
+        : `Bonne réponse : ${formatEstimate(expected, options)}${tolerance}`,
+  }).font = { italic: true }
+
+  for (const [index, range] of ranges.entries()) {
+    sheet.addRow({
+      answer: rangeText(nameRange(ranges, index), question),
+      ...(range.correct && { correct: "✓" }),
+      votes: range.count,
+    })
+  }
+
+  const unit = unitOf(options)
+  const median = medianOf(values)
+
+  sheet.addRow({
+    answer: unit === "" ? "Médiane" : `Médiane (${unit})`,
+    votes: median,
   })
 }
 
@@ -218,6 +287,8 @@ export const buildResultWorkbook = async (
       addShortAnswerRows(rows)
     } else if (question.type === QUESTION_TYPES.WORDCLOUD) {
       addWordCloudRows(rows)
+    } else if (question.type === QUESTION_TYPES.ESTIMATE) {
+      addEstimateRows(rows)
     } else {
       addChoiceRows(rows)
     }

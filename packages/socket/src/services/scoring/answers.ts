@@ -4,6 +4,7 @@ import {
   WORDCLOUD_LIMITS,
 } from "@razzia/common/constants"
 import type { Question } from "@razzia/common/types/game"
+import { checkEstimate } from "@razzia/common/utils/estimate"
 import {
   BUILTIN_BLOCKLIST,
   type Blocklist,
@@ -151,6 +152,22 @@ const parseWords = (
   return { answerIds: [], texts: kept }
 }
 
+// Estimate: the number typed, read as the phone reads it (checkEstimate). A
+// text that is no number, has too many decimals or is out of the bounds is
+// refused.
+const parseNumber = (
+  question: Question,
+  text: unknown,
+): ScoredAnswer | null => {
+  if (typeof text !== "string") {
+    return null
+  }
+
+  const checked = checkEstimate(text, question.options)
+
+  return checked.ok ? { answerIds: [], value: checked.value } : null
+}
+
 const payloadField = (payload: unknown, field: string): unknown =>
   typeof payload === "object" &&
   payload !== null &&
@@ -177,6 +194,10 @@ export const answerParser =
       return parseWords(question, payloadField(payload, "texts"), blocklist)
     }
 
+    if (question.type === QUESTION_TYPES.ESTIMATE) {
+      return parseNumber(question, payloadField(payload, "text"))
+    }
+
     const answerKeys = payloadField(payload, "answerKeys")
     const answerIds =
       question.type === QUESTION_TYPES.ORDERING
@@ -197,8 +218,9 @@ export const parseAnswer = answerParser(BUILTIN_BLOCKLIST)
 /**
  * Tally shown with SHOW_RESPONSES, keyed by index. Choice types: votes per
  * answer. Ordering: players who put item i (original index) at its place.
- * Shortanswer: inputs recognized per accepted answer. Wordcloud: nothing, its
- * words are counted apart (countWords).
+ * Shortanswer: inputs recognized per accepted answer. Wordcloud and estimate:
+ * nothing, their words and values are counted apart (countWords,
+ * estimateRanges).
  */
 export const countResponses = (
   question: Question,

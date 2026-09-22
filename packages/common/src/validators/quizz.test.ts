@@ -247,6 +247,47 @@ describe("new optional fields on the existing types", () => {
     ).not.toHaveProperty("accepted")
   })
 
+  it("drops the right value of an estimate, unchecked", () => {
+    expect(parse({ ...SINGLE_QUESTION, expected: 35 })).not.toHaveProperty(
+      "expected",
+    )
+    expect(parse({ ...SINGLE_QUESTION, expected: "35" })).not.toHaveProperty(
+      "expected",
+    )
+    expect(
+      parse({ ...LEGACY_QUESTION, expected: Number.NaN }),
+    ).not.toHaveProperty("expected")
+  })
+
+  it("drops the settings of an estimate, unchecked", () => {
+    const question = {
+      ...SINGLE_QUESTION,
+      options: {
+        scoringMode: SCORING_MODES.STRICT,
+        decimals: 9,
+        tolerance: -5,
+        toleranceMode: "relative",
+        min: 1,
+        max: 0,
+        unit: "x".repeat(5000),
+      },
+    }
+
+    expect(parse(question).options).toEqual({
+      scoringMode: SCORING_MODES.STRICT,
+    })
+    expect(
+      parse({ ...LEGACY_QUESTION, options: { unit: "km" } }).options,
+    ).toEqual({ scoringMode: SCORING_MODES.BALANCED })
+    expect(
+      parse({
+        ...SINGLE_QUESTION,
+        type: QUESTION_TYPES.POLL,
+        options: { min: 3 },
+      }).options,
+    ).toEqual({ scoringMode: SCORING_MODES.BALANCED })
+  })
+
   it("keeps the old minimum time", () => {
     expect(isValid({ ...SINGLE_QUESTION, time: 1 })).toBe(true)
   })
@@ -475,5 +516,136 @@ describe("wordcloud", () => {
       "errors:quizz.timeTooShort",
     ])
     expect(isValid({ ...WORDCLOUD, time: -1 })).toBe(true)
+  })
+})
+
+describe("estimate", () => {
+  const ESTIMATE = {
+    type: QUESTION_TYPES.ESTIMATE,
+    question: "Combien de caisses régionales compte la MSA ?",
+    expected: 35,
+    options: { tolerance: 2 },
+    cooldown: 5,
+    time: 30,
+  }
+
+  it("keeps the right value apart and no public answers", () => {
+    const estimate = parse({
+      ...ESTIMATE,
+      answers: ["35", "40"],
+      solutions: [0],
+      accepted: ["35"],
+      options: {
+        tolerance: 10,
+        toleranceMode: "percent",
+        decimals: 1,
+        min: 0,
+        max: 100,
+        unit: "  caisses ",
+      },
+    })
+
+    expect(estimate.expected).toBe(35)
+    expect(estimate.answers).toEqual([])
+    expect(estimate.solutions).toEqual([])
+    expect(estimate).not.toHaveProperty("accepted")
+    expect(estimate.options).toMatchObject({
+      tolerance: 10,
+      toleranceMode: "percent",
+      decimals: 1,
+      min: 0,
+      max: 100,
+      unit: "caisses",
+    })
+  })
+
+  it("drops an empty unit and keeps no options when none are given", () => {
+    expect(
+      parse({ ...ESTIMATE, options: { unit: " " } }).options,
+    ).not.toHaveProperty("unit")
+    expect(parse({ ...ESTIMATE, options: undefined }).options).toBeUndefined()
+  })
+
+  it("needs a right value within 12 digits and the question's decimals", () => {
+    expect(issuesOf({ ...ESTIMATE, expected: undefined })).toEqual([
+      "errors:quizz.estimateExpectedMissing",
+    ])
+    expect(issuesOf({ ...ESTIMATE, expected: 35.5 })).toEqual([
+      "errors:quizz.estimateDecimals",
+    ])
+    expect(
+      isValid({ ...ESTIMATE, expected: 35.5, options: { decimals: 1 } }),
+    ).toBe(true)
+    expect(issuesOf({ ...ESTIMATE, expected: 1e12 })).toEqual([
+      "errors:quizz.estimateTooLarge",
+    ])
+  })
+
+  it("takes 0 to 3 decimals", () => {
+    for (const decimals of [-1, 4, 1.5]) {
+      expect(issuesOf({ ...ESTIMATE, options: { decimals } })).toEqual([
+        "errors:quizz.decimalsRange",
+      ])
+    }
+  })
+
+  it("checks the tolerance in the unit or as a percentage", () => {
+    expect(issuesOf({ ...ESTIMATE, options: { tolerance: -1 } })).toEqual([
+      "errors:quizz.estimateTolerance",
+    ])
+    expect(issuesOf({ ...ESTIMATE, options: { tolerance: 0.5 } })).toEqual([
+      "errors:quizz.estimateDecimals",
+    ])
+    expect(
+      isValid({
+        ...ESTIMATE,
+        options: { tolerance: 2.5, toleranceMode: "percent" },
+      }),
+    ).toBe(true)
+
+    for (const tolerance of [101, 2.55]) {
+      expect(
+        issuesOf({
+          ...ESTIMATE,
+          options: { tolerance, toleranceMode: "percent" },
+        }),
+      ).toEqual(["errors:quizz.estimatePercent"])
+    }
+
+    expect(
+      isValid({ ...ESTIMATE, options: { toleranceMode: "relative" } }),
+    ).toBe(false)
+  })
+
+  it("needs ordered bounds around the right value", () => {
+    expect(isValid({ ...ESTIMATE, options: { min: 35, max: 36 } })).toBe(true)
+    expect(issuesOf({ ...ESTIMATE, options: { min: 50, max: 10 } })).toEqual([
+      "errors:quizz.estimateBounds",
+    ])
+    expect(issuesOf({ ...ESTIMATE, options: { min: 36 } })).toEqual([
+      "errors:quizz.estimateExpectedOutOfBounds",
+    ])
+    expect(issuesOf({ ...ESTIMATE, options: { max: 34 } })).toEqual([
+      "errors:quizz.estimateExpectedOutOfBounds",
+    ])
+    expect(issuesOf({ ...ESTIMATE, options: { min: 0.5 } })).toEqual([
+      "errors:quizz.estimateDecimals",
+    ])
+  })
+
+  it("keeps the unit short", () => {
+    expect(isValid({ ...ESTIMATE, options: { unit: "u".repeat(20) } })).toBe(
+      true,
+    )
+    expect(
+      issuesOf({ ...ESTIMATE, options: { unit: "u".repeat(21) } }),
+    ).toEqual(["errors:quizz.estimateUnitTooLong"])
+  })
+
+  it("needs 5 seconds at least, or no limit", () => {
+    expect(issuesOf({ ...ESTIMATE, time: 3 })).toEqual([
+      "errors:quizz.timeTooShort",
+    ])
+    expect(isValid({ ...ESTIMATE, time: -1 })).toBe(true)
   })
 })

@@ -12,6 +12,7 @@ import { enter } from "@razzia/web/features/game/utils/motion"
 import { QUESTION_REGISTRY } from "@razzia/web/features/questions"
 import clsx from "clsx"
 import {
+  EqualApproximately,
   Keyboard,
   Link2Off,
   ListChecks,
@@ -47,6 +48,8 @@ const HINTS: Partial<Record<QuestionType, { icon: LucideIcon; key: string }>> =
     ordering: { icon: ListOrdered, key: "game:answer.orderingHint" },
     shortanswer: { icon: Keyboard, key: "game:answer.shortanswerHint" },
     wordcloud: { icon: Link2Off, key: "game:answer.wordcloudHint" },
+    // Worded from the bounds and the tolerance, see answerHint.
+    estimate: { icon: EqualApproximately, key: "game:estimate.hintAny" },
   }
 
 const TITLE = "font-bold text-balance text-white drop-shadow-lg"
@@ -104,7 +107,8 @@ const QuestionStage = ({
     media?.type === MEDIA_TYPES.IMAGE ||
     media?.type === MEDIA_TYPES.VIDEO ||
     upcomingMedia === MEDIA_TYPES.VIDEO
-  const { AnswerComponent, hostTopAligned } = QUESTION_REGISTRY[questionType]
+  const { AnswerComponent, hostTopAligned, answerHint } =
+    QUESTION_REGISTRY[questionType]
 
   // Reading: each block fades and rises in. Answering: already in place.
   const appear = (delay: number) => (isReading ? enter(delay) : {})
@@ -138,7 +142,9 @@ const QuestionStage = ({
 
   const hintChip = hint && (
     <motion.div {...appear(0.12)} className="self-start">
-      <HintChip icon={hint.icon}>{t(hint.key)}</HintChip>
+      <HintChip icon={hint.icon}>
+        {answerHint ? answerHint(t, options) : t(hint.key)}
+      </HintChip>
     </motion.div>
   )
 

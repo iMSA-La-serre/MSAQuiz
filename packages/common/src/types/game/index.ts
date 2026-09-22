@@ -1,4 +1,5 @@
 import type {
+  ESTIMATE_TOLERANCE,
   MEDIA_TYPES,
   ORDER_SCORING,
   QUESTION_TYPES,
@@ -10,6 +11,9 @@ export type QuestionType = (typeof QUESTION_TYPES)[keyof typeof QUESTION_TYPES]
 export type ScoringMode = (typeof SCORING_MODES)[keyof typeof SCORING_MODES]
 
 export type OrderScoring = (typeof ORDER_SCORING)[keyof typeof ORDER_SCORING]
+
+export type EstimateTolerance =
+  (typeof ESTIMATE_TOLERANCE)[keyof typeof ESTIMATE_TOLERANCE]
 
 export interface MultiQuestionOptions {
   scoringMode: ScoringMode
@@ -26,6 +30,19 @@ export interface QuestionOptions {
   typoTolerance?: boolean
   // Wordcloud: fields on the phone, 1 to 3, 1 when absent.
   wordCount?: number
+  // Estimate: decimals a value may have, 0 to 3, 0 when absent. The right
+  // value, the tolerance and the bounds have no more.
+  decimals?: number
+  // Estimate: how far from the right value an answer is still right,
+  // bounds included, in the unit (absolute, the default) or as a percentage
+  // of the right value. 0 when absent: the exact value only.
+  tolerance?: number
+  toleranceMode?: EstimateTolerance
+  // Estimate: the values a player may send, bounds included, each optional.
+  min?: number
+  max?: number
+  // Estimate: shown after the numbers (km, €, %...).
+  unit?: string
 }
 
 export interface Player {
@@ -55,11 +72,13 @@ export interface Answer {
   // until the question closes: the history keeps their count, not who typed
   // them.
   texts?: string[]
+  // Estimate: the number sent, with no more decimals than the question's.
+  value?: number
   points: number
 }
 
-// What a player sends: answer indices, a text for shortanswer, or 1 to 3
-// texts for wordcloud.
+// What a player sends: answer indices, a text for shortanswer (the number
+// for an estimate), or 1 to 3 texts for wordcloud.
 export type AnswerPayload =
   { answerKeys: number[] } | { text: string } | { texts: string[] }
 
@@ -84,6 +103,8 @@ export interface Question {
   options?: QuestionOptions
   // Shortanswer: answers that score. Secret, never sent to a player.
   accepted?: string[]
+  // Estimate: the right value. Secret, never sent to a player.
+  expected?: number
   // Per-question switch, QUESTION_TYPE_META default when absent.
   speedBonus?: boolean
 }
@@ -112,6 +133,9 @@ export interface PlayerAnswerRecord {
   answerIds: number[] | null
   // Shortanswer only: the cleaned input, null when the player did not answer.
   text?: string | null
+  // Estimate only: the number sent, null when the player did not answer.
+  // `answerIds` is then empty, or null without an answer.
+  value?: number | null
   // Types that are not nominative (wordcloud, QUESTION_TYPE_META): whether
   // the player answered. `answerIds` is then empty, or null without an
   // answer, and the answer itself only counts in QuestionResult.words.
@@ -119,6 +143,18 @@ export interface PlayerAnswerRecord {
   // Multiplier (0 to 1) applied when the question closed, 0 when the player
   // did not answer. Absent from results saved before it existed.
   score?: number
+}
+
+/**
+ * A range of the estimate distribution: values from `from` to `to`, both
+ * included, a null end being open. `correct` marks the values within the
+ * tolerance.
+ */
+export interface EstimateRange {
+  from: number | null
+  to: number | null
+  count: number
+  correct: boolean
 }
 
 /** A word of a word cloud and the players who typed it, whoever they are. */
@@ -178,10 +214,11 @@ export interface QuestionStats {
   // with the players who put each one at its place. Shortanswer: the
   // accepted answers, with the inputs each one recognized. Wordcloud: the
   // most frequent words across the games (WORDCLOUD_LIMITS.CLOUD_WORDS).
+  // Estimate: empty, see `estimate`.
   answers: Array<{ label: string; count: number }>
   // Wording of the correct answers, taken from the most recent game: a quizz
   // can be edited between two games. Shortanswer: the accepted answers.
-  // Ordering: empty, every item has its place.
+  // Ordering and estimate: empty, see `estimate` for the latter.
   solutionLabels: string[]
   // Ordering: mean multiplier over the answers given, null if none.
   // `correctCount` counts the exact orders.
@@ -191,6 +228,17 @@ export interface QuestionStats {
   // Wordcloud: no word to list because no game kept its words, too few
   // players having typed any (WORDCLOUD_LIMITS.MIN_AUTHORS).
   wordsWithheld?: boolean
+  // Estimate: the answers below, within and above the tolerance of their
+  // game, the median of every value given (null if none), and the right
+  // value with its setting from the most recent game.
+  estimate?: {
+    below: number
+    within: number
+    above: number
+    median: number | null
+    expected: number | null
+    options?: QuestionOptions
+  }
 }
 
 export interface QuizzStats {

@@ -527,3 +527,43 @@ describe("buildResultWorkbook, wordcloud", () => {
     ])
   })
 })
+
+describe("buildResultWorkbook, estimate", () => {
+  // Numbers are written the French way: spaces that do not break.
+  const SPACES = new RegExp(
+    `[${String.fromCodePoint(0xa0)}${String.fromCodePoint(0x202f)}]`,
+    "gu",
+  )
+  const ESTIMATE = question({
+    type: QUESTION_TYPES.ESTIMATE,
+    question: "Combien de caisses compte la MSA ?",
+    answers: [],
+    solutions: [],
+    expected: 35,
+    options: { tolerance: 2, unit: "caisses" },
+    playerAnswers: [
+      { playerName: "Alex", answerIds: [], value: 35, score: 1 },
+      { playerName: "Bea", answerIds: [], value: 30, score: 0 },
+      { playerName: "Cyd", answerIds: null, value: null, score: 0 },
+    ],
+  })
+
+  const plain = (cell: unknown) =>
+    typeof cell === "string" ? cell.replace(SPACES, " ") : cell
+
+  it("reports the right value, the values by range and their median", async () => {
+    const [, questions] = await readWorkbook(result([ESTIMATE]))
+
+    expect(questions.rows.slice(1).map((row) => row.map(plain))).toEqual([
+      ["Q1 — Combien de caisses compte la MSA ?", null, null, null],
+      [null, "Bonne réponse : 35 caisses, à 2 caisses près", null, null],
+      [null, "Moins de 28 caisses", null, 0],
+      [null, "28 à 32 caisses", null, 1],
+      [null, "33 à 37 caisses", "✓", 1],
+      [null, "38 à 42 caisses", null, 0],
+      [null, "Plus de 42 caisses", null, 0],
+      [null, "Médiane (caisses)", null, 32.5],
+      [null, "Sans réponse", null, 1],
+    ])
+  })
+})

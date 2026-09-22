@@ -22,7 +22,7 @@ const TRAY = "rounded-2xl bg-white p-2 shadow-lg shadow-black/15"
 // screen keeps its layout from one type to the next; a long text wraps. Word
 // cloud words share the line of a typed text, apart from each other.
 const SentAnswerTray = ({ sent }: { sent: SentAnswer }) => {
-  const { answer, questionType } = sent
+  const { answer, questionType, display } = sent
 
   if ("texts" in answer) {
     return (
@@ -54,7 +54,7 @@ const SentAnswerTray = ({ sent }: { sent: SentAnswer }) => {
           "text-secondary max-w-full px-5 py-4.5 text-xl leading-7 font-bold break-words",
         )}
       >
-        {answer.text}
+        {display ?? answer.text}
       </p>
     )
   }

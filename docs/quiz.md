@@ -24,6 +24,7 @@ You can keep as many quizzes as you like; you pick one when starting a game.
 | `ordering`    | 3-6 items, shuffled, to put back in order then **Valider** | yes    | none: `answers` holds the items in order      |
 | `shortanswer` | no answers: the player types a word or a short phrase      | yes    | none: `accepted` lists the answers that score |
 | `wordcloud`   | no answers: the player types 1 to 3 words                  | no     | none                                          |
+| `estimate`    | no answers: the player types a number                      | yes    | none: `expected` holds the right value        |
 
 A slide has no answers, so players stay on it until the manager moves on: give it `time: -1` and use the Skip button, or set a timer.
 
@@ -48,6 +49,23 @@ Labelled « Nuage de mots » in the editor and on the screens. Each player types
 Answers are **not linked to the username**. Once the question closes, the history keeps, for each player, only whether they answered, and for the question, how many players gave each word. It keeps the words only when at least 3 players had a word kept: with fewer, who answered would tell who typed what, so the result window, the statistics and the exported report read « Trop peu de réponses pour afficher les mots » instead (the room still saw them live). Neither the result window, the statistics, the exported report nor the server logs can tell who typed which word. The phone says so above the fields: « Réponse non associée à votre pseudo ».
 
 Once the question closes, the projected screen shows the 30 most frequent words (20 on a projector under 820 px high), the most frequent first and the largest. Words given as often come in an order drawn from the words and the question, the same on every screen: not alphabetical, so a long cloud does not always leave out the end of the alphabet. When long expressions leave no room for them all, the rarest are left out and « + n autres mots » under the card says how many. On a projector 1000 px high or more (a full-screen 1080p one), the smaller words are larger. Clicking a word hides it from the room, a second click shows it again; « Tout masquer » and « Tout afficher » act on every word. Hidden words stay hidden when the page is reloaded in the same tab. Hiding a word only changes that screen, not the results. See [Word cloud moderation](#word-cloud-moderation).
+
+### Estimate
+
+Labelled « Estimation » in the editor and on the screens. The player types a number, which is right when it is within a tolerance of the right value, `expected`, bounds included; `answers` and `solutions` are not used and are emptied on save. `expected` is never sent to a player: the manager's screen shows it once the question closes. The settings are in `options`, public, as the phone needs them to read and bound the number:
+
+- `decimals`: 0 to 3, 0 by default. Players may type that many decimals, and `expected`, the tolerance and the bounds may not have more.
+- `tolerance` and `toleranceMode`: how far from `expected` an answer is still right, in the unit (`"absolute"`, the default) or as a percentage of `expected` (`"percent"`, 100 at most, one decimal), rounded down to the question's decimals. 0 or absent: only the exact value is right.
+- `min` and `max`: the numbers a player may send, bounds included, each optional. `expected` must be within them, and they cut the tolerance: with `expected` 2, a tolerance of 5 and `min` 0, the right numbers are 0 to 7, as the editor, the projected screen and the report say. With a `min` of 0 or more, phones show their numeric keypad (which has no minus sign on every phone).
+- `unit`: shown after every number (`km`, `€`, `adhérents`), 20 characters at most.
+
+On any other type, `expected` and these six settings are dropped on save, unchecked.
+
+The phone shows the unit at the end of the field and, under « Valider », the number as it will be sent (« Votre estimation : 1 234,5 km »), or why it cannot be sent yet (not a number, too many decimals, out of the bounds). The hint above the field gives the bounds and the tolerance (« Nombre entre 0 et 100 km, à 5 % près »); a lone `min` of 0 is left out of it. See [Reading a number](#reading-a-number).
+
+Once the question closes, the projected screen gives the right value and the median of the numbers sent (« Bonne réponse : 35 km · médiane 40 km »), and counts the numbers by range, the smallest first: the values within the tolerance, labelled « Bonne réponse », and two ranges on each side of it (four on one side when a bound leaves no room on the other). The ranges are as wide as the tolerance or a tenth of the right value, whichever is larger, rounded up to 1, 2, 2.5 or 5 times a power of ten; the farthest one on each side is open (« Moins de 30 km », « Plus de 40 km »), or ends at the bound.
+
+The result window lists each player's number, its gap to the right value and the verdict, then the same ranges and the median. The statistics count, across the games, the answers within, below and above the tolerance of their game, and the median of every number sent; the exported report gives the right value, the ranges and the median.
 
 ## Example
 
@@ -119,6 +137,19 @@ Once the question closes, the projected screen shows the 30 most frequent words 
       "options": { "wordCount": 2 },
       "cooldown": 5,
       "time": 40
+    },
+    {
+      "type": "estimate",
+      "question": "How long is the Loire, in kilometres?",
+      "expected": 1006,
+      "options": {
+        "tolerance": 10,
+        "toleranceMode": "percent",
+        "min": 0,
+        "unit": "km"
+      },
+      "cooldown": 5,
+      "time": 30
     }
   ]
 }
@@ -126,22 +157,23 @@ Once the question closes, the projected screen shows the 30 most frequent words 
 
 ## Field reference
 
-| Field                    | Type                         | Notes                                                                                                                                                                                                                                                                                         |
-| ------------------------ | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `subject`                | string                       | Quiz title, cannot be empty.                                                                                                                                                                                                                                                                  |
-| `questions`              | array                        | At least one question.                                                                                                                                                                                                                                                                        |
-| `questions[].type`       | one of the eight types above | See the table above. Optional in legacy files, see [Legacy quizzes](#legacy-quizzes).                                                                                                                                                                                                         |
-| `questions[].question`   | string                       | The question text (or the slide text). Cannot be empty.                                                                                                                                                                                                                                       |
-| `questions[].answers`    | string[]                     | 2 to 4 non-empty answers. Always empty for `slide`, `shortanswer` and `wordcloud`, exactly two for `truefalse`, 3 to 6 items in the correct order for `ordering`.                                                                                                                             |
-| `questions[].media`      | object                       | Optional: `type` is `"image"`, `"video"` or `"audio"`, `url` must be a valid URL.                                                                                                                                                                                                             |
-| `questions[].solutions`  | number[]                     | 0-based indices into `answers`. Required for `single`, `multi` and `truefalse`; a bare number is accepted too. Emptied for the other types.                                                                                                                                                   |
-| `questions[].accepted`   | string[]                     | `shortanswer` only: 1 to 10 answers that score, 60 characters at most, distinct once normalized. Dropped from the other types. Never sent to players.                                                                                                                                         |
-| `questions[].cooldown`   | integer 3-15                 | Seconds the question is displayed before answers open.                                                                                                                                                                                                                                        |
-| `questions[].time`       | integer                      | Seconds to answer, or `-1` for no time limit. 5 minimum in the editor, enforced on save for `ordering`, `shortanswer` and `wordcloud`. Spreadsheet imports are clamped to 5-120.                                                                                                              |
-| `questions[].maxPoints`  | integer >= 0                 | Points for a perfect answer. Default `1000`.                                                                                                                                                                                                                                                  |
-| `questions[].penalty`    | integer >= 0                 | Deducted on a wrong answer. Default none, see below.                                                                                                                                                                                                                                          |
-| `questions[].speedBonus` | boolean                      | Whether a faster answer earns more, see below. Default `true` for the first five types, `false` for `ordering` and `shortanswer`. Meaningless on `wordcloud`, which scores nothing.                                                                                                           |
-| `questions[].options`    | object                       | `multi`: `{ "scoringMode": "strict" \| "balanced" \| "lenient" }`, default `balanced`. `ordering`: `{ "orderScoring": "position" \| "exact" }`, default `position`. `shortanswer`: `{ "typoTolerance": boolean }`, default `false`. `wordcloud`: `{ "wordCount": 1 \| 2 \| 3 }`, default `1`. |
+| Field                    | Type                        | Notes                                                                                                                                                                                                                                                                                                                                                                                                |
+| ------------------------ | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `subject`                | string                      | Quiz title, cannot be empty.                                                                                                                                                                                                                                                                                                                                                                         |
+| `questions`              | array                       | At least one question.                                                                                                                                                                                                                                                                                                                                                                               |
+| `questions[].type`       | one of the nine types above | See the table above. Optional in legacy files, see [Legacy quizzes](#legacy-quizzes).                                                                                                                                                                                                                                                                                                                |
+| `questions[].question`   | string                      | The question text (or the slide text). Cannot be empty.                                                                                                                                                                                                                                                                                                                                              |
+| `questions[].answers`    | string[]                    | 2 to 4 non-empty answers. Always empty for `slide`, `shortanswer`, `wordcloud` and `estimate`, exactly two for `truefalse`, 3 to 6 items in the correct order for `ordering`.                                                                                                                                                                                                                        |
+| `questions[].media`      | object                      | Optional: `type` is `"image"`, `"video"` or `"audio"`, `url` must be a valid URL.                                                                                                                                                                                                                                                                                                                    |
+| `questions[].solutions`  | number[]                    | 0-based indices into `answers`. Required for `single`, `multi` and `truefalse`; a bare number is accepted too. Emptied for the other types.                                                                                                                                                                                                                                                          |
+| `questions[].accepted`   | string[]                    | `shortanswer` only: 1 to 10 answers that score, 60 characters at most, distinct once normalized. Dropped from the other types. Never sent to players.                                                                                                                                                                                                                                                |
+| `questions[].expected`   | number                      | `estimate` only, required: the right value, under 10^12, with no more decimals than `options.decimals`, within `options.min` and `options.max`. Dropped from the other types. Never sent to players.                                                                                                                                                                                                 |
+| `questions[].cooldown`   | integer 3-15                | Seconds the question is displayed before answers open.                                                                                                                                                                                                                                                                                                                                               |
+| `questions[].time`       | integer                     | Seconds to answer, or `-1` for no time limit. 5 minimum in the editor, enforced on save for `ordering`, `shortanswer`, `wordcloud` and `estimate`. Spreadsheet imports are clamped to 5-120.                                                                                                                                                                                                         |
+| `questions[].maxPoints`  | integer >= 0                | Points for a perfect answer. Default `1000`.                                                                                                                                                                                                                                                                                                                                                         |
+| `questions[].penalty`    | integer >= 0                | Deducted on a wrong answer. Default none, see below.                                                                                                                                                                                                                                                                                                                                                 |
+| `questions[].speedBonus` | boolean                     | Whether a faster answer earns more, see below. Default `true` for the first five types, `false` for `ordering`, `shortanswer` and `estimate`. Meaningless on `wordcloud`, which scores nothing.                                                                                                                                                                                                      |
+| `questions[].options`    | object                      | `multi`: `{ "scoringMode": "strict" \| "balanced" \| "lenient" }`, default `balanced`. `ordering`: `{ "orderScoring": "position" \| "exact" }`, default `position`. `shortanswer`: `{ "typoTolerance": boolean }`, default `false`. `wordcloud`: `{ "wordCount": 1 \| 2 \| 3 }`, default `1`. `estimate`: `decimals`, `tolerance`, `toleranceMode`, `min`, `max`, `unit`, see [Estimate](#estimate). |
 
 > **Note:** ids are assigned by the database. Importing the same file twice creates two quizzes.
 
@@ -152,11 +184,11 @@ Once the question closes, the projected screen shows the 30 most frequent words 
 1. **Base points**:
    - with the speed bonus (`speedBonus`, on by default for the first five types) and a time limit: `maxPoints - (maxPoints / time) x secondsElapsed`, never below 0;
    - with the speed bonus and without time limit (`time: -1`): by answer order, from `maxPoints` for the first player down to `maxPoints / 2` for the last;
-   - without the speed bonus (the default for `ordering` and `shortanswer`): `maxPoints`, whatever the time or the answer order.
-2. **Multiplier**, from 0 to 1, from the question type: `single` and `truefalse` give 1 for the right answer and 0 otherwise, `multi` follows its mode (see below), `ordering` its scoring (see below), `shortanswer` gives 1 for a recognized answer and 0 otherwise, `poll`, `slide` and `wordcloud` always give 0.
+   - without the speed bonus (the default for `ordering`, `shortanswer` and `estimate`): `maxPoints`, whatever the time or the answer order.
+2. **Multiplier**, from 0 to 1, from the question type: `single` and `truefalse` give 1 for the right answer and 0 otherwise, `multi` follows its mode (see below), `ordering` its scoring (see below), `shortanswer` gives 1 for a recognized answer and 0 otherwise, `estimate` 1 for a number within the tolerance and 0 otherwise, `poll`, `slide` and `wordcloud` always give 0.
 3. **Final score** = `round(base x multiplier)`, then `penalty` is subtracted if the question is scored, the player answered, and the outcome is "wrong" (see below). A player's total never goes below 0, and an unanswered question is never penalised.
 
-**Outcome.** A player sees "correct", "wrong" or "no answer" on a scored question, and on a `poll` or a `wordcloud` that their answer was recorded, or that they gave none. `single`, `multi` and `truefalse` keep their rule: any point earned is "correct", including a partial `multi` answer, and no point is "wrong". `ordering` and `shortanswer` follow the multiplier alone, whatever the points: 1 is "correct" and 0 is "wrong", so a recognized short answer worth 0 points (`maxPoints` 0, or the speed bonus run out) is still correct and never penalised. On an `ordering`, a multiplier strictly between 0 and 1 is a **partial** outcome: its points are shown and counted, it is never penalised, but it ends a run of correct answers (only a full order keeps the run going).
+**Outcome.** A player sees "correct", "wrong" or "no answer" on a scored question, and on a `poll` or a `wordcloud` that their answer was recorded, or that they gave none. `single`, `multi` and `truefalse` keep their rule: any point earned is "correct", including a partial `multi` answer, and no point is "wrong". `ordering`, `shortanswer` and `estimate` follow the multiplier alone, whatever the points: 1 is "correct" and 0 is "wrong", so a recognized short answer worth 0 points (`maxPoints` 0, or the speed bonus run out) is still correct and never penalised. On an `ordering`, a multiplier strictly between 0 and 1 is a **partial** outcome: its points are shown and counted, it is never penalised, but it ends a run of correct answers (only a full order keeps the run going).
 
 ## Multi-answer scoring modes
 
@@ -216,6 +248,18 @@ Roman numerals are looked for in the accepted answer as written: capitals only (
 
 An exact match always wins; between two close answers, the one with fewer typos wins, then the first listed.
 
+## Reading a number
+
+An estimate is read the same way on the phone and on the server (`checkEstimate` in [utils/estimate.ts](../packages/common/src/utils/estimate.ts)), after the cleaning of a short answer:
+
+- spaces anywhere are dropped, so digit groups can be spaced (`1 234`, also with no-break spaces);
+- a comma or a point stands before the decimals (`12,5` = `12.5`), once only: `1.234.567` and `1,234.5` are refused;
+- trailing zeros of the decimals do not count (`12,50` is `12,5`, and is a whole number when written `12,0`);
+- a leading `+` or `-` is read, and any dash stands for a minus sign (`−5`);
+- anything else is refused: letters (`12 km`), exponents (`1e5`), more decimals than the question takes, 13 digits or more before the separator, a number out of `min` and `max`.
+
+Values are compared as whole numbers of the smallest step (`10^-decimals`): with one decimal, `0.1 + 0.2` is exactly `0.3`. A percentage tolerance is taken from the right value and rounded down to that step: 10 % of 35 with no decimal is 3, so 32 to 38 are right.
+
 ## Word cloud moderation
 
 What players type reaches the projector, so the server drops a word, without telling the player, when:
@@ -240,7 +284,7 @@ Conversion rules:
 - `Time` is clamped to 5-120 seconds (20 by default), and `cooldown` is set to 5 seconds.
 - rows without a question, with fewer than 2 answers, or without a usable `Correct` value are skipped. If nothing usable is left, the import fails and nothing is saved.
 
-The importer only creates `single` and `multi` questions: add media, true/false questions, polls, slides, ordering, short answer and word cloud questions afterwards in the editor. There is no spreadsheet format for `ordering`, `shortanswer` and `wordcloud`.
+The importer only creates `single` and `multi` questions: add media, true/false questions, polls, slides, ordering, short answer, word cloud and estimate questions afterwards in the editor. There is no spreadsheet format for `ordering`, `shortanswer`, `wordcloud` and `estimate`.
 
 > **Trademark note**: Kahoot! is a trademark of its owner, which is not affiliated with MSAQuiz and does not endorse or sponsor it. The name is only used to say which spreadsheet files the importer can read.
 

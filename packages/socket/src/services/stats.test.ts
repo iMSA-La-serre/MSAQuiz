@@ -577,3 +577,100 @@ describe("aggregateQuestions, wordcloud", () => {
     expect(stats.answers).toEqual([{ label: "Écoute", count: 1 }])
   })
 })
+
+describe("aggregateQuestions, estimate", () => {
+  const estimate = (over: Partial<QuestionResult>): QuestionResult =>
+    question({
+      type: QUESTION_TYPES.ESTIMATE,
+      question: "Combien de caisses compte la MSA ?",
+      answers: [],
+      solutions: [],
+      expected: 35,
+      options: { tolerance: 2, unit: "caisses" },
+      ...over,
+    })
+
+  it("counts each value against the tolerance of its game, and the median", () => {
+    const [stats] = aggregateQuestions([
+      game(
+        [
+          estimate({
+            playerAnswers: [
+              { playerName: "Alex", answerIds: [], value: 35, score: 1 },
+              { playerName: "Bea", answerIds: [], value: 30, score: 0 },
+              { playerName: "Cyd", answerIds: null, value: null, score: 0 },
+            ],
+          }),
+        ],
+        "2026-09-02",
+      ),
+      // An older game, before the right value was corrected: 36 was right.
+      game(
+        [
+          estimate({
+            expected: 40,
+            options: { tolerance: 5 },
+            playerAnswers: [
+              { playerName: "Dan", answerIds: [], value: 36, score: 1 },
+              { playerName: "Eve", answerIds: [], value: 50 },
+            ],
+          }),
+        ],
+        "2026-09-01",
+      ),
+    ])
+
+    expect(stats).toEqual({
+      question: "Combien de caisses compte la MSA ?",
+      type: QUESTION_TYPES.ESTIMATE,
+      scored: true,
+      gameCount: 2,
+      answerCount: 4,
+      missingCount: 1,
+      correctCount: 2,
+      successRate: 0.5,
+      answers: [],
+      solutionLabels: [],
+      estimate: {
+        below: 1,
+        within: 2,
+        above: 1,
+        median: 35.5,
+        expected: 35,
+        options: { tolerance: 2, unit: "caisses" },
+      },
+    })
+  })
+
+  it("scores a value again when no multiplier was saved", () => {
+    const [stats] = aggregateQuestions([
+      game([
+        estimate({
+          playerAnswers: [{ playerName: "Alex", answerIds: [], value: 37 }],
+        }),
+      ]),
+    ])
+
+    expect(stats.correctCount).toBe(1)
+  })
+
+  it("keeps an estimate apart from a choice question with the same wording", () => {
+    const stats = aggregateQuestions([
+      game([
+        estimate({
+          playerAnswers: [{ playerName: "Alex", answerIds: [], value: 35 }],
+        }),
+        question({
+          question: "Combien de caisses compte la MSA ?",
+          answers: ["35", "50"],
+          playerAnswers: answers(["Bea", [0]]),
+        }),
+      ]),
+    ])
+
+    expect(stats.map(({ type }) => type).sort()).toEqual([
+      QUESTION_TYPES.ESTIMATE,
+      QUESTION_TYPES.SINGLE,
+    ])
+  })
+})

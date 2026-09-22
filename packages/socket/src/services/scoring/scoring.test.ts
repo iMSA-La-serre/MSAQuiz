@@ -225,3 +225,28 @@ describe("shortanswer", () => {
     ).toBe(0)
   })
 })
+
+describe("estimate", () => {
+  const estimate = question({
+    type: QUESTION_TYPES.ESTIMATE,
+    answers: [],
+    solutions: [],
+    expected: 35,
+    options: { tolerance: 2 },
+  })
+
+  it("gives full credit within the tolerance, bounds included", () => {
+    for (const value of [33, 35, 37]) {
+      expect(
+        QUESTION_SCORING.estimate(estimate, { answerIds: [], value }),
+      ).toBe(1)
+    }
+  })
+
+  it("gives nothing beyond the tolerance, or without a value", () => {
+    expect(
+      QUESTION_SCORING.estimate(estimate, { answerIds: [], value: 38 }),
+    ).toBe(0)
+    expect(QUESTION_SCORING.estimate(estimate, { answerIds: [] })).toBe(0)
+  })
+})

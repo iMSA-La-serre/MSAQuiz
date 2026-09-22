@@ -1,4 +1,5 @@
 import type {
+  EstimateRange,
   Player,
   PublicPlayer,
   QuestionMedia,
@@ -34,8 +35,8 @@ export type LeaderboardEntry = Player & { gain: number }
 export interface CommonStatusDataMap {
   SHOW_START: { time: number; subject: string }
   SHOW_PREPARED: {
-    // Length of the public answer list (0 for a shortanswer or a word
-    // cloud).
+    // Length of the public answer list (0 for a shortanswer, a word cloud or
+    // an estimate).
     totalAnswers: number
     questionNumber: number
     questionType: QuestionType
@@ -49,13 +50,13 @@ export interface CommonStatusDataMap {
     cooldown: number
     // Shown locked during the reading time, not accepted yet. The public
     // list: shuffled for an ordering (the same list as SELECT_ANSWER), empty
-    // for a shortanswer.
+    // for a shortanswer, a word cloud or an estimate.
     answers: string[]
     questionType: QuestionType
     time: number
     totalPlayer: number
     // Public, as in SELECT_ANSWER: the answer area is laid out as it will be
-    // (the fields of a word cloud).
+    // (the fields of a word cloud, the unit and bounds of an estimate).
     options?: QuestionOptions
   }
   SELECT_ANSWER: {
@@ -108,6 +109,15 @@ interface ManagerExtraStatus {
     answers: string[]
     // Shortanswer: the accepted answers, only ever sent to the manager.
     accepted?: string[]
+    // Estimate: the right value, only ever sent to the manager, and the
+    // question's settings (unit, decimals, bounds, tolerance).
+    expected?: number
+    options?: QuestionOptions
+    // Estimate: the values sent, counted by range around the right value
+    // (estimateRanges), and their median, null if none. `responses` is
+    // empty.
+    ranges?: EstimateRange[]
+    median?: number | null
     // Wordcloud: the most frequent words (WORDCLOUD_LIMITS.CLOUD_WORDS), with
     // no link to who typed them, and how many different words were kept in
     // all. `responses` is empty.

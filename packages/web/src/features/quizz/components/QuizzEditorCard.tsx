@@ -44,10 +44,13 @@ const QuizzEditorCard = ({
   onDelete,
 }: Props) => {
   const { t } = useTranslation()
-  // One bar per answer row, green for a right answer. A short answer has one
-  // field and no public answers: one bar, green, as any accepted answer is
-  // right. A word cloud has one grey bar per field: nobody is right.
-  const isShortAnswer = question.type === QUESTION_TYPES.SHORTANSWER
+  // One bar per answer row, green for a right answer. A short answer and an
+  // estimate have one field and no public answers: one bar, green, as what
+  // they accept is right. A word cloud has one grey bar per field: nobody is
+  // right.
+  const isShortAnswer =
+    question.type === QUESTION_TYPES.SHORTANSWER ||
+    question.type === QUESTION_TYPES.ESTIMATE
   const isWordCloud = question.type === QUESTION_TYPES.WORDCLOUD
   let bars = question.answers
 

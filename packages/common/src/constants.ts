@@ -94,6 +94,7 @@ export const QUESTION_TYPES = {
   ORDERING: "ordering",
   SHORTANSWER: "shortanswer",
   WORDCLOUD: "wordcloud",
+  ESTIMATE: "estimate",
 } as const
 
 /**
@@ -208,6 +209,17 @@ export const QUESTION_TYPE_META: Record<
     partialOutcome: false,
     nominative: false,
   },
+  // No public answers: the player types a number, right within a tolerance
+  // of `expected`, which stays secret.
+  estimate: {
+    scored: true,
+    acceptsAnswers: true,
+    minAnswers: 0,
+    maxAnswers: 0,
+    speedBonus: false,
+    partialOutcome: false,
+    nominative: true,
+  },
 }
 
 export const SCORING_MODES = {
@@ -250,6 +262,28 @@ export const WORDCLOUD_LIMITS = {
   // Players whose words the history needs to keep them: with fewer, who
   // answered would tell who typed which word. The room still sees them live.
   MIN_AUTHORS: 3,
+} as const
+
+// Estimate: the tolerance is in the question's unit, or a share of the right
+// value.
+export const ESTIMATE_TOLERANCE = {
+  ABSOLUTE: "absolute",
+  PERCENT: "percent",
+} as const
+
+export const ESTIMATE_LIMITS = {
+  // Digits before the decimal separator: 999 999 999 999 at most, so a value
+  // scaled by 10^MAX_DECIMALS stays a safe integer.
+  INTEGER_DIGITS: 12,
+  MAX_DECIMALS: 3,
+  // A percent tolerance: 100 at most, one decimal.
+  MAX_PERCENT: 100,
+  PERCENT_DECIMALS: 1,
+  // Characters of the unit shown after the numbers, as counted by
+  // countInputChars.
+  UNIT_LENGTH: 20,
+  // Ranges of the distribution besides the one within the tolerance.
+  OTHER_RANGES: 4,
 } as const
 
 export const MEDIA_TYPES = {

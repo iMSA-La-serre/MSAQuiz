@@ -83,4 +83,17 @@ describe("toPublicAnswers", () => {
       ),
     ).toEqual({ answers: [], order: [] })
   })
+
+  it("shows no answers for an estimate", () => {
+    expect(
+      toPublicAnswers(
+        question({
+          type: QUESTION_TYPES.ESTIMATE,
+          answers: [],
+          solutions: [],
+          expected: 35,
+        }),
+      ),
+    ).toEqual({ answers: [], order: [] })
+  })
 })

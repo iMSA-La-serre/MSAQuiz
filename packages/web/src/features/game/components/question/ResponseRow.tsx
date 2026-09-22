@@ -34,6 +34,10 @@ interface ResponseRowProps {
   // bar and smaller figures. No « Bonne réponse » label: it would cover the
   // row above.
   compact?: boolean
+  // A compact row that keeps its « Bonne réponse » label: the one right row
+  // of a long list (estimate). The label gets room above the row, and the
+  // row's content moves down under it, clear of the figures.
+  labelled?: boolean
   marker?: ReactNode
 }
 
@@ -49,6 +53,7 @@ const ResponseRow = ({
   revealed,
   dense = false,
   compact = false,
+  labelled = false,
   marker,
 }: ResponseRowProps) => {
   const { t, i18n } = useTranslation()
@@ -60,10 +65,11 @@ const ResponseRow = ({
   }).format(share)
   const delay = staggerDelay(index, REVEAL_DELAY)
   const rowLabel = label({ count, total, percent })
+  const labelledRow = correct && compact && labelled
 
   // On the row's top edge, out of the flow: inline after the text, the label
   // wraps to a second line in the narrow image column and every row moves.
-  const correctLabel = correct && !compact && (
+  const correctLabel = correct && (!compact || labelled) && (
     <motion.span
       {...fadeIn(REVEAL_DELAY, reduceMotion)}
       className="bg-serre-deep pointer-events-none absolute -top-2.5 right-5 rounded-full px-3 py-0.5 text-sm leading-4 font-bold tracking-[0.15em] whitespace-nowrap text-white uppercase xl:-top-3.5 xl:right-6 xl:py-1 xl:text-base xl:leading-5"
@@ -120,6 +126,8 @@ const ResponseRow = ({
       aria-label={
         correct ? `${rowLabel}, ${t("game:responses.correct")}` : rowLabel
       }
+      // As much room below as above, where the label hangs.
+      className={labelledRow ? "my-1 xl:my-2" : undefined}
     >
       <AnswerRow
         index={index}
@@ -127,6 +135,8 @@ const ResponseRow = ({
         size="host"
         dense={dense}
         compact={compact}
+        // The label's depth into the row; `short:` as the row's own padding.
+        className={labelledRow ? "short:pt-3 pt-3" : undefined}
         outlined={correct && revealed}
         marker={marker}
         footer={bar}

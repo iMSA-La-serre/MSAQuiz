@@ -12,6 +12,7 @@ import {
 import { usePlayerStore } from "@razzia/web/features/game/stores/player"
 import { useQuestionStore } from "@razzia/web/features/game/stores/question"
 import { SFX } from "@razzia/web/features/game/utils/constants"
+import { QUESTION_REGISTRY } from "@razzia/web/features/questions"
 import { useEffect, useState } from "react"
 import useSound from "use-sound"
 
@@ -49,7 +50,11 @@ const Answers = ({
       gameId,
       data: answer,
     })
-    setLastAnswer({ questionType, answer })
+    setLastAnswer({
+      questionType,
+      answer,
+      display: QUESTION_REGISTRY[questionType].sentText?.(answer, options),
+    })
     sfxPop()
   }
 

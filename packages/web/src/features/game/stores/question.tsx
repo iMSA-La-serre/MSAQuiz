@@ -5,10 +5,12 @@ import type {
 } from "@razzia/common/types/game"
 import { create } from "zustand"
 
-// An answer as this player sent it: answer keys, or the typed text.
+// An answer as this player sent it: answer keys, or the typed text, and how
+// the text reads when its type words it (an estimate's number and unit).
 export interface SentAnswer {
   questionType: QuestionType
   answer: AnswerPayload
+  display?: string
 }
 
 interface QuestionStore {

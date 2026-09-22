@@ -48,7 +48,16 @@
     "orderItemTooLong": "Un élément ne peut pas dépasser 80 caractères",
     "orderItemDuplicate": "Deux éléments sont identiques une fois les majuscules, les accents et la ponctuation ignorés",
     "timeTooShort": "Le temps de réponse doit être d'au moins 5 secondes, ou sans limite",
-    "wordCountRange": "Un nuage de mots demande de 1 à 3 mots par participant"
+    "wordCountRange": "Un nuage de mots demande de 1 à 3 mots par participant",
+    "decimalsRange": "Une estimation accepte de 0 à 3 décimales",
+    "estimateExpectedMissing": "Indiquez la bonne réponse de l'estimation",
+    "estimateTooLarge": "Un nombre ne peut pas dépasser 12 chiffres avant la virgule",
+    "estimateDecimals": "Un nombre de l'estimation a plus de décimales que son réglage Décimales",
+    "estimateTolerance": "La tolérance ne peut pas être négative",
+    "estimatePercent": "Une tolérance en pourcentage va de 0 à 100 %, avec une décimale au plus",
+    "estimateBounds": "La valeur minimale doit être inférieure à la valeur maximale",
+    "estimateExpectedOutOfBounds": "La bonne réponse doit être comprise entre les valeurs minimale et maximale",
+    "estimateUnitTooLong": "L'unité ne peut pas dépasser 20 caractères"
   },
   "route": {
     "back": "Retour à l'accueil",

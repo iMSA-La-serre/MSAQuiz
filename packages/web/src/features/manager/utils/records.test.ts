@@ -31,4 +31,13 @@ describe("hasAnswer", () => {
       hasAnswer({ playerName: "Alice", answerIds: null, answered: false }),
     ).toBe(false)
   })
+
+  it("reads an estimate value as answered, even 0", () => {
+    expect(hasAnswer({ playerName: "Alice", answerIds: [], value: 0 })).toBe(
+      true,
+    )
+    expect(
+      hasAnswer({ playerName: "Alice", answerIds: null, value: null }),
+    ).toBe(false)
+  })
 })

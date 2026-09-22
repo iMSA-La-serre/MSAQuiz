@@ -10,6 +10,7 @@ import type {
   QuestionStats,
   WordCount,
 } from "@razzia/common/types/game"
+import { medianOf, toleranceSide } from "@razzia/common/utils/estimate"
 import { placedItems } from "@razzia/common/utils/ordering"
 import { countWords } from "@razzia/common/utils/wordcloud"
 import { isKnownType, QUESTION_SCORING } from "@razzia/socket/services/scoring"
@@ -18,8 +19,9 @@ type AnsweredRecord = PlayerAnswerRecord & { answerIds: number[] }
 
 /**
  * Whether a record holds an answer. A shortanswer text that matched no
- * accepted answer is one too, with no answer id, and so is the answer of a
- * type that is not nominative (wordcloud), which only says it was given.
+ * accepted answer is one too, with no answer id, so is an estimate value, and
+ * so is the answer of a type that is not nominative (wordcloud), which only
+ * says it was given.
  */
 export const hasAnswer = (
   record: PlayerAnswerRecord,
@@ -27,6 +29,7 @@ export const hasAnswer = (
   record.answerIds !== null &&
   (record.answerIds.length > 0 ||
     typeof record.text === "string" ||
+    typeof record.value === "number" ||
     record.answered === true)
 
 /**
@@ -41,6 +44,7 @@ export const recordScore = (
   QUESTION_SCORING[question.type](question, {
     answerIds: record.answerIds,
     text: record.text ?? undefined,
+    value: record.value ?? undefined,
   })
 
 /**
@@ -64,13 +68,17 @@ export const isCorrectRecord = (
 }
 
 // Wording of the correct answers. Shortanswer: every accepted answer is one.
-// Ordering: every item has its place, none stands out.
+// Ordering: every item has its place, none stands out. Estimate: the right
+// value is a number, given apart.
 const solutionLabelsOf = (question: QuestionResult): string[] => {
   if (question.type === QUESTION_TYPES.SHORTANSWER) {
     return question.accepted ?? []
   }
 
-  if (question.type === QUESTION_TYPES.ORDERING) {
+  if (
+    question.type === QUESTION_TYPES.ORDERING ||
+    question.type === QUESTION_TYPES.ESTIMATE
+  ) {
     return []
   }
 
@@ -113,6 +121,8 @@ interface Tally {
   // whether a game kept none (too few authors).
   words: WordCount[]
   withheld: boolean
+  // Estimate: every value given, for the median.
+  values: number[]
 }
 
 // Types whose answer ids are not picked choices: they never share a row with
@@ -122,6 +132,7 @@ const OWN_ROW_TYPES = new Set<string>([
   QUESTION_TYPES.ORDERING,
   QUESTION_TYPES.SHORTANSWER,
   QUESTION_TYPES.WORDCLOUD,
+  QUESTION_TYPES.ESTIMATE,
 ])
 
 const groupKey = (question: QuestionResult, label: string): string =>
@@ -154,10 +165,21 @@ const newTally = (question: QuestionResult, label: string): Tally => {
       ...(question.type === QUESTION_TYPES.SHORTANSWER && {
         unrecognizedCount: 0,
       }),
+      ...(question.type === QUESTION_TYPES.ESTIMATE && {
+        estimate: {
+          below: 0,
+          within: 0,
+          above: 0,
+          median: null,
+          expected: question.expected ?? null,
+          ...(question.options && { options: question.options }),
+        },
+      }),
     },
     scoreSum: 0,
     words: [],
     withheld: false,
+    values: [],
   }
 }
 
@@ -210,6 +232,17 @@ const countRecord = (
     record.answerIds.length === 0
   ) {
     stats.unrecognizedCount += 1
+  }
+
+  // Each value against the tolerance of its own game.
+  if (typeof record.value === "number" && stats.estimate) {
+    const side = toleranceSide(question, record.value)
+
+    tally.values.push(record.value)
+
+    if (side) {
+      stats.estimate[side] += 1
+    }
   }
 
   for (const answer of answerLabels(question, record.answerIds)) {
@@ -267,8 +300,11 @@ export const aggregateQuestions = (games: GameResult[]): QuestionStats[] => {
   }
 
   return [...byQuestion.values()]
-    .map(({ stats, scoreSum, words, withheld }) => ({
+    .map(({ stats, scoreSum, words, withheld, values }) => ({
       ...stats,
+      ...(stats.estimate && {
+        estimate: { ...stats.estimate, median: medianOf(values) },
+      }),
       ...(stats.type === QUESTION_TYPES.WORDCLOUD && {
         // Salted as in the game: words given as often keep its order.
         answers: countWords(words, stats.question)

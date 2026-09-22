@@ -24,6 +24,7 @@ const HINT_KEYS: Record<QuestionType, string> = {
   ordering: "quizz:answers.hint.ordering",
   shortanswer: "quizz:answers.hint.shortanswer",
   wordcloud: "quizz:answers.hint.wordcloud",
+  estimate: "quizz:answers.hint.estimate",
 }
 
 // Chip, field, correct-answer box, delete button. Below sm the rows use two

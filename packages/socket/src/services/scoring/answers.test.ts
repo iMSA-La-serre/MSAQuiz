@@ -191,6 +191,42 @@ describe("parseAnswer, shortanswer", () => {
   })
 })
 
+describe("parseAnswer, estimate", () => {
+  const estimate: Question = {
+    ...question(QUESTION_TYPES.ESTIMATE, []),
+    solutions: [],
+    expected: 35,
+    options: { decimals: 1, min: 0, max: 100 },
+  }
+
+  it("reads the number as the phone does, and no answer id", () => {
+    expect(parseAnswer(estimate, { text: " 42,5 " }, [])).toEqual({
+      answerIds: [],
+      value: 42.5,
+    })
+    expect(parseAnswer(estimate, { text: "100.0" }, [])).toEqual({
+      answerIds: [],
+      value: 100,
+    })
+  })
+
+  it("refuses what the phone would not send", () => {
+    for (const text of ["", "abc", "4,25", "-1", "100,1", "1e2"]) {
+      expect(parseAnswer(estimate, { text }, []), text).toBeNull()
+    }
+  })
+
+  it("refuses indices, texts or a number that is not a text", () => {
+    expect(parseAnswer(estimate, { answerKeys: [0] }, [])).toBeNull()
+    expect(parseAnswer(estimate, { texts: ["42"] }, [])).toBeNull()
+    expect(parseAnswer(estimate, { text: 42 }, [])).toBeNull()
+  })
+
+  it("counts no response by index", () => {
+    expect(countResponses(estimate, [{ answerIds: [], value: 42 }])).toEqual({})
+  })
+})
+
 describe("parseAnswer, wordcloud", () => {
   const wordcloud = (wordCount?: number) =>
     ({

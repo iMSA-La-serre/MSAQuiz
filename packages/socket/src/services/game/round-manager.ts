@@ -27,6 +27,7 @@ import {
   STATUS,
   type StatusDataMap,
 } from "@razzia/common/types/game/status"
+import { estimateRanges, medianOf } from "@razzia/common/utils/estimate"
 import {
   BUILTIN_BLOCKLIST,
   type Blocklist,
@@ -428,6 +429,15 @@ export class RoundManager {
         ? { wordsWithheld: true }
         : { words })
 
+    // Estimate: the values sent, counted by range around the right value for
+    // the manager's screen, which also gets the right value.
+    const values =
+      question.type === QUESTION_TYPES.ESTIMATE
+        ? this.playersAnswers.flatMap(({ value }) =>
+            value === undefined ? [] : [value],
+          )
+        : undefined
+
     this.opts.send(this.opts.getManagerId(), STATUS.SHOW_RESPONSES, {
       ...question,
       responses: countResponses(question, this.playersAnswers),
@@ -439,6 +449,10 @@ export class RoundManager {
       ...(words && {
         words: words.slice(0, WORDCLOUD_LIMITS.CLOUD_WORDS),
         distinctWords: words.length,
+      }),
+      ...(values && {
+        ranges: estimateRanges(question, values),
+        median: medianOf(values),
       }),
       ...(scored && {
         correctCount: answeredScores.filter((score) => score === 1).length,
@@ -458,6 +472,9 @@ export class RoundManager {
           answerIds: answer?.answerIds ?? null,
           ...(question.type === QUESTION_TYPES.SHORTANSWER && {
             text: answer?.text ?? null,
+          }),
+          ...(question.type === QUESTION_TYPES.ESTIMATE && {
+            value: answer?.value ?? null,
           }),
           ...(!nominative && { answered: Boolean(answer) }),
           score,

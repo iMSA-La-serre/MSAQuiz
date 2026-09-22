@@ -40,7 +40,16 @@
       "wordCount": "Mots par participant",
       "wordCountValue_one": "{{count}} mot",
       "wordCountValue_other": "{{count}} mots",
-      "wordCountHint": "Champs sur le téléphone, {{max}} caractères chacun"
+      "wordCountHint": "Champs sur le téléphone, {{max}} caractères chacun",
+      "unit": "Unité",
+      "unitHint": "Affichée après les nombres, {{max}} caractères au plus",
+      "unitPlaceholder": "km, €, adhérents…",
+      "decimals": "Décimales",
+      "decimalsHint": "Décimales que les participants peuvent saisir",
+      "min": "Valeur minimale",
+      "minHint": "Un nombre plus petit est refusé sur le téléphone",
+      "max": "Valeur maximale",
+      "maxHint": "Un nombre plus grand est refusé sur le téléphone"
     },
     "deleteQuestion": "Supprimer la question",
     "deleteQuestionConfirm": "Êtes-vous sûr de vouloir supprimer cette question ?",
@@ -62,7 +71,8 @@
     "truefalse": "Vrai / Faux",
     "ordering": "Mise en ordre",
     "shortanswer": "Réponse courte",
-    "wordcloud": "Nuage de mots"
+    "wordcloud": "Nuage de mots",
+    "estimate": "Estimation"
   },
   "titleQuizzPlaceholder": "Titre du quiz...",
   "slideNoAnswers": "Une diapo info n'attend pas de réponses — elle affiche simplement la question et son média.",
@@ -81,7 +91,8 @@
       "truefalse": "Choisissez la bonne réponse",
       "ordering": "Saisissez-les dans le bon ordre",
       "shortanswer": "Majuscules et accents ignorés",
-      "wordcloud": "Réponses non associées au pseudo"
+      "wordcloud": "Réponses non associées au pseudo",
+      "estimate": "Juste dans la marge de tolérance"
     },
     "placeholder": "Réponse {{letter}}",
     "remove": "Supprimer la réponse {{letter}}",
@@ -126,5 +137,36 @@
       "3": "3 mots par participant"
     },
     "unlinked": "Les réponses ne sont pas associées au pseudo : les résultats gardent seulement qui a répondu, et combien de fois chaque mot a été donné."
+  },
+  "estimate": {
+    "columnUnit": "Unité",
+    "columnValue": "Valeur",
+    "decimals_one": "Au plus {{count}} décimale : voir le réglage Décimales",
+    "decimals_other": "Au plus {{count}} décimales : voir le réglage Décimales",
+    "decimalsValue": {
+      "0": "Nombre entier",
+      "1": "1 décimale",
+      "2": "2 décimales",
+      "3": "3 décimales"
+    },
+    "expected": "Bonne réponse",
+    "integer": "Nombre entier attendu : voir le réglage Décimales",
+    "invalid": "Nombre non reconnu",
+    "mode": {
+      "absolute": "unités",
+      "percent": "%"
+    },
+    "modeLabel": "Tolérance en",
+    "test": "Tester une saisie",
+    "testHint": "Tapez un nombre pour savoir s'il serait juste",
+    "testPlaceholder": "Ce qu'un participant pourrait taper",
+    "testRefused": "Refusé sur le téléphone : {{reason}}",
+    "testRight": "Juste : dans la tolérance",
+    "testWrong": "Faux : hors de la tolérance",
+    "title": "Bonne réponse",
+    "tolerance": "Tolérance",
+    "tooLarge": "12 chiffres au plus avant la virgule",
+    "window": "Juste de {{from}} à {{to}}",
+    "windowExact": "Juste seulement pour {{value}}"
   }
 }

@@ -1,4 +1,6 @@
 import {
+  ESTIMATE_LIMITS,
+  ESTIMATE_TOLERANCE,
   MEDIA_TYPES,
   NO_TIME_LIMIT,
   ORDER_SCORING,
@@ -9,7 +11,8 @@ import {
   SHORTANSWER_LIMITS,
   WORDCLOUD_LIMITS,
 } from "@razzia/common/constants"
-import type { Question } from "@razzia/common/types/game"
+import type { Question, QuestionOptions } from "@razzia/common/types/game"
+import { decimalsOf, fitsDecimals } from "@razzia/common/utils/estimate"
 import {
   answerKey,
   cleanInput,
@@ -36,6 +39,18 @@ const optionsValidator = z.object({
     .min(WORDCLOUD_LIMITS.MIN_WORDS, "errors:quizz.wordCountRange")
     .max(WORDCLOUD_LIMITS.MAX_WORDS, "errors:quizz.wordCountRange")
     .optional(),
+  // Estimate. Checked against each other and the right value below.
+  decimals: z
+    .number()
+    .int("errors:quizz.decimalsRange")
+    .min(0, "errors:quizz.decimalsRange")
+    .max(ESTIMATE_LIMITS.MAX_DECIMALS, "errors:quizz.decimalsRange")
+    .optional(),
+  tolerance: z.number().optional(),
+  toleranceMode: z.enum(ESTIMATE_TOLERANCE).optional(),
+  min: z.number().optional(),
+  max: z.number().optional(),
+  unit: z.string().optional(),
 })
 
 // Types added after quizzes were first stored: the stricter rules below only
@@ -44,6 +59,7 @@ const NEWER_TYPES = new Set<string>([
   QUESTION_TYPES.ORDERING,
   QUESTION_TYPES.SHORTANSWER,
   QUESTION_TYPES.WORDCLOUD,
+  QUESTION_TYPES.ESTIMATE,
 ])
 
 const MIN_TIME = 5
@@ -128,26 +144,155 @@ const checkAccepted = (accepted: string[], issue: IssueFn) => {
   }
 }
 
+// A number of an estimate: at most the question's decimals, under 10^12.
+const checkNumber = (
+  value: number,
+  decimals: number,
+  { issue, path }: { issue: IssueFn; path: Array<string | number> },
+) => {
+  if (Math.abs(value) >= 10 ** ESTIMATE_LIMITS.INTEGER_DIGITS) {
+    issue("errors:quizz.estimateTooLarge", path)
+  } else if (!fitsDecimals(value, decimals)) {
+    issue("errors:quizz.estimateDecimals", path)
+  }
+}
+
+const checkTolerance = (
+  options: QuestionOptions,
+  decimals: number,
+  issue: IssueFn,
+) => {
+  const { tolerance } = options
+  const path = ["options", "tolerance"]
+
+  if (tolerance === undefined) {
+    return
+  }
+
+  if (tolerance < 0) {
+    issue("errors:quizz.estimateTolerance", path)
+
+    return
+  }
+
+  if (options.toleranceMode !== ESTIMATE_TOLERANCE.PERCENT) {
+    checkNumber(tolerance, decimals, { issue, path })
+
+    return
+  }
+
+  if (
+    tolerance > ESTIMATE_LIMITS.MAX_PERCENT ||
+    !fitsDecimals(tolerance, ESTIMATE_LIMITS.PERCENT_DECIMALS)
+  ) {
+    issue("errors:quizz.estimatePercent", path)
+  }
+}
+
+const checkEstimate = (
+  { expected, options = {} }: Pick<Question, "expected" | "options">,
+  issue: IssueFn,
+) => {
+  const decimals = decimalsOf(options)
+  const { min, max, unit } = options
+
+  if (expected === undefined) {
+    issue("errors:quizz.estimateExpectedMissing", ["expected"])
+  } else {
+    checkNumber(expected, decimals, { issue, path: ["expected"] })
+  }
+
+  checkTolerance(options, decimals, issue)
+
+  if (min !== undefined) {
+    checkNumber(min, decimals, { issue, path: ["options", "min"] })
+  }
+
+  if (max !== undefined) {
+    checkNumber(max, decimals, { issue, path: ["options", "max"] })
+  }
+
+  if (min !== undefined && max !== undefined && min >= max) {
+    issue("errors:quizz.estimateBounds", ["options", "max"])
+  } else if (
+    expected !== undefined &&
+    ((min !== undefined && expected < min) ||
+      (max !== undefined && expected > max))
+  ) {
+    issue("errors:quizz.estimateExpectedOutOfBounds", ["expected"])
+  }
+
+  if (unit !== undefined && isTooLong(unit, ESTIMATE_LIMITS.UNIT_LENGTH)) {
+    issue("errors:quizz.estimateUnitTooLong", ["options", "unit"])
+  }
+}
+
+// The unit is stored cleaned, and dropped when empty.
+const estimateOptions = (options: QuestionOptions): QuestionOptions => {
+  const { unit, ...rest } = options
+  const cleaned = unit === undefined ? "" : cleanInput(unit)
+
+  return cleaned === "" ? rest : { ...rest, unit: cleaned }
+}
+
+// The settings only an estimate reads.
+const ESTIMATE_OPTION_KEYS = new Set<string>([
+  "decimals",
+  "tolerance",
+  "toleranceMode",
+  "min",
+  "max",
+  "unit",
+] satisfies Array<keyof QuestionOptions>)
+
+// The other types have the right value and the settings of an estimate
+// dropped before any check, as zod dropped them before the estimate existed:
+// they are neither refused nor stored, nor sent to the players.
+const withoutEstimateFields = (question: Record<string, unknown>) => {
+  if (question.type === QUESTION_TYPES.ESTIMATE) {
+    return question
+  }
+
+  const { expected: _expected, ...rest } = question
+  const { options } = rest
+
+  if (
+    typeof options !== "object" ||
+    options === null ||
+    Array.isArray(options)
+  ) {
+    return rest
+  }
+
+  return {
+    ...rest,
+    options: Object.fromEntries(
+      Object.entries(options).filter(([key]) => !ESTIMATE_OPTION_KEYS.has(key)),
+    ),
+  }
+}
+
 // Backward compat: questions saved before type existed get one inferred.
 // Several solutions = a real multi-select; one solution = single.
 const questionValidator = z.preprocess(
   (data) => {
-    if (
-      typeof data === "object" &&
-      data !== null &&
-      !("type" in (data as Record<string, unknown>))
-    ) {
-      const legacy = data as Record<string, unknown>
-      const isMulti =
-        Array.isArray(legacy.solutions) && legacy.solutions.length > 1
-
-      return {
-        ...legacy,
-        type: isMulti ? QUESTION_TYPES.MULTI : QUESTION_TYPES.SINGLE,
-      }
+    if (typeof data !== "object" || data === null) {
+      return data
     }
 
-    return data
+    const question = data as Record<string, unknown>
+
+    if ("type" in question) {
+      return withoutEstimateFields(question)
+    }
+
+    const isMulti =
+      Array.isArray(question.solutions) && question.solutions.length > 1
+
+    return withoutEstimateFields({
+      ...question,
+      type: isMulti ? QUESTION_TYPES.MULTI : QUESTION_TYPES.SINGLE,
+    })
   },
   z
     .object({
@@ -175,6 +320,8 @@ const questionValidator = z.preprocess(
       options: optionsValidator.optional(),
       // Shortanswer only, dropped from the other types.
       accepted: z.array(z.string()).optional(),
+      // Estimate only, dropped from the other types.
+      expected: z.number().optional(),
       speedBonus: z.boolean().optional(),
     })
     .superRefine((question, ctx) => {
@@ -223,6 +370,10 @@ const questionValidator = z.preprocess(
         checkAccepted(question.accepted ?? [], issue)
       }
 
+      if (question.type === QUESTION_TYPES.ESTIMATE) {
+        checkEstimate(question, issue)
+      }
+
       if (
         NEWER_TYPES.has(question.type) &&
         question.time !== NO_TIME_LIMIT &&
@@ -232,13 +383,24 @@ const questionValidator = z.preprocess(
       }
     })
     // Typed as the shared Question, so the schema output always fits it.
-    .transform(({ accepted, ...question }): Question => {
+    .transform(({ accepted, expected, ...question }): Question => {
       const meta = QUESTION_TYPE_META[question.type]
 
       // What a shortanswer scores against stays out of `answers`, which is
       // public.
       if (question.type === QUESTION_TYPES.SHORTANSWER) {
         return { ...question, accepted, answers: [], solutions: [] }
+      }
+
+      // The right value of an estimate has its own field, kept secret.
+      if (question.type === QUESTION_TYPES.ESTIMATE) {
+        return {
+          ...question,
+          expected,
+          options: question.options && estimateOptions(question.options),
+          answers: [],
+          solutions: [],
+        }
       }
 
       // The items are stored in the correct order: no solutions to keep.
