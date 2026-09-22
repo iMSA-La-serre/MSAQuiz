@@ -1,37 +1,77 @@
+import { QUESTION_TYPES } from "@razzia/common/constants"
 import type { PlayerStatusDataMap } from "@razzia/common/types/game/status"
 import Loader from "@razzia/web/components/Loader"
 import AnswerChip from "@razzia/web/features/game/components/AnswerChip"
-import { useQuestionStore } from "@razzia/web/features/game/stores/question"
+import {
+  type SentAnswer,
+  useQuestionStore,
+} from "@razzia/web/features/game/stores/question"
+import clsx from "clsx"
 import { useTranslation } from "react-i18next"
 
 interface Props {
   data: PlayerStatusDataMap["WAIT"]
 }
 
+// A white tray: the deep green C chip would vanish on the navy background.
+const TRAY = "rounded-2xl bg-white p-2 shadow-lg shadow-black/15"
+
+// The letters of the answers picked, or the text typed. An ordering keeps
+// its letters in the order chosen, in smaller chips: six must fit a 320 px
+// phone. Every tray is as tall as the tray of one large letter chip, so the
+// screen keeps its layout from one type to the next.
+const SentAnswerTray = ({ sent }: { sent: SentAnswer }) => {
+  const { answer, questionType } = sent
+
+  if ("text" in answer) {
+    return (
+      <p
+        className={clsx(
+          TRAY,
+          "text-secondary max-w-full px-5 py-4.5 text-xl leading-7 font-bold break-words",
+        )}
+      >
+        {answer.text}
+      </p>
+    )
+  }
+
+  if (questionType === QUESTION_TYPES.ORDERING) {
+    return (
+      <div className={clsx(TRAY, "flex gap-1.5 py-3")}>
+        {answer.answerKeys.map((key) => (
+          <AnswerChip key={key} index={key} size="md" />
+        ))}
+      </div>
+    )
+  }
+
+  return (
+    <div className={clsx(TRAY, "flex gap-2")}>
+      {[...answer.answerKeys]
+        .sort((a, b) => a - b)
+        .map((key) => (
+          <AnswerChip key={key} index={key} size="lg" />
+        ))}
+    </div>
+  )
+}
+
 const Wait = ({ data: { text } }: Props) => {
   const { t } = useTranslation()
   const lastAnswer = useQuestionStore((state) => state.lastAnswer)
-  const sentAnswer =
-    text === "game:waitingForAnswers" && lastAnswer
-      ? [...lastAnswer].sort((a, b) => a - b)
-      : null
+  const sent = text === "game:waitingForAnswers" ? lastAnswer : null
 
   return (
     <section className="anim-show mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-5 px-4 text-center">
       <Loader className="size-16 md:size-20" />
 
-      {sentAnswer && (
+      {sent && (
         <>
           <p className="text-sm font-semibold tracking-[0.2em] text-white/70 uppercase">
             {t("game:wait.sent")}
           </p>
-          {/* A white tray: the deep green C chip would vanish on the navy
-          background. */}
-          <div className="flex gap-2 rounded-2xl bg-white p-2 shadow-lg shadow-black/15">
-            {sentAnswer.map((key) => (
-              <AnswerChip key={key} index={key} size="lg" />
-            ))}
-          </div>
+          <SentAnswerTray sent={sent} />
         </>
       )}
 

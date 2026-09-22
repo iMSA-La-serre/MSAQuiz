@@ -1,4 +1,4 @@
-import { EVENTS } from "@razzia/common/constants"
+import { EVENTS, SHORTANSWER_LIMITS } from "@razzia/common/constants"
 import type {
   ClientToServerEvents,
   Socket,
@@ -25,6 +25,19 @@ const answerKeys = z.custom<number[]>(
     value.length <= MAX_ANSWER_KEYS &&
     value.every((key) => typeof key === "number"),
 )
+
+// A shortanswer input, bounded before any processing. Its content is checked
+// by parseAnswer.
+const answerText = z.custom<string>(
+  (value) =>
+    typeof value === "string" && value.length <= SHORTANSWER_LIMITS.RAW_LENGTH,
+)
+
+// Indices or a text, never both.
+const selectedAnswer = z.union([
+  z.object({ answerKeys, text: z.undefined().optional() }),
+  z.object({ text: answerText, answerKeys: z.undefined().optional() }),
+])
 
 // Expected shape of the first argument of every event a client may send.
 // Anything else (unknown event, missing or malformed payload) is dropped
@@ -62,7 +75,7 @@ const CLIENT_EVENT_PAYLOADS: Record<ClientEvent, z.ZodType> = {
   [EVENTS.PLAYER.RECONNECT]: gameMessage,
   [EVENTS.PLAYER.LEAVE]: gameMessage,
   [EVENTS.PLAYER.SELECTED_ANSWER]: optionalGameMessage.extend({
-    data: z.object({ answerKeys }),
+    data: selectedAnswer,
   }),
   [EVENTS.RESULTS.GET]: id,
   [EVENTS.RESULTS.DELETE]: id,

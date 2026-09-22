@@ -1,5 +1,5 @@
 import { MEDIA_TYPES, QUESTION_TYPES } from "@razzia/common/constants"
-import type { Player, Question } from "@razzia/common/types/game"
+import type { GameResult, Player, Question } from "@razzia/common/types/game"
 import type { Server, Socket } from "@razzia/common/types/game/socket"
 import {
   type Status,
@@ -52,6 +52,7 @@ const setup = (questions: Question[], players: Player[]) => {
   let roster = players
   const broadcasts: Array<{ name: Status; data: unknown }> = []
   const sent: Array<{ target: string; name: Status; data: unknown }> = []
+  const finished: GameResult[] = []
   const openWindows: Array<() => void> = []
   let countdownDone = false
 
@@ -97,7 +98,9 @@ const setup = (questions: Question[], players: Player[]) => {
       sent.push({ target, name, data })
     },
     onNewQuestion: () => undefined,
-    onGameFinished: () => undefined,
+    onGameFinished: (result) => {
+      finished.push(result)
+    },
   })
 
   const manager = socketOf(MANAGER_ID)
@@ -113,7 +116,10 @@ const setup = (questions: Question[], players: Player[]) => {
   return {
     round,
     manager,
+    broadcasts,
     sent,
+    finished,
+    roster: () => roster,
     lastBroadcast,
     lastSent,
     // Start of the game, up to the reading time of the first question.
@@ -185,12 +191,12 @@ describe("RoundManager answer window", () => {
     const game = setup([question()], [player("camille"), player("yanis")])
 
     await game.reachFirstQuestion()
-    game.round.selectAnswer(socketOf("camille"), [1])
+    game.round.selectAnswer(socketOf("camille"), { answerKeys: [1] })
 
     expect(game.lastSent("camille", STATUS.WAIT)).toBeUndefined()
 
     await game.openAnswers(5)
-    game.round.selectAnswer(socketOf("camille"), [1])
+    game.round.selectAnswer(socketOf("camille"), { answerKeys: [1] })
 
     expect(game.lastSent("camille", STATUS.WAIT)).toBeDefined()
   })
@@ -203,9 +209,9 @@ describe("RoundManager answer window", () => {
 
     await game.reachFirstQuestion()
     await game.openAnswers(5)
-    game.round.selectAnswer(socketOf("camille"), [1])
+    game.round.selectAnswer(socketOf("camille"), { answerKeys: [1] })
     await game.closeAnswers()
-    game.round.selectAnswer(socketOf("yanis"), [1])
+    game.round.selectAnswer(socketOf("yanis"), { answerKeys: [1] })
 
     expect(game.lastSent("yanis", STATUS.WAIT)).toBeUndefined()
 
@@ -234,9 +240,9 @@ describe("RoundManager results", () => {
 
     await game.reachFirstQuestion()
     await game.openAnswers(5)
-    game.round.selectAnswer(socketOf("camille"), [1])
-    game.round.selectAnswer(socketOf("yanis"), [0])
-    game.round.selectAnswer(socketOf("ines"), [2])
+    game.round.selectAnswer(socketOf("camille"), { answerKeys: [1] })
+    game.round.selectAnswer(socketOf("yanis"), { answerKeys: [0] })
+    game.round.selectAnswer(socketOf("ines"), { answerKeys: [2] })
     await game.closeAnswers()
 
     const camille = game.lastSent("camille", STATUS.SHOW_RESULT)
@@ -315,9 +321,11 @@ describe("RoundManager results", () => {
 
     await game.reachFirstQuestion()
     await game.openAnswers(5)
-    game.round.selectAnswer(socketOf("camille"), [0, 1])
-    game.round.selectAnswer(socketOf("yanis"), [0, 0, 0, 0, 0, 0])
-    game.round.selectAnswer(socketOf("samir"), [7])
+    game.round.selectAnswer(socketOf("camille"), { answerKeys: [0, 1] })
+    game.round.selectAnswer(socketOf("yanis"), {
+      answerKeys: [0, 0, 0, 0, 0, 0],
+    })
+    game.round.selectAnswer(socketOf("samir"), { answerKeys: [7] })
 
     expect(game.lastSent("samir", STATUS.WAIT)).toBeUndefined()
 
@@ -347,7 +355,7 @@ describe("RoundManager results", () => {
 
     await game.reachFirstQuestion()
     await game.openAnswers(5)
-    game.round.selectAnswer(socketOf("camille"), [2])
+    game.round.selectAnswer(socketOf("camille"), { answerKeys: [2] })
     await game.closeAnswers()
 
     expect(game.lastSent("camille", STATUS.SHOW_RESULT)).toMatchObject({
@@ -379,7 +387,7 @@ describe("RoundManager results", () => {
 
     await game.reachFirstQuestion()
     await game.openAnswers(5)
-    game.round.selectAnswer(socketOf("yanis"), [1])
+    game.round.selectAnswer(socketOf("yanis"), { answerKeys: [1] })
     await game.closeAnswers()
     game.round.showLeaderboard(game.manager)
 
@@ -390,6 +398,452 @@ describe("RoundManager results", () => {
     expect(game.lastSent("camille", STATUS.FINISHED)).toMatchObject({
       rank: 2,
       totalPlayers: 2,
+    })
+  })
+})
+
+const ITEMS = ["Accueil", "Diagnostic", "Orientation", "Suivi"]
+
+const ORDERING = question({
+  type: QUESTION_TYPES.ORDERING,
+  question: "Remettez les étapes dans l'ordre",
+  answers: ITEMS,
+  solutions: [],
+  penalty: 100,
+})
+
+const SHORTANSWER = question({
+  type: QUESTION_TYPES.SHORTANSWER,
+  question: "Quel était le nom de Paris sous l'Empire romain ?",
+  answers: [],
+  solutions: [],
+  accepted: ["Lutèce", "Lutetia"],
+  penalty: 50,
+})
+
+// Indices into the list a player was shown, for the items in this order.
+const keysFor = (shown: string[] | undefined, items: string[]) =>
+  items.map((item) => shown?.indexOf(item) ?? -1)
+
+describe("RoundManager, ordering", () => {
+  it("shows the same shuffled list on every screen, never the correct order", async () => {
+    const game = setup([ORDERING], [player("camille")])
+
+    await game.reachFirstQuestion()
+
+    const prepared = game.lastBroadcast(STATUS.SHOW_PREPARED)
+    const reading = game.lastBroadcast(STATUS.SHOW_QUESTION)
+
+    expect(prepared?.totalAnswers).toBe(4)
+    expect(reading?.answers).not.toEqual(ITEMS)
+    expect([...(reading?.answers ?? [])].sort()).toEqual([...ITEMS].sort())
+
+    await game.openAnswers(5)
+
+    expect(game.lastBroadcast(STATUS.SELECT_ANSWER)?.answers).toEqual(
+      reading?.answers,
+    )
+  })
+
+  it("scores the order sent, with partial credit, and penalizes only a miss", async () => {
+    const game = setup(
+      [ORDERING, question()],
+      [
+        player("camille"),
+        player("samir"),
+        player("yanis", 300),
+        player("ines"),
+      ],
+    )
+
+    await game.reachFirstQuestion()
+    await game.openAnswers(5)
+
+    const shown = game.lastBroadcast(STATUS.SELECT_ANSWER)?.answers
+    const [accueil, diagnostic, orientation, suivi] = ITEMS
+
+    game.round.selectAnswer(socketOf("camille"), {
+      answerKeys: keysFor(shown, ITEMS),
+    })
+    // Two items out of four at their place.
+    game.round.selectAnswer(socketOf("samir"), {
+      answerKeys: keysFor(shown, [accueil, diagnostic, suivi, orientation]),
+    })
+    // None at its place.
+    game.round.selectAnswer(socketOf("yanis"), {
+      answerKeys: keysFor(shown, [diagnostic, orientation, suivi, accueil]),
+    })
+    await game.closeAnswers()
+
+    // No speed bonus by default: the base is the full 1000 points.
+    expect(game.lastSent("camille", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "correct",
+      correct: true,
+      message: "game:correct",
+      points: 1000,
+    })
+    expect(game.lastSent("samir", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "partial",
+      correct: true,
+      message: "game:partial",
+      points: 500,
+      myPoints: 500,
+      placed: { count: 2, total: 4 },
+    })
+    // Only a partial result explains itself with the items placed.
+    for (const name of ["camille", "yanis", "ines"]) {
+      expect(game.lastSent(name, STATUS.SHOW_RESULT)).not.toHaveProperty(
+        "placed",
+      )
+    }
+    expect(game.lastSent("yanis", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "wrong",
+      correct: false,
+      points: -100,
+      myPoints: 200,
+    })
+    expect(game.lastSent("ines", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "noAnswer",
+      points: 0,
+    })
+    const responses = game.lastSent(MANAGER_ID, STATUS.SHOW_RESPONSES)
+
+    expect(responses).toMatchObject({
+      answers: ITEMS,
+      responses: { 0: 2, 1: 2, 2: 1, 3: 1 },
+      totalAnswered: 3,
+      totalPlayers: 4,
+      correctCount: 1,
+      partialCount: 1,
+    })
+    // The host letters each item as the phones did.
+    expect(responses?.publicOrder?.map((index) => ITEMS[index])).toEqual(shown)
+
+    // Only a full order keeps a run of correct answers going.
+    game.round.showLeaderboard(game.manager)
+
+    const board = game.lastSent(MANAGER_ID, STATUS.SHOW_LEADERBOARD)
+
+    expect(
+      board?.leaderboard.map(({ username, correctInARow }) => [
+        username,
+        correctInARow,
+      ]),
+    ).toEqual([
+      ["camille", 1],
+      ["samir", 0],
+      ["yanis", 0],
+      ["ines", 0],
+    ])
+  })
+
+  it("refuses an order that is not a permutation of the shown list", async () => {
+    const game = setup([ORDERING], [player("camille"), player("yanis")])
+
+    await game.reachFirstQuestion()
+    await game.openAnswers(5)
+    game.round.selectAnswer(socketOf("camille"), { answerKeys: [0, 0, 1, 2] })
+    game.round.selectAnswer(socketOf("yanis"), { text: "Accueil" })
+
+    expect(game.lastSent("camille", STATUS.WAIT)).toBeUndefined()
+    expect(game.lastSent("yanis", STATUS.WAIT)).toBeUndefined()
+  })
+})
+
+describe("RoundManager, speed bonus", () => {
+  it("gives the full points whatever the time when switched off", async () => {
+    const game = setup(
+      [question({ speedBonus: false, maxPoints: 800 }), question()],
+      [player("camille"), player("yanis")],
+    )
+
+    await game.reachFirstQuestion()
+    await game.openAnswers(5)
+    game.round.selectAnswer(socketOf("camille"), { answerKeys: [1] })
+    await vi.advanceTimersByTimeAsync(15_000)
+    game.round.selectAnswer(socketOf("yanis"), { answerKeys: [1] })
+    await game.closeAnswers()
+
+    expect(game.lastSent("camille", STATUS.SHOW_RESULT)?.points).toBe(800)
+    expect(game.lastSent("yanis", STATUS.SHOW_RESULT)?.points).toBe(800)
+  })
+
+  it("gives the full points whatever the answer order without time limit", async () => {
+    const game = setup(
+      [{ ...ORDERING, time: -1 }, question()],
+      [player("camille"), player("yanis")],
+    )
+
+    await game.reachFirstQuestion()
+    await game.openAnswers(5)
+
+    const shown = game.lastBroadcast(STATUS.SELECT_ANSWER)?.answers
+
+    game.round.selectAnswer(socketOf("camille"), {
+      answerKeys: keysFor(shown, ITEMS),
+    })
+    game.round.selectAnswer(socketOf("yanis"), {
+      answerKeys: keysFor(shown, ITEMS),
+    })
+    await game.closeAnswers()
+
+    expect(game.lastSent("camille", STATUS.SHOW_RESULT)?.points).toBe(1000)
+    expect(game.lastSent("yanis", STATUS.SHOW_RESULT)?.points).toBe(1000)
+  })
+
+  it("weighs a new type by time when switched on", async () => {
+    const game = setup(
+      [{ ...ORDERING, speedBonus: true }, question()],
+      [player("camille"), player("yanis")],
+    )
+
+    await game.reachFirstQuestion()
+    await game.openAnswers(5)
+    await vi.advanceTimersByTimeAsync(10_000)
+
+    const shown = game.lastBroadcast(STATUS.SELECT_ANSWER)?.answers
+
+    game.round.selectAnswer(socketOf("camille"), {
+      answerKeys: keysFor(shown, ITEMS),
+    })
+    await game.closeAnswers()
+
+    // Half of the 20 seconds gone: half of the points.
+    expect(game.lastSent("camille", STATUS.SHOW_RESULT)?.points).toBe(500)
+  })
+})
+
+describe("RoundManager, shortanswer", () => {
+  it("shows no answers and matches the text typed", async () => {
+    const game = setup(
+      [SHORTANSWER],
+      [player("camille"), player("yanis", 100), player("ines")],
+    )
+
+    await game.reachFirstQuestion()
+
+    expect(game.lastBroadcast(STATUS.SHOW_PREPARED)?.totalAnswers).toBe(0)
+    expect(game.lastBroadcast(STATUS.SHOW_QUESTION)?.answers).toEqual([])
+
+    await game.openAnswers(5)
+
+    expect(game.lastBroadcast(STATUS.SELECT_ANSWER)?.answers).toEqual([])
+
+    // Indices mean nothing here.
+    game.round.selectAnswer(socketOf("ines"), { answerKeys: [0] })
+
+    expect(game.lastSent("ines", STATUS.WAIT)).toBeUndefined()
+
+    game.round.selectAnswer(socketOf("camille"), { text: "  LUTECE " })
+    game.round.selectAnswer(socketOf("yanis"), { text: "Paname" })
+    await game.closeAnswers()
+
+    expect(game.lastSent("camille", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "correct",
+      correct: true,
+      points: 1000,
+    })
+    expect(game.lastSent("yanis", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "wrong",
+      correct: false,
+      points: -50,
+      myPoints: 50,
+    })
+    expect(game.lastSent("ines", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "noAnswer",
+      points: 0,
+    })
+    expect(game.lastSent(MANAGER_ID, STATUS.SHOW_RESPONSES)).toMatchObject({
+      accepted: ["Lutèce", "Lutetia"],
+      responses: { 0: 1 },
+      totalAnswered: 2,
+      correctCount: 1,
+      partialCount: 0,
+    })
+
+    game.round.showLeaderboard(game.manager)
+
+    expect(game.finished[0]?.questions[0]?.playerAnswers).toEqual([
+      { playerName: "camille", answerIds: [0], text: "LUTECE", score: 1 },
+      { playerName: "yanis", answerIds: [], text: "Paname", score: 0 },
+      { playerName: "ines", answerIds: null, text: null, score: 0 },
+    ])
+  })
+
+  it("counts a recognized answer worth no points as correct, with no penalty", async () => {
+    const game = setup(
+      [
+        { ...SHORTANSWER, maxPoints: 0, penalty: 100 },
+        // The existing types keep their rule: no point earned is a miss.
+        question({ maxPoints: 0, penalty: 100 }),
+      ],
+      [{ ...player("camille", 500), correctInARow: 2 }],
+    )
+
+    await game.reachFirstQuestion()
+    await game.openAnswers(5)
+    game.round.selectAnswer(socketOf("camille"), { text: "lutece" })
+    await game.closeAnswers()
+
+    expect(game.lastSent("camille", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "correct",
+      correct: true,
+      message: "game:correct",
+      points: 0,
+      myPoints: 500,
+    })
+    expect(game.roster()[0]?.correctInARow).toBe(3)
+    expect(game.lastSent(MANAGER_ID, STATUS.SHOW_RESPONSES)).toMatchObject({
+      correctCount: 1,
+    })
+
+    await game.reachNextQuestion()
+    await game.openAnswers(5)
+    game.round.selectAnswer(socketOf("camille"), { answerKeys: [1] })
+    await game.closeAnswers()
+
+    expect(game.lastSent("camille", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "wrong",
+      correct: false,
+      points: -100,
+      myPoints: 400,
+    })
+    expect(game.roster()[0]?.correctInARow).toBe(0)
+  })
+})
+
+describe("RoundManager, what players receive", () => {
+  // Every key a player may receive, per status. Anything else (accepted
+  // answers, solutions, the correct order, a clientId) must stay server side.
+  const PLAYER_KEYS: Partial<Record<Status, string[]>> = {
+    SHOW_START: ["subject", "time"],
+    SHOW_PREPARED: ["questionNumber", "questionType", "totalAnswers"],
+    SHOW_QUESTION: [
+      "answers",
+      "cooldown",
+      "media",
+      "question",
+      "questionType",
+      "time",
+      "totalPlayer",
+      "upcomingMedia",
+    ],
+    SELECT_ANSWER: [
+      "answers",
+      "media",
+      "options",
+      "question",
+      "questionType",
+      "time",
+      "totalPlayer",
+    ],
+    WAIT: ["text"],
+    SHOW_RESULT: [
+      "correct",
+      "message",
+      "myPoints",
+      "outcome",
+      "points",
+      "rank",
+      "totalPlayers",
+    ],
+    FINISHED: ["rank", "subject", "top", "totalPlayers"],
+  }
+
+  it("holds no secret, whitelisted key by key", async () => {
+    const game = setup(
+      [
+        ORDERING,
+        { ...SHORTANSWER, options: { typoTolerance: true } },
+        question(),
+      ],
+      [player("camille"), player("yanis")],
+    )
+
+    await game.reachFirstQuestion()
+    await game.openAnswers(5)
+
+    const shown = game.lastBroadcast(STATUS.SELECT_ANSWER)?.answers
+
+    game.round.selectAnswer(socketOf("camille"), {
+      answerKeys: keysFor(shown, ITEMS),
+    })
+    await game.closeAnswers()
+    await game.reachNextQuestion()
+    await game.openAnswers(5)
+    game.round.selectAnswer(socketOf("camille"), { text: "Lutece" })
+    await game.closeAnswers()
+    await game.reachNextQuestion()
+    await game.openAnswers(5)
+    await game.closeAnswers()
+    game.round.showLeaderboard(game.manager)
+
+    // Broadcasts reach the whole room; sends, anyone but the manager.
+    const toPlayers = [
+      ...game.broadcasts,
+      ...game.sent.filter(({ target }) => target !== MANAGER_ID),
+    ]
+
+    expect(toPlayers.length).toBeGreaterThan(10)
+
+    for (const { name, data } of toPlayers) {
+      const keys = Object.keys(data as object)
+
+      expect(PLAYER_KEYS[name], name).toBeDefined()
+      expect(
+        keys.every((key) => PLAYER_KEYS[name]?.includes(key)),
+        `${name}: ${keys.join()}`,
+      ).toBe(true)
+    }
+
+    const serialized = JSON.stringify(toPlayers.map(({ data }) => data))
+
+    expect(serialized).not.toContain("Lutetia")
+    expect(serialized).not.toContain("Lutèce")
+    expect(serialized).not.toContain("clientId")
+
+    const top = game.lastSent("camille", STATUS.FINISHED)?.top ?? []
+
+    expect(top).toHaveLength(2)
+    expect(Object.keys(top[0]).sort()).toEqual([
+      "connected",
+      "correctInARow",
+      "id",
+      "points",
+      "username",
+    ])
+    expect(game.lastSent(MANAGER_ID, STATUS.FINISHED)?.top).toEqual(top)
+  })
+})
+
+describe("RoundManager, reconnection", () => {
+  it("keeps the answer given before a reconnection, and no second one", async () => {
+    const game = setup([question()], [player("camille"), player("yanis")])
+
+    await game.reachFirstQuestion()
+    await game.openAnswers(5)
+    game.round.selectAnswer(socketOf("camille"), { answerKeys: [1] })
+
+    // What Game.reconnectPlayer does: new socket id, answers remapped.
+    const camille = game.roster().find((p) => p.id === "camille")
+
+    if (camille) {
+      camille.id = "camille-2"
+    }
+
+    game.round.remapPlayer("camille", "camille-2")
+    game.round.selectAnswer(socketOf("camille-2"), { answerKeys: [0] })
+
+    expect(game.lastSent("camille-2", STATUS.WAIT)).toBeUndefined()
+
+    await game.closeAnswers()
+
+    expect(game.lastSent("camille-2", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "correct",
+    })
+    expect(game.lastSent(MANAGER_ID, STATUS.SHOW_RESPONSES)).toMatchObject({
+      responses: { 1: 1 },
+      totalAnswered: 1,
     })
   })
 })

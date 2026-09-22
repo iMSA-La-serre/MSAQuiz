@@ -1,15 +1,20 @@
 // oxlint-disable typescript/no-unnecessary-condition
 import {
   EVENTS,
+  MAX_POINTS,
   MEDIA_TYPES,
   NO_TIME_LIMIT,
   QUESTION_TYPE_META,
+  QUESTION_TYPES,
 } from "@razzia/common/constants"
 import type {
   Answer,
+  AnswerPayload,
   GameResult,
+  PublicPlayer,
   Question,
   QuestionResult,
+  QuestionType,
   QuizzWithId,
 } from "@razzia/common/types/game"
 import type { Server, Socket } from "@razzia/common/types/game/socket"
@@ -20,10 +25,18 @@ import {
   STATUS,
   type StatusDataMap,
 } from "@razzia/common/types/game/status"
+import { placedItems } from "@razzia/common/utils/ordering"
 import { CooldownTimer } from "@razzia/socket/services/game/cooldown-timer"
 import { PlayerManager } from "@razzia/socket/services/game/player-manager"
+import {
+  type PublicAnswers,
+  toPublicAnswers,
+} from "@razzia/socket/services/game/public-answers"
 import { QUESTION_SCORING } from "@razzia/socket/services/scoring"
-import { parseAnswerIds } from "@razzia/socket/services/scoring/answers"
+import {
+  countResponses,
+  parseAnswer,
+} from "@razzia/socket/services/scoring/answers"
 import { orderToPoint, timeToPoint } from "@razzia/socket/utils/game"
 import sleep from "@razzia/socket/utils/sleep"
 import { nanoid } from "nanoid"
@@ -54,17 +67,78 @@ export interface RoundManagerOptions {
 // Heading shown on the player's result screen, as an i18n key.
 const RESULT_MESSAGES: Record<ResultOutcome, string> = {
   correct: "game:correct",
+  partial: "game:partial",
   wrong: "game:wrong",
   noAnswer: "game:noAnswer",
   voted: "game:pollAnswered",
   noVote: "game:pollNoVote",
 }
 
+// Scored types that existed before partial credit: their outcome keeps
+// following the points earned. The others follow the multiplier alone, so a
+// recognized answer worth 0 points (maxPoints 0, speed bonus run out) is still
+// correct and never penalized.
+const POINTS_OUTCOME_TYPES = new Set<QuestionType>([
+  QUESTION_TYPES.SINGLE,
+  QUESTION_TYPES.MULTI,
+  QUESTION_TYPES.TRUEFALSE,
+])
+
+// How the round ended for one player.
+const roundOutcome = (
+  type: QuestionType,
+  {
+    answered,
+    score,
+    points,
+  }: { answered: boolean; score: number; points: number },
+): ResultOutcome => {
+  const { scored, partialOutcome } = QUESTION_TYPE_META[type]
+
+  // Unscored types (poll): confirm the vote, or flag the missing one, never
+  // claim a vote that was not cast.
+  if (!scored) {
+    return answered ? "voted" : "noVote"
+  }
+
+  if (!answered) {
+    return "noAnswer"
+  }
+
+  if (POINTS_OUTCOME_TYPES.has(type)) {
+    return points > 0 ? "correct" : "wrong"
+  }
+
+  if (score === 1 || (score > 0 && !partialOutcome)) {
+    return "correct"
+  }
+
+  return score > 0 ? "partial" : "wrong"
+}
+
+// The final top goes to every player: only what a ranking row shows, never
+// the clientId that lets its holder take over a seat.
+const toPublicPlayer = ({
+  id,
+  connected,
+  username,
+  points,
+  correctInARow,
+}: PublicPlayer): PublicPlayer => ({
+  id,
+  connected,
+  username,
+  points,
+  correctInARow,
+})
+
 export class RoundManager {
   private readonly opts: RoundManagerOptions
   private started = false
   private currentQuestion = 0
   private playersAnswers: Answer[] = []
+  // The answer list of the current question as players see it.
+  private publicAnswers: PublicAnswers = { answers: [], order: [] }
   private startTime = 0
   // Answers only count while SELECT_ANSWER is on screen: not during the
   // reading time, and not once the results are out.
@@ -124,6 +198,10 @@ export class RoundManager {
 
     const question = this.opts.quizz.questions[this.currentQuestion]
 
+    // Drawn once: every screen, and any reconnection, shows this same list.
+    this.publicAnswers = toPublicAnswers(question)
+    const { answers } = this.publicAnswers
+
     this.opts.onNewQuestion()
 
     this.opts.io.to(this.opts.gameId).emit(EVENTS.GAME.UPDATE_QUESTION, {
@@ -132,7 +210,7 @@ export class RoundManager {
     })
 
     this.opts.broadcast(STATUS.SHOW_PREPARED, {
-      totalAnswers: question.answers.length,
+      totalAnswers: answers.length,
       questionNumber: this.currentQuestion + 1,
       questionType: question.type,
     })
@@ -151,14 +229,15 @@ export class RoundManager {
         ? question.media.type
         : undefined
 
-    // The answers are shown during the reading time, but never the solutions:
-    // those only go to the manager with SHOW_RESPONSES.
+    // The answers are shown during the reading time, but never the solutions
+    // (nor the accepted answers, nor the correct order): those only go to the
+    // manager with SHOW_RESPONSES.
     this.opts.broadcast(STATUS.SHOW_QUESTION, {
       question: question.question,
       media: imageMedia,
       upcomingMedia,
       cooldown: question.cooldown,
-      answers: question.answers,
+      answers,
       questionType: question.type,
       time: question.time,
       totalPlayer: this.opts.players.count(),
@@ -175,7 +254,7 @@ export class RoundManager {
 
     this.opts.broadcast(STATUS.SELECT_ANSWER, {
       question: question.question,
-      answers: question.answers,
+      answers,
       media: question.media,
       time: question.time,
       totalPlayer: this.opts.players.count(),
@@ -196,44 +275,63 @@ export class RoundManager {
     this.acceptingAnswers = false
 
     const { scored, acceptsAnswers } = QUESTION_TYPE_META[question.type]
+    const scoring = QUESTION_SCORING[question.type]
     const currentPlayers = this.opts.players.getAll()
 
-    const answerCounts = this.playersAnswers
-      .flatMap(({ answerIds }) => answerIds)
-      .reduce<Record<number, number>>((acc, id) => {
-        acc[id] = (acc[id] ?? 0) + 1
+    // What the question came to for each player, before the totals move.
+    const rounds = currentPlayers.map((player) => {
+      const answer = this.playersAnswers.find((a) => a.playerId === player.id)
+      const score = answer ? scoring(question, answer) : 0
+      const points = Math.round((answer?.points ?? 0) * score)
+      const outcome = roundOutcome(question.type, {
+        answered: Boolean(answer),
+        score,
+        points,
+      })
 
-        return acc
-      }, {})
+      return { player, answer, score, points, outcome }
+    })
 
-    const sortedPlayers = currentPlayers
-      .map((player) => {
-        const playerAnswer = this.playersAnswers.find(
-          (a) => a.playerId === player.id,
-        )
+    const outcomes = new Map(
+      rounds.map(({ player, outcome }) => [player.id, outcome]),
+    )
 
-        const scoreMultiplier = (() => {
-          if (!playerAnswer) {
-            return 0
-          }
+    // Ordering, partial outcome only: the items put at their place, shown on
+    // the player's result card to explain the partial points.
+    const placedCounts = new Map(
+      question.type === QUESTION_TYPES.ORDERING
+        ? rounds.flatMap(({ player, answer, outcome }) =>
+            answer && outcome === "partial"
+              ? [
+                  [
+                    player.id,
+                    placedItems(
+                      answer.answerIds,
+                      question.answers.length,
+                    ).filter(Boolean).length,
+                  ] as const,
+                ]
+              : [],
+          )
+        : [],
+    )
 
-          const scoring = QUESTION_SCORING[question.type]
-
-          return scoring(question, playerAnswer.answerIds)
-        })()
-
-        const points = Math.round((playerAnswer?.points ?? 0) * scoreMultiplier)
-        const isCorrect = points > 0
-        // Unscored types (poll, slide) never penalize: voting is not "wrong".
+    const sortedPlayers = rounds
+      .map(({ player, answer, points, outcome }) => {
+        const credited = outcome === "correct" || outcome === "partial"
+        // Only an answer that earned nothing is penalized: never a vote on an
+        // unscored type, never a partial answer.
         const penalty =
-          scored && !isCorrect && playerAnswer ? (question.penalty ?? 0) : 0
+          scored && !credited && answer ? (question.penalty ?? 0) : 0
         const previousPoints = player.points
 
         player.points = Math.max(0, player.points + points - penalty)
 
-        // Unscored types must not break a run of correct answers either.
+        // Unscored types must not break a run of correct answers either; a
+        // partial answer does.
         if (scored) {
-          player.correctInARow = isCorrect ? player.correctInARow + 1 : 0
+          player.correctInARow =
+            outcome === "correct" ? player.correctInARow + 1 : 0
         }
 
         // The change actually applied: the floor at 0 can absorb part of a
@@ -242,9 +340,9 @@ export class RoundManager {
 
         return {
           ...player,
-          lastCorrect: isCorrect,
+          lastCorrect: credited,
           lastPoints: gain,
-          lastAnswered: Boolean(playerAnswer),
+          lastAnswered: Boolean(answer),
           gain,
         }
       })
@@ -255,19 +353,8 @@ export class RoundManager {
     // Answerless types (slide): players keep the screen until next question.
     if (acceptsAnswers) {
       sortedPlayers.forEach((player, index) => {
-        // Unscored types (poll): confirm the vote, or flag the missing one,
-        // never claim a vote that was not cast.
-        const outcome: ResultOutcome = (() => {
-          if (!scored) {
-            return player.lastAnswered ? "voted" : "noVote"
-          }
-
-          if (!player.lastAnswered) {
-            return "noAnswer"
-          }
-
-          return player.lastCorrect ? "correct" : "wrong"
-        })()
+        const outcome = outcomes.get(player.id) ?? "noAnswer"
+        const placed = placedCounts.get(player.id)
 
         this.opts.send(player.id, STATUS.SHOW_RESULT, {
           outcome,
@@ -277,26 +364,44 @@ export class RoundManager {
           myPoints: player.points,
           rank: index + 1,
           totalPlayers: sortedPlayers.length,
+          ...(placed !== undefined && {
+            placed: { count: placed, total: question.answers.length },
+          }),
         })
       })
     }
 
+    // Over every answer given, like totalAnswered and responses.
+    const answeredScores = this.playersAnswers.map((answer) =>
+      scoring(question, answer),
+    )
+
     this.opts.send(this.opts.getManagerId(), STATUS.SHOW_RESPONSES, {
       ...question,
-      responses: answerCounts,
+      responses: countResponses(question, this.playersAnswers),
       totalAnswered: this.playersAnswers.length,
       totalPlayers: currentPlayers.length,
+      ...(question.type === QUESTION_TYPES.ORDERING && {
+        publicOrder: this.publicAnswers.order,
+      }),
+      ...(scored && {
+        correctCount: answeredScores.filter((score) => score === 1).length,
+        partialCount: answeredScores.filter((score) => score > 0 && score < 1)
+          .length,
+      }),
     })
 
     // Answerless types carry nothing to report: keep them out of history.
     if (acceptsAnswers) {
       this.questionsHistory.push({
         ...question,
-        playerAnswers: currentPlayers.map((player) => ({
+        playerAnswers: rounds.map(({ player, answer, score }) => ({
           playerName: player.username,
-          answerIds:
-            this.playersAnswers.find((a) => a.playerId === player.id)
-              ?.answerIds ?? null,
+          answerIds: answer?.answerIds ?? null,
+          ...(question.type === QUESTION_TYPES.SHORTANSWER && {
+            text: answer?.text ?? null,
+          }),
+          score,
         })),
       })
     }
@@ -305,7 +410,28 @@ export class RoundManager {
     this.playersAnswers = []
   }
 
-  selectAnswer(socket: Socket, answerIds: number[]): void {
+  // Points of an answer before its multiplier. Without the speed bonus, a
+  // player who scores gets the base points whatever the time or the order.
+  private basePoints(question: Question): number {
+    const speedBonus =
+      question.speedBonus ?? QUESTION_TYPE_META[question.type].speedBonus
+
+    if (!speedBonus) {
+      return question.maxPoints ?? MAX_POINTS
+    }
+
+    if (question.time === NO_TIME_LIMIT) {
+      return orderToPoint(
+        this.playersAnswers.length,
+        this.opts.players.count(),
+        question.maxPoints,
+      )
+    }
+
+    return timeToPoint(this.startTime, question)
+  }
+
+  selectAnswer(socket: Socket, payload: AnswerPayload): void {
     if (!this.acceptingAnswers) {
       return
     }
@@ -325,28 +451,16 @@ export class RoundManager {
       return
     }
 
-    const acceptedIds = parseAnswerIds(question, answerIds)
+    const answer = parseAnswer(question, payload, this.publicAnswers.order)
 
-    if (!acceptedIds) {
+    if (!answer) {
       return
     }
 
-    const points = (() => {
-      if (question.time === NO_TIME_LIMIT) {
-        return orderToPoint(
-          this.playersAnswers.length,
-          this.opts.players.count(),
-          question.maxPoints,
-        )
-      }
-
-      return timeToPoint(this.startTime, question)
-    })()
-
     this.playersAnswers.push({
       playerId: player.id,
-      answerIds: acceptedIds,
-      points,
+      ...answer,
+      points: this.basePoints(question),
     })
 
     this.opts.send(socket.id, STATUS.WAIT, {
@@ -360,6 +474,16 @@ export class RoundManager {
 
     if (this.playersAnswers.length === this.opts.players.count()) {
       this.opts.cooldown.abort()
+    }
+  }
+
+  // A reconnecting player gets a new socket id: the answer already given must
+  // follow, or it would be lost and a second answer accepted.
+  remapPlayer(oldId: string, newId: string): void {
+    for (const answer of this.playersAnswers) {
+      if (answer.playerId === oldId) {
+        answer.playerId = newId
+      }
     }
   }
 
@@ -403,7 +527,7 @@ export class RoundManager {
     if (isLastRound) {
       this.started = false
 
-      const top = this.leaderboard.slice(0, 5)
+      const top = this.leaderboard.slice(0, 5).map(toPublicPlayer)
 
       this.opts.onGameFinished({
         id: `${Date.now()}-${nanoid(8)}`,

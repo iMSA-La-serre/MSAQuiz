@@ -36,9 +36,18 @@
     "notFound": "Quiz introuvable",
     "questionEmpty": "La question ne peut pas être vide",
     "subjectEmpty": "Le sujet ne peut pas être vide",
-    "tooFewAnswers": "Une question doit avoir au moins 2 réponses",
-    "tooManyAnswers": "Une question ne peut pas avoir plus de 4 réponses",
-    "fixedAnswers": "Ce type de question a un nombre de réponses imposé"
+    "tooFewAnswers": "Une question doit avoir au moins 2 réponses (3 éléments pour une mise en ordre)",
+    "tooManyAnswers": "Une question ne peut pas avoir plus de 4 réponses (6 éléments pour une mise en ordre)",
+    "fixedAnswers": "Ce type de question a un nombre de réponses imposé",
+    "acceptedMissing": "Ajoutez au moins une réponse acceptée",
+    "tooManyAccepted": "Une question ne peut pas avoir plus de 10 réponses acceptées",
+    "acceptedEmpty": "Une réponse acceptée ne peut pas être vide",
+    "acceptedTooLong": "Une réponse acceptée ne peut pas dépasser 60 caractères",
+    "acceptedNoKey": "Une réponse acceptée doit contenir autre chose que de la ponctuation",
+    "acceptedDuplicate": "Deux réponses acceptées sont identiques une fois les majuscules, les accents et la ponctuation ignorés",
+    "orderItemTooLong": "Un élément ne peut pas dépasser 80 caractères",
+    "orderItemDuplicate": "Deux éléments sont identiques une fois les majuscules, les accents et la ponctuation ignorés",
+    "timeTooShort": "Le temps de réponse doit être d'au moins 5 secondes, ou sans limite"
   },
   "route": {
     "back": "Retour à l'accueil",

@@ -173,3 +173,37 @@ describe("guardSocket", () => {
     expect(handler).toHaveBeenCalledWith({ gameId: "g" })
   })
 })
+
+describe("isValidClientEvent, shortanswer text", () => {
+  const answer = (data: unknown) =>
+    isValidClientEvent(EVENTS.PLAYER.SELECTED_ANSWER, { gameId: "g", data })
+
+  it("accepts a text instead of indices", () => {
+    expect(answer({ text: "Lutèce" })).toBe(true)
+    expect(answer({ text: "" })).toBe(true)
+  })
+
+  it("refuses a text over 200 characters, before reading it", () => {
+    expect(answer({ text: "a".repeat(200) })).toBe(true)
+    expect(answer({ text: "a".repeat(201) })).toBe(false)
+  })
+
+  it("refuses a text that is not a string", () => {
+    expect(answer({ text: 42 })).toBe(false)
+    expect(answer({ text: ["Lutèce"] })).toBe(false)
+    expect(answer({ text: null })).toBe(false)
+  })
+
+  it("takes indices or a text, never both, never none", () => {
+    expect(answer({ answerKeys: [0], text: "Lutèce" })).toBe(false)
+    expect(answer({})).toBe(false)
+  })
+
+  it("refuses a huge text without reading it", () => {
+    const text = "a".repeat(5_000_000)
+    const start = performance.now()
+
+    expect(answer({ text })).toBe(false)
+    expect(performance.now() - start).toBeLessThan(100)
+  })
+})

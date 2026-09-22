@@ -1,4 +1,6 @@
 import type { GameResult, QuestionResult } from "@razzia/common/types/game"
+import { hasAnswer } from "@razzia/web/features/manager/utils/records"
+import { QUESTION_REGISTRY } from "@razzia/web/features/questions"
 import {
   createContext,
   useContext,
@@ -36,12 +38,14 @@ export const ResultModalProvider = ({ children, result, onClose }: Props) => {
   const total = result.questions.length
   const totalPlayers = result.players.length
 
-  const answeredCount = questionResult.playerAnswers.filter(
-    (pa) => pa.answerIds !== null && pa.answerIds.length > 0,
-  ).length
+  const answeredCount = questionResult.playerAnswers.filter(hasAnswer).length
 
+  // Choice types: the answer holds a solution. The others say themselves.
+  const { isCorrectRecord } = QUESTION_REGISTRY[questionResult.type]
   const correctCount = questionResult.playerAnswers.filter((pa) =>
-    pa.answerIds?.some((id) => questionResult.solutions.includes(id)),
+    isCorrectRecord
+      ? isCorrectRecord(questionResult, pa)
+      : pa.answerIds?.some((id) => questionResult.solutions.includes(id)),
   ).length
 
   const correctPct =

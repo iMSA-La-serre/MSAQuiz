@@ -23,6 +23,10 @@ export const ANSWERS_COLORS = [
 
 export const ANSWERS_LABELS = ["A", "B", "C", "D"]
 
+// Letter of any position, past D too (an ordering has up to six items); the
+// colours cycle through the four above.
+export const answerLetter = (index: number) => String.fromCharCode(65 + index)
+
 // Last game code a player joined, kept so they can rejoin after a refresh.
 export const GAME_CODE_STORAGE_KEY = "msaquiz_game_code"
 

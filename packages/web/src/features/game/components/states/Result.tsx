@@ -23,10 +23,12 @@ interface Props {
   data: CommonStatusDataMap["SHOW_RESULT"]
 }
 
-// Green only for a right answer; a miss is navy, never red; a poll stays
-// neutral because nobody can be wrong.
+// Green for an answer that earned points, fully or partly right (a multi
+// partly right is green too); a miss is navy, never red; a poll stays neutral
+// because nobody can be wrong.
 const TONES: Record<ResultOutcome, string> = {
   correct: "bg-primary",
+  partial: "bg-primary",
   wrong: "bg-secondary ring-1 ring-inset ring-white/15",
   noAnswer: "bg-secondary ring-1 ring-inset ring-white/15",
   voted: "bg-black/25 backdrop-blur-sm",
@@ -35,17 +37,21 @@ const TONES: Record<ResultOutcome, string> = {
 
 const ICONS: Record<ResultOutcome, LucideIcon> = {
   correct: TrendingUp,
+  partial: TrendingUp,
   wrong: MoveRight,
   noAnswer: TimerOff,
   voted: Vote,
   noVote: TimerOff,
 }
 
+// Outcomes that earned points: they count up and sound like a right answer.
+const CREDITED: ResultOutcome[] = ["correct", "partial"]
+
 // One sound per outcome, so a single sound loads and plays once. A poll has no
 // right answer, so it gets the neutral chime. Read at render time: the
 // constants module imports this screen, so SFX is not ready at load time.
 const resultSound = (outcome: ResultOutcome): string => {
-  if (outcome === "correct") {
+  if (CREDITED.includes(outcome)) {
     return SFX.RESULT.CORRECT
   }
 
@@ -64,19 +70,20 @@ const TOTAL_DELAY = 0.3
 const BAND_SYNC_MS = 900
 
 const Result = ({
-  data: { outcome, message, points, myPoints, rank, totalPlayers },
+  data: { outcome, message, points, myPoints, rank, totalPlayers, placed },
 }: Props) => {
   const updatePoints = usePlayerStore((state) => state.updatePoints)
   const { t, i18n } = useTranslation()
   const reduceMotion = useReducedMotion()
   const headingRef = useRef<HTMLHeadingElement>(null)
-  const isCounting = outcome === "correct" && !reduceMotion
+  const isCredited = CREDITED.includes(outcome)
+  const isCounting = isCredited && !reduceMotion
   const [countedPoints, setCountedPoints] = useState(0)
   const [countedTotal, setCountedTotal] = useState(myPoints - points)
   const [sfxResult] = useSound(resultSound(outcome), { volume: 0.2 })
 
   const isMiss = outcome === "wrong" || outcome === "noAnswer"
-  const showPoints = outcome === "correct" || (isMiss && points < 0)
+  const showPoints = isCredited || (isMiss && points < 0)
   const Icon = outcome === "wrong" && points < 0 ? TrendingDown : ICONS[outcome]
   const signedFormat = new Intl.NumberFormat(i18n.language, {
     signDisplay: "always",
@@ -151,12 +158,13 @@ const Result = ({
             >
               <Icon className="size-8" />
             </span>
-            {/* Focused on mount for screen readers. After a tap the browser
-            draws no focus box; keyboard users get the yellow outline. */}
+            {/* Focused on mount so screen readers announce it. It is not a
+            control and cannot be tabbed to, so it draws no focus box: the
+            browser would otherwise frame it after an Enter key press. */}
             <h2
               ref={headingRef}
               tabIndex={-1}
-              className="focus-visible:outline-serre-yellow text-3xl font-bold text-balance focus-visible:outline-3 focus-visible:outline-offset-2"
+              className="text-3xl font-bold text-balance outline-none"
             >
               {t(message)}
             </h2>
@@ -170,6 +178,14 @@ const Result = ({
               <span className="ml-1 text-2xl font-semibold">
                 {t("game:finale.points")}
               </span>
+            </p>
+          )}
+          {placed && (
+            <p className="mt-2 text-lg leading-snug font-semibold text-balance">
+              {t("game:result.placed", {
+                count: placed.count,
+                total: placed.total,
+              })}
             </p>
           )}
         </motion.div>

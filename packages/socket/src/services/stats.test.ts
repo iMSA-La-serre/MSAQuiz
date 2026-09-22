@@ -191,3 +191,256 @@ describe("overallSuccessRate", () => {
     expect(overallSuccessRate(stats)).toBeNull()
   })
 })
+
+describe("aggregateQuestions, saved multipliers", () => {
+  it("reads the existing types the same with or without a saved score", () => {
+    const multi = (withScore: boolean) =>
+      question({
+        type: QUESTION_TYPES.MULTI,
+        question: "Couleurs primaires ?",
+        solutions: [0, 2],
+        options: { scoringMode: SCORING_MODES.BALANCED },
+        playerAnswers: [
+          { playerName: "Alex", answerIds: [0, 2] },
+          { playerName: "Bea", answerIds: [0] },
+          { playerName: "Cyd", answerIds: [1, 3] },
+          { playerName: "Dan", answerIds: null },
+        ].map((record, index) =>
+          withScore ? { ...record, score: [1, 0.5, 0, 0][index] } : record,
+        ),
+      })
+
+    expect(aggregateQuestions([game([multi(true)])])).toStrictEqual(
+      aggregateQuestions([game([multi(false)])]),
+    )
+  })
+})
+
+describe("aggregateQuestions, ordering", () => {
+  const ordering = (withScore: boolean) =>
+    question({
+      type: QUESTION_TYPES.ORDERING,
+      question: "Dans l'ordre ?",
+      answers: ["Un", "Deux", "Trois"],
+      solutions: [],
+      playerAnswers: [
+        { playerName: "Alex", answerIds: [0, 1, 2], score: 1 },
+        { playerName: "Bea", answerIds: [0, 2, 1], score: 1 / 3 },
+        { playerName: "Cyd", answerIds: [2, 1, 0], score: 1 / 3 },
+        { playerName: "Dan", answerIds: null, score: 0 },
+      ].map(({ score, ...record }) =>
+        withScore ? { ...record, score } : record,
+      ),
+    })
+
+  it("reports each item placed, the exact orders and the mean score", () => {
+    const [stats] = aggregateQuestions([game([ordering(true)])])
+
+    expect(stats).toMatchObject({
+      type: QUESTION_TYPES.ORDERING,
+      scored: true,
+      answerCount: 3,
+      missingCount: 1,
+      correctCount: 1,
+      solutionLabels: [],
+      answers: [
+        { label: "Un", count: 2 },
+        { label: "Deux", count: 2 },
+        { label: "Trois", count: 1 },
+      ],
+    })
+    expect(stats.successRate).toBeCloseTo(1 / 3)
+    expect(stats.averageScore).toBeCloseTo(5 / 9)
+  })
+
+  it("scores the order again when no multiplier was saved", () => {
+    expect(aggregateQuestions([game([ordering(false)])])).toEqual(
+      aggregateQuestions([game([ordering(true)])]),
+    )
+  })
+})
+
+describe("aggregateQuestions, shortanswer", () => {
+  it("counts the inputs per accepted answer and the unrecognized ones", () => {
+    const [stats] = aggregateQuestions([
+      game([
+        question({
+          type: QUESTION_TYPES.SHORTANSWER,
+          question: "Ancien nom de Paris ?",
+          answers: [],
+          solutions: [],
+          accepted: ["Lutèce", "Lutetia"],
+          playerAnswers: [
+            { playerName: "Alex", answerIds: [0], text: "lutece", score: 1 },
+            { playerName: "Bea", answerIds: [], text: "Paname", score: 0 },
+            { playerName: "Cyd", answerIds: [1], text: "Lutetia", score: 1 },
+            { playerName: "Dan", answerIds: null, text: null, score: 0 },
+            { playerName: "Eve", answerIds: [0], text: "Lutece", score: 1 },
+          ],
+        }),
+      ]),
+    ])
+
+    expect(stats).toEqual({
+      question: "Ancien nom de Paris ?",
+      type: QUESTION_TYPES.SHORTANSWER,
+      scored: true,
+      gameCount: 1,
+      answerCount: 4,
+      missingCount: 1,
+      correctCount: 3,
+      successRate: 0.75,
+      answers: [
+        { label: "Lutèce", count: 2 },
+        { label: "Lutetia", count: 1 },
+      ],
+      solutionLabels: ["Lutèce", "Lutetia"],
+      unrecognizedCount: 1,
+    })
+  })
+})
+
+describe("aggregateQuestions, a wording reused under another type", () => {
+  it("keeps a shortanswer apart from a choice question", () => {
+    const stats = aggregateQuestions([
+      game(
+        [
+          question({
+            type: QUESTION_TYPES.SHORTANSWER,
+            question: "Capitale de l'Australie ?",
+            answers: [],
+            solutions: [],
+            accepted: ["Canberra"],
+            playerAnswers: [
+              { playerName: "Alex", answerIds: [0], text: "canberra" },
+              { playerName: "Bea", answerIds: [], text: "Sydney" },
+            ],
+          }),
+        ],
+        "2026-09-02",
+      ),
+      game(
+        [
+          question({
+            question: "Capitale de l'Australie ?",
+            answers: ["Sydney", "Canberra", "Melbourne", "Perth"],
+            solutions: [1],
+            playerAnswers: answers(["Cyd", [0]], ["Dan", [2]]),
+          }),
+        ],
+        "2026-09-01",
+      ),
+    ])
+
+    expect(stats).toHaveLength(2)
+    expect(stats.find((s) => s.type === QUESTION_TYPES.SHORTANSWER)).toEqual({
+      question: "Capitale de l'Australie ?",
+      type: QUESTION_TYPES.SHORTANSWER,
+      scored: true,
+      gameCount: 1,
+      answerCount: 2,
+      missingCount: 0,
+      correctCount: 1,
+      successRate: 0.5,
+      answers: [{ label: "Canberra", count: 1 }],
+      solutionLabels: ["Canberra"],
+      unrecognizedCount: 1,
+    })
+    expect(stats.find((s) => s.type === QUESTION_TYPES.SINGLE)).toMatchObject({
+      gameCount: 1,
+      answerCount: 2,
+      correctCount: 0,
+      answers: [
+        { label: "Canberra", count: 0 },
+        { label: "Sydney", count: 1 },
+        { label: "Melbourne", count: 1 },
+      ],
+    })
+  })
+
+  it("keeps an ordering apart from a choice question", () => {
+    const [ordering, single] = [QUESTION_TYPES.ORDERING, QUESTION_TYPES.SINGLE]
+    const stats = aggregateQuestions([
+      game(
+        [
+          question({
+            type: ordering,
+            question: "Ordre ?",
+            answers: ["A", "B", "C"],
+            solutions: [],
+            playerAnswers: [
+              { playerName: "Alex", answerIds: [0, 1, 2], score: 1 },
+              { playerName: "Bea", answerIds: [0, 1, 2], score: 1 },
+            ],
+          }),
+        ],
+        "2026-09-02",
+      ),
+      game(
+        [
+          question({
+            question: "Ordre ?",
+            answers: ["A", "B", "C"],
+            solutions: [0],
+            playerAnswers: answers(["Cyd", [0]], ["Dan", [0]]),
+          }),
+        ],
+        "2026-09-01",
+      ),
+    ])
+
+    expect(stats.find((s) => s.type === ordering)).toMatchObject({
+      answerCount: 2,
+      correctCount: 2,
+      successRate: 1,
+      averageScore: 1,
+      answers: [
+        { label: "A", count: 2 },
+        { label: "B", count: 2 },
+        { label: "C", count: 2 },
+      ],
+    })
+    expect(stats.find((s) => s.type === single)).toMatchObject({
+      answerCount: 2,
+      correctCount: 2,
+    })
+  })
+
+  it("still merges the choice types under the same wording", () => {
+    const stats = aggregateQuestions([
+      game([
+        question({
+          type: QUESTION_TYPES.MULTI,
+          solutions: [0, 1],
+          playerAnswers: answers(["Alex", [0, 1]]),
+        }),
+      ]),
+      game([question({ playerAnswers: answers(["Bea", [0]]) })]),
+    ])
+
+    expect(stats).toHaveLength(1)
+    expect(stats[0]).toMatchObject({
+      type: QUESTION_TYPES.MULTI,
+      gameCount: 2,
+      answerCount: 2,
+    })
+  })
+})
+
+describe("aggregateQuestions, unknown types", () => {
+  it("leaves out a type it does not know", () => {
+    const stats = aggregateQuestions([
+      game([
+        question({
+          type: "buzzer" as QuestionResult["type"],
+          question: "Buzzer ?",
+          playerAnswers: answers(["Alex", [0]]),
+        }),
+        question({ playerAnswers: answers(["Alex", [0]]) }),
+      ]),
+    ])
+
+    expect(stats.map((s) => s.question)).toEqual(["Capitale de la France ?"])
+    expect(overallSuccessRate(stats)).toBe(1)
+  })
+})

@@ -11,10 +11,13 @@ export default defineConfig({
     alias: [
       { find: /^@razzia\/common\//u, replacement: src("common") },
       { find: /^@razzia\/socket\//u, replacement: src("socket") },
+      { find: /^@razzia\/web\//u, replacement: src("web") },
     ],
   },
   test: {
     environment: "node",
-    include: ["packages/{common,socket}/src/**/*.test.ts"],
+    // Web tests cover pure logic only (.ts, no DOM): the environment stays
+    // node.
+    include: ["packages/{common,socket,web}/src/**/*.test.ts"],
   },
 })

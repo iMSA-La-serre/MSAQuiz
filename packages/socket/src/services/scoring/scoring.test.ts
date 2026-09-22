@@ -1,5 +1,13 @@
-import { QUESTION_TYPES, SCORING_MODES } from "@razzia/common/constants"
-import type { Question, ScoringMode } from "@razzia/common/types/game"
+import {
+  ORDER_SCORING,
+  QUESTION_TYPES,
+  SCORING_MODES,
+} from "@razzia/common/constants"
+import type {
+  OrderScoring,
+  Question,
+  ScoringMode,
+} from "@razzia/common/types/game"
 import { QUESTION_SCORING } from "@razzia/socket/services/scoring"
 import { describe, expect, it } from "vitest"
 
@@ -24,12 +32,12 @@ const scoreMulti = (
       solutions,
       options: { scoringMode },
     }),
-    answerIds,
+    { answerIds },
   )
 
 describe("single", () => {
   const score = (solutions: number[], answerIds: number[]) =>
-    QUESTION_SCORING.single(question({ solutions }), answerIds)
+    QUESTION_SCORING.single(question({ solutions }), { answerIds })
 
   it("gives full points for the expected answer", () => {
     expect(score([1], [1])).toBe(1)
@@ -107,7 +115,7 @@ describe("multi, default mode", () => {
   it("falls back to balanced when no option is set", () => {
     const balanced = QUESTION_SCORING.multi(
       question({ type: QUESTION_TYPES.MULTI, solutions: [0, 1, 2] }),
-      [0, 1],
+      { answerIds: [0, 1] },
     )
 
     expect(balanced).toBeCloseTo(2 / 3)
@@ -122,7 +130,7 @@ describe("truefalse", () => {
         answers: ["Vrai", "Faux"],
         solutions,
       }),
-      answerIds,
+      { answerIds },
     )
 
   it("gives full points for the expected side", () => {
@@ -143,7 +151,7 @@ describe("unscored types", () => {
     expect(
       QUESTION_SCORING.poll(
         question({ type: QUESTION_TYPES.POLL, solutions: [] }),
-        [0],
+        { answerIds: [0] },
       ),
     ).toBe(0)
   })
@@ -152,8 +160,68 @@ describe("unscored types", () => {
     expect(
       QUESTION_SCORING.slide(
         question({ type: QUESTION_TYPES.SLIDE, answers: [], solutions: [] }),
-        [],
+        { answerIds: [] },
       ),
+    ).toBe(0)
+  })
+})
+
+describe("ordering", () => {
+  const ordering = (orderScoring?: OrderScoring) =>
+    question({
+      type: QUESTION_TYPES.ORDERING,
+      answers: ["Un", "Deux", "Trois", "Quatre"],
+      solutions: [],
+      ...(orderScoring && { options: { orderScoring } }),
+    })
+
+  it("credits the share of items at their place by default", () => {
+    expect(
+      QUESTION_SCORING.ordering(ordering(), { answerIds: [0, 1, 3, 2] }),
+    ).toBe(0.5)
+  })
+
+  it("gives full credit for the correct order", () => {
+    expect(
+      QUESTION_SCORING.ordering(ordering(), { answerIds: [0, 1, 2, 3] }),
+    ).toBe(1)
+  })
+
+  it("gives nothing short of the exact order in exact mode", () => {
+    const exact = ordering(ORDER_SCORING.EXACT)
+
+    expect(QUESTION_SCORING.ordering(exact, { answerIds: [0, 1, 3, 2] })).toBe(
+      0,
+    )
+    expect(QUESTION_SCORING.ordering(exact, { answerIds: [0, 1, 2, 3] })).toBe(
+      1,
+    )
+  })
+})
+
+describe("shortanswer", () => {
+  const shortanswer = question({
+    type: QUESTION_TYPES.SHORTANSWER,
+    answers: [],
+    solutions: [],
+    accepted: ["Paris"],
+  })
+
+  it("gives full credit to a recognized input", () => {
+    expect(
+      QUESTION_SCORING.shortanswer(shortanswer, {
+        answerIds: [0],
+        text: "paris",
+      }),
+    ).toBe(1)
+  })
+
+  it("gives nothing to an input that matched no accepted answer", () => {
+    expect(
+      QUESTION_SCORING.shortanswer(shortanswer, {
+        answerIds: [],
+        text: "Lyon",
+      }),
     ).toBe(0)
   })
 })

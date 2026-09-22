@@ -1,7 +1,8 @@
-import Button from "@razzia/web/components/Button"
 import AnswerRow, {
   AnswerReveal,
 } from "@razzia/web/features/game/components/question/AnswerRow"
+import SubmitAnswer from "@razzia/web/features/game/components/question/SubmitAnswer"
+import TickBox from "@razzia/web/features/game/components/question/TickBox"
 import type { AnswerComponentProps } from "@razzia/web/features/questions/types"
 import clsx from "clsx"
 import { Check } from "lucide-react"
@@ -30,7 +31,7 @@ const MultiAnswers = ({
     }
 
     setSubmitted(true)
-    onSubmit(selected)
+    onSubmit({ answerKeys: selected })
   }
 
   const toggle = (key: number) => () => {
@@ -74,17 +75,9 @@ const MultiAnswers = ({
                   disabled={submitted}
                   onClick={toggle(key)}
                   trailing={
-                    <span
-                      aria-hidden
-                      className={clsx(
-                        "flex size-7 shrink-0 items-center justify-center rounded-lg",
-                        isSelected
-                          ? "bg-primary text-white"
-                          : "border-secondary/60 border-2",
-                      )}
-                    >
-                      {isSelected && <Check className="size-5 stroke-3" />}
-                    </span>
+                    <TickBox checked={isSelected}>
+                      <Check className="size-5 stroke-3" />
+                    </TickBox>
                   }
                 />
               )}
@@ -94,35 +87,15 @@ const MultiAnswers = ({
       </ol>
 
       {!readOnly && (
-        <AnswerReveal
+        <SubmitAnswer
           index={answers.length}
-          as="div"
-          className="mt-2 flex flex-col gap-2"
-        >
-          {/* Shown disabled during the reading time, so nothing jumps when
-          answering opens. */}
-          <Button
-            size="lg"
-            onClick={handleSubmit}
-            disabled={locked || submitted || selected.length === 0}
-            className="focus-visible:outline-serre-yellow min-h-14 w-full rounded-2xl text-xl font-bold focus-visible:outline-3 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:bg-white/15 disabled:text-white/70 disabled:hover:brightness-100"
-          >
-            {t("game:confirm")}
-            {selected.length > 0 && (
-              <span className="bg-secondary rounded-full px-2.5 text-lg text-white tabular-nums">
-                {selected.length}
-              </span>
-            )}
-          </Button>
-          <p
-            aria-live="polite"
-            className="min-h-5 text-center text-sm text-white/80"
-          >
-            {!locked && selected.length === 0
-              ? t("game:answer.multiEmpty")
-              : ""}
-          </p>
-        </AnswerReveal>
+          disabled={locked || submitted || selected.length === 0}
+          onClick={handleSubmit}
+          count={selected.length}
+          help={
+            !locked && selected.length === 0 ? t("game:answer.multiEmpty") : ""
+          }
+        />
       )}
     </>
   )

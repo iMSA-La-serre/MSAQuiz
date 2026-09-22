@@ -13,6 +13,7 @@ interface Props {
 
 const QuestionCard = ({ question }: { question: QuestionStats }) => {
   const { t } = useTranslation()
+  const { labelKey, StatsAnswers } = QUESTION_REGISTRY[question.type]
   const share = (count: number) =>
     question.answerCount === 0 ? 0 : (count / question.answerCount) * 100
 
@@ -42,12 +43,15 @@ const QuestionCard = ({ question }: { question: QuestionStats }) => {
       )}
 
       <p className="text-muted-foreground mt-2 text-xs">
-        {t(QUESTION_REGISTRY[question.type].labelKey)} ·{" "}
+        {t(labelKey)} ·{" "}
         {t("manager:stats.answered", { count: question.answerCount })} ·{" "}
         {t("manager:stats.missing", { count: question.missingCount })}
       </p>
 
-      {question.answers.length > 0 && (
+      {/* Types not answered by picking choices bring their own list. */}
+      {StatsAnswers && <StatsAnswers question={question} />}
+
+      {!StatsAnswers && question.answers.length > 0 && (
         <ul className="mt-2 space-y-1">
           {question.answers.map((answer) => {
             const isSolution = question.solutionLabels.includes(answer.label)
@@ -123,8 +127,13 @@ const StatsModal = ({ stats, onClose }: Props) => {
         </div>
 
         <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-4 pb-4">
+          {/* The same wording can come back under an ordering or a
+          shortanswer type: the type keeps the keys apart. */}
           {stats.questions.map((question) => (
-            <QuestionCard key={question.question} question={question} />
+            <QuestionCard
+              key={`${question.type}:${question.question}`}
+              question={question}
+            />
           ))}
 
           {stats.questions.length === 0 && (

@@ -1,9 +1,19 @@
 import {
   MEDIA_TYPES,
+  NO_TIME_LIMIT,
+  ORDER_SCORING,
+  ORDERING_ITEM_MAX_LENGTH,
   QUESTION_TYPE_META,
   QUESTION_TYPES,
   SCORING_MODES,
+  SHORTANSWER_LIMITS,
 } from "@razzia/common/constants"
+import type { Question } from "@razzia/common/types/game"
+import {
+  answerKey,
+  cleanInput,
+  countInputChars,
+} from "@razzia/common/utils/text"
 import { z } from "zod"
 
 export const questionMediaValidator = z.object({
@@ -13,9 +23,102 @@ export const questionMediaValidator = z.object({
   url: z.url("errors:quizz.invalidMediaUrl"),
 })
 
-const multiOptionsValidator = z.object({
+// Shared by every type: the scoring mode is filled in whenever options are
+// given, as it always was, so stored quizzes parse to the same data.
+const optionsValidator = z.object({
   scoringMode: z.enum(SCORING_MODES).default(SCORING_MODES.BALANCED),
+  orderScoring: z.enum(ORDER_SCORING).optional(),
+  typoTolerance: z.boolean().optional(),
 })
+
+// Types added after quizzes were first stored: the stricter rules below only
+// apply to them, so no stored quiz becomes invalid.
+const NEWER_TYPES = new Set<string>([
+  QUESTION_TYPES.ORDERING,
+  QUESTION_TYPES.SHORTANSWER,
+])
+
+const MIN_TIME = 5
+
+type IssueFn = (_message: string, _path: Array<string | number>) => void
+
+// Index of the first text whose key was already seen: two texts equal once
+// normalized cannot be told apart by a player. Empty keys never compare.
+const firstDuplicateKey = (texts: string[]): number => {
+  const seen = new Set<string>()
+
+  return texts.findIndex((text) => {
+    const key = answerKey(text)
+
+    if (key === "") {
+      return false
+    }
+
+    if (seen.has(key)) {
+      return true
+    }
+
+    seen.add(key)
+
+    return false
+  })
+}
+
+// The text is stored raw, but counted once cleaned, and cleaning first cuts it
+// at RAW_LENGTH: a longer raw text would hide an uncounted tail.
+const isTooLong = (text: string, max: number): boolean =>
+  text.length > SHORTANSWER_LIMITS.RAW_LENGTH || countInputChars(text) > max
+
+const checkOrderingItems = (items: string[], issue: IssueFn) => {
+  items.forEach((item, index) => {
+    // An empty string is already reported by the answers schema.
+    if (item !== "" && cleanInput(item) === "") {
+      issue("errors:quizz.answerEmpty", ["answers", index])
+    }
+
+    if (isTooLong(item, ORDERING_ITEM_MAX_LENGTH)) {
+      issue("errors:quizz.orderItemTooLong", ["answers", index])
+    }
+  })
+
+  const duplicate = firstDuplicateKey(items)
+
+  if (duplicate !== -1) {
+    issue("errors:quizz.orderItemDuplicate", ["answers", duplicate])
+  }
+}
+
+const checkAccepted = (accepted: string[], issue: IssueFn) => {
+  if (accepted.length === 0) {
+    issue("errors:quizz.acceptedMissing", ["accepted"])
+  }
+
+  if (accepted.length > SHORTANSWER_LIMITS.ACCEPTED_COUNT) {
+    issue("errors:quizz.tooManyAccepted", ["accepted"])
+  }
+
+  accepted.forEach((text, index) => {
+    if (cleanInput(text) === "") {
+      issue("errors:quizz.acceptedEmpty", ["accepted", index])
+
+      return
+    }
+
+    if (isTooLong(text, SHORTANSWER_LIMITS.ACCEPTED_LENGTH)) {
+      issue("errors:quizz.acceptedTooLong", ["accepted", index])
+    }
+
+    if (answerKey(text) === "") {
+      issue("errors:quizz.acceptedNoKey", ["accepted", index])
+    }
+  })
+
+  const duplicate = firstDuplicateKey(accepted)
+
+  if (duplicate !== -1) {
+    issue("errors:quizz.acceptedDuplicate", ["accepted", duplicate])
+  }
+}
 
 // Backward compat: questions saved before type existed get one inferred.
 // Several solutions = a real multi-select; one solution = single.
@@ -43,9 +146,9 @@ const questionValidator = z.preprocess(
       type: z.enum(QUESTION_TYPES),
       question: z.string().min(1, "errors:quizz.questionEmpty"),
       media: questionMediaValidator.optional(),
+      // Bounds depend on the type, see QUESTION_TYPE_META.
       answers: z
         .array(z.string().min(1, "errors:quizz.answerEmpty"))
-        .max(4, "errors:quizz.tooManyAnswers")
         .default([]),
       solutions: z
         .union([z.number().int().min(0), z.array(z.number().int().min(0))])
@@ -61,40 +164,77 @@ const questionValidator = z.preprocess(
       time: z.number().int().min(-1),
       maxPoints: z.number().int().min(0).optional(),
       penalty: z.number().int().min(0).optional(),
-      options: multiOptionsValidator.optional(),
+      options: optionsValidator.optional(),
+      // Shortanswer only, dropped from the other types.
+      accepted: z.array(z.string()).optional(),
+      speedBonus: z.boolean().optional(),
     })
     .superRefine((question, ctx) => {
       const meta = QUESTION_TYPE_META[question.type]
+      const count = question.answers.length
+      const issue: IssueFn = (message, path) => {
+        ctx.addIssue({ code: "custom", message, path })
+      }
 
-      if (meta.acceptsAnswers && question.answers.length < 2) {
-        ctx.addIssue({
-          code: "custom",
-          message: "errors:quizz.tooFewAnswers",
-          path: ["answers"],
-        })
+      // Fixed answers (true/false) are reported as such rather than as too
+      // many; a type without answers (slide, shortanswer) has them dropped.
+      if (meta.answersCount !== undefined) {
+        if (count < meta.minAnswers) {
+          issue("errors:quizz.tooFewAnswers", ["answers"])
+        }
+
+        if (count !== meta.answersCount) {
+          issue("errors:quizz.fixedAnswers", ["answers"])
+        }
+      } else if (meta.maxAnswers > 0) {
+        if (count < meta.minAnswers) {
+          issue("errors:quizz.tooFewAnswers", ["answers"])
+        }
+
+        if (count > meta.maxAnswers) {
+          issue("errors:quizz.tooManyAnswers", ["answers"])
+        }
+      }
+
+      // Ordering and shortanswer do not score against `solutions`.
+      if (
+        meta.scored &&
+        !NEWER_TYPES.has(question.type) &&
+        question.solutions.length === 0
+      ) {
+        issue("errors:quizz.noSolutions", ["solutions"])
+      }
+
+      if (question.type === QUESTION_TYPES.ORDERING) {
+        checkOrderingItems(question.answers, issue)
+      }
+
+      if (question.type === QUESTION_TYPES.SHORTANSWER) {
+        checkAccepted(question.accepted ?? [], issue)
       }
 
       if (
-        meta.answersCount !== undefined &&
-        question.answers.length !== meta.answersCount
+        NEWER_TYPES.has(question.type) &&
+        question.time !== NO_TIME_LIMIT &&
+        question.time < MIN_TIME
       ) {
-        ctx.addIssue({
-          code: "custom",
-          message: "errors:quizz.fixedAnswers",
-          path: ["answers"],
-        })
-      }
-
-      if (meta.scored && question.solutions.length === 0) {
-        ctx.addIssue({
-          code: "custom",
-          message: "errors:quizz.noSolutions",
-          path: ["solutions"],
-        })
+        issue("errors:quizz.timeTooShort", ["time"])
       }
     })
-    .transform((question) => {
+    // Typed as the shared Question, so the schema output always fits it.
+    .transform(({ accepted, ...question }): Question => {
       const meta = QUESTION_TYPE_META[question.type]
+
+      // What a shortanswer scores against stays out of `answers`, which is
+      // public.
+      if (question.type === QUESTION_TYPES.SHORTANSWER) {
+        return { ...question, accepted, answers: [], solutions: [] }
+      }
+
+      // The items are stored in the correct order: no solutions to keep.
+      if (question.type === QUESTION_TYPES.ORDERING) {
+        return { ...question, solutions: [] }
+      }
 
       if (meta.scored) {
         return question

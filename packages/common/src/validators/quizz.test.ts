@@ -1,5 +1,6 @@
 import {
   EXAMPLE_QUIZZ,
+  ORDER_SCORING,
   QUESTION_TYPES,
   SCORING_MODES,
 } from "@razzia/common/constants"
@@ -198,5 +199,235 @@ describe("example quiz", () => {
   // The first-start seed silently skips a quiz that does not validate.
   it("passes validation", () => {
     expect(quizzValidator.safeParse(EXAMPLE_QUIZZ).success).toBe(true)
+  })
+})
+
+// Messages of every issue, in order: the editor shows the first one.
+const issuesOf = (question: Record<string, unknown>) =>
+  quizzValidator
+    .safeParse({ subject: "Quiz", questions: [question] })
+    .error?.issues.map((issue) => issue.message) ?? []
+
+describe("bounds read from the type", () => {
+  it("reports fixed answers first on a true/false with many answers", () => {
+    expect(
+      issuesOf({
+        ...SINGLE_QUESTION,
+        type: QUESTION_TYPES.TRUEFALSE,
+        answers: ["A", "B", "C", "D", "E"],
+      }),
+    ).toEqual(["errors:quizz.fixedAnswers"])
+  })
+
+  it("drops the answers of a slide whatever their number", () => {
+    expect(
+      parse({
+        ...SINGLE_QUESTION,
+        type: QUESTION_TYPES.SLIDE,
+        answers: ["A", "B", "C", "D", "E"],
+      }).answers,
+    ).toEqual([])
+  })
+
+  it("still rejects an unknown type, with a single issue", () => {
+    expect(issuesOf({ ...SINGLE_QUESTION, type: "buzzer" })).toHaveLength(1)
+  })
+})
+
+describe("new optional fields on the existing types", () => {
+  it("keeps the speed bonus switch", () => {
+    expect(parse({ ...SINGLE_QUESTION, speedBonus: false }).speedBonus).toBe(
+      false,
+    )
+  })
+
+  it("drops accepted answers", () => {
+    expect(
+      parse({ ...SINGLE_QUESTION, accepted: ["Paris"] }),
+    ).not.toHaveProperty("accepted")
+  })
+
+  it("keeps the old minimum time", () => {
+    expect(isValid({ ...SINGLE_QUESTION, time: 1 })).toBe(true)
+  })
+})
+
+describe("ordering", () => {
+  const ORDERING = {
+    ...SINGLE_QUESTION,
+    type: QUESTION_TYPES.ORDERING,
+    question: "Remettez les étapes dans l'ordre",
+    answers: ["Accueil", "Diagnostic", "Orientation"],
+    solutions: [],
+  }
+
+  it("keeps the items in the given order and no solutions", () => {
+    const ordering = parse({ ...ORDERING, solutions: [2, 1] })
+
+    expect(ordering.answers).toEqual(["Accueil", "Diagnostic", "Orientation"])
+    expect(ordering.solutions).toEqual([])
+  })
+
+  it("keeps its scoring options and points tuning", () => {
+    const ordering = parse({
+      ...ORDERING,
+      options: { orderScoring: ORDER_SCORING.EXACT },
+      maxPoints: 2000,
+      penalty: 100,
+      speedBonus: true,
+      accepted: ["Accueil"],
+    })
+
+    expect(ordering.options).toEqual({
+      scoringMode: SCORING_MODES.BALANCED,
+      orderScoring: ORDER_SCORING.EXACT,
+    })
+    expect(ordering).toMatchObject({
+      maxPoints: 2000,
+      penalty: 100,
+      speedBonus: true,
+    })
+    expect(ordering).not.toHaveProperty("accepted")
+  })
+
+  it("takes 3 to 6 items", () => {
+    const items = ["A", "B", "C", "D", "E", "F", "G"]
+
+    expect(issuesOf({ ...ORDERING, answers: items.slice(0, 2) })).toEqual([
+      "errors:quizz.tooFewAnswers",
+    ])
+    expect(isValid({ ...ORDERING, answers: items.slice(0, 6) })).toBe(true)
+    expect(issuesOf({ ...ORDERING, answers: items })).toEqual([
+      "errors:quizz.tooManyAnswers",
+    ])
+  })
+
+  it("rejects a blank or too long item", () => {
+    expect(issuesOf({ ...ORDERING, answers: ["A", "  ", "C"] })).toEqual([
+      "errors:quizz.answerEmpty",
+    ])
+    expect(isValid({ ...ORDERING, answers: ["A", "B", "c".repeat(80)] })).toBe(
+      true,
+    )
+    expect(
+      issuesOf({ ...ORDERING, answers: ["A", "B", "c".repeat(81)] }),
+    ).toEqual(["errors:quizz.orderItemTooLong"])
+  })
+
+  it("rejects a long tail hidden behind padding", () => {
+    // Stored raw, but counted once cleaned: without a raw bound, only "Un"
+    // would be counted.
+    const padded = `Un${" ".repeat(198)}${"x".repeat(5000)}`
+
+    expect(issuesOf({ ...ORDERING, answers: ["A", "B", padded] })).toEqual([
+      "errors:quizz.orderItemTooLong",
+    ])
+    expect(
+      isValid({ ...ORDERING, answers: ["A", "B", `Un${" ".repeat(198)}`] }),
+    ).toBe(true)
+  })
+
+  it("rejects two items a player cannot tell apart", () => {
+    expect(
+      issuesOf({
+        ...ORDERING,
+        answers: ["Étape un", "Étape deux", "etape UN !"],
+      }),
+    ).toEqual(["errors:quizz.orderItemDuplicate"])
+  })
+
+  it("rejects an unknown scoring", () => {
+    expect(isValid({ ...ORDERING, options: { orderScoring: "chains" } })).toBe(
+      false,
+    )
+  })
+
+  it("needs 5 seconds at least, or no limit", () => {
+    expect(issuesOf({ ...ORDERING, time: 4 })).toEqual([
+      "errors:quizz.timeTooShort",
+    ])
+    expect(isValid({ ...ORDERING, time: 5 })).toBe(true)
+    expect(isValid({ ...ORDERING, time: -1 })).toBe(true)
+  })
+})
+
+describe("shortanswer", () => {
+  const SHORTANSWER = {
+    type: QUESTION_TYPES.SHORTANSWER,
+    question: "Quelle est la capitale de la France ?",
+    accepted: ["Paris", "Lutèce"],
+    cooldown: 5,
+    time: 30,
+  }
+
+  it("keeps the accepted answers and no public answers", () => {
+    const shortanswer = parse({
+      ...SHORTANSWER,
+      answers: ["Paris", "Lyon"],
+      solutions: [0],
+      options: { typoTolerance: true },
+    })
+
+    expect(shortanswer.accepted).toEqual(["Paris", "Lutèce"])
+    expect(shortanswer.answers).toEqual([])
+    expect(shortanswer.solutions).toEqual([])
+    expect(shortanswer.options?.typoTolerance).toBe(true)
+  })
+
+  it("needs 1 to 10 accepted answers", () => {
+    const accepted = Array.from(
+      { length: 11 },
+      (_, index) => `Réponse ${index}`,
+    )
+
+    expect(issuesOf({ ...SHORTANSWER, accepted: undefined })).toEqual([
+      "errors:quizz.acceptedMissing",
+    ])
+    expect(issuesOf({ ...SHORTANSWER, accepted: [] })).toEqual([
+      "errors:quizz.acceptedMissing",
+    ])
+    expect(isValid({ ...SHORTANSWER, accepted: accepted.slice(0, 10) })).toBe(
+      true,
+    )
+    expect(issuesOf({ ...SHORTANSWER, accepted })).toEqual([
+      "errors:quizz.tooManyAccepted",
+    ])
+  })
+
+  it("rejects a blank or too long accepted answer", () => {
+    expect(issuesOf({ ...SHORTANSWER, accepted: ["Paris", " "] })).toEqual([
+      "errors:quizz.acceptedEmpty",
+    ])
+    expect(isValid({ ...SHORTANSWER, accepted: ["p".repeat(60)] })).toBe(true)
+    expect(issuesOf({ ...SHORTANSWER, accepted: ["p".repeat(61)] })).toEqual([
+      "errors:quizz.acceptedTooLong",
+    ])
+  })
+
+  it("rejects a long tail hidden behind padding", () => {
+    const padded = `Paris${" ".repeat(195)}${"y".repeat(3000)}`
+
+    expect(issuesOf({ ...SHORTANSWER, accepted: [padded] })).toEqual([
+      "errors:quizz.acceptedTooLong",
+    ])
+  })
+
+  it("rejects an accepted answer made of punctuation only", () => {
+    expect(issuesOf({ ...SHORTANSWER, accepted: ["Paris", "?!"] })).toEqual([
+      "errors:quizz.acceptedNoKey",
+    ])
+  })
+
+  it("rejects two accepted answers equal once normalized", () => {
+    expect(
+      issuesOf({ ...SHORTANSWER, accepted: ["Lutèce", "Paris", "LUTECE !"] }),
+    ).toEqual(["errors:quizz.acceptedDuplicate"])
+  })
+
+  it("needs 5 seconds at least, or no limit", () => {
+    expect(issuesOf({ ...SHORTANSWER, time: 3 })).toEqual([
+      "errors:quizz.timeTooShort",
+    ])
+    expect(isValid({ ...SHORTANSWER, time: -1 })).toBe(true)
   })
 })

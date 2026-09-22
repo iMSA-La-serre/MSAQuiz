@@ -15,3 +15,21 @@ export const enter = (delay = 0) => ({
 
 export const staggerDelay = (index: number, base = 0.12) =>
   base + index * STAGGER_STEP
+
+// Host distribution: the bars start growing this long after the screen
+// appears, and the correct answers are marked with them, when the phones show
+// their result cards.
+export const REVEAL_DELAY = 0.2
+
+export const BAR_DURATION = 0.6
+
+// Opacity only: MotionConfig's reduced motion leaves opacity animated, so
+// without motion the element is shown as it ends.
+export const fadeIn = (delay: number, reduceMotion: boolean | null) =>
+  reduceMotion
+    ? { initial: false as const }
+    : {
+        initial: { opacity: 0 },
+        animate: { opacity: 1 },
+        transition: { duration: ENTER_DURATION, delay, ease: EASE_OUT_QUART },
+      }

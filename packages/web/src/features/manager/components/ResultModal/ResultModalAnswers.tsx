@@ -2,6 +2,7 @@ import { MEDIA_TYPES, NO_TIME_LIMIT } from "@razzia/common/constants"
 import type { QuestionMedia } from "@razzia/common/types/game"
 import AnswerChip from "@razzia/web/features/game/components/AnswerChip"
 import { useResultModal } from "@razzia/web/features/manager/contexts/result-modal-context"
+import { QUESTION_REGISTRY } from "@razzia/web/features/questions"
 import clsx from "clsx"
 import { Check, Clock, ImageOff, Music, Video, X } from "lucide-react"
 import { useTranslation } from "react-i18next"
@@ -53,6 +54,16 @@ const ResultModalAnswers = () => {
   const { t } = useTranslation()
 
   const noAnswerCount = totalPlayers - answeredCount
+  const { ResultSummary, optionsLabelKey } =
+    QUESTION_REGISTRY[questionResult.type]
+  const { options } = questionResult
+  // By default, the multi scoring mode, whatever the type it was saved with.
+  const defaultOptionsKey = options?.scoringMode
+    ? `quizz:question.config.scoringMode.${options.scoringMode}`
+    : null
+  const optionsKey = optionsLabelKey
+    ? optionsLabelKey(options)
+    : defaultOptionsKey
 
   const rows: AnswerRow[] = [
     ...questionResult.answers.map((label, ai) => ({
@@ -82,11 +93,9 @@ const ResultModalAnswers = () => {
               ? "∞"
               : `${questionResult.time}${t("manager:result.timeLimitSuffix")}`}
           </span>
-          {questionResult.options?.scoringMode && (
+          {optionsKey && (
             <div className="bg-accent text-accent-foreground rounded-md px-2 py-0.5 font-semibold">
-              {t(
-                `quizz:question.config.scoringMode.${questionResult.options.scoringMode}`,
-              )}
+              {t(optionsKey)}
             </div>
           )}
         </div>
@@ -97,44 +106,51 @@ const ResultModalAnswers = () => {
           {questionResult.question}
         </p>
 
-        <div className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-x-3 gap-y-1.5 md:gap-y-2">
-          {rows.map((row, i) => (
-            <div key={i} className="contents">
-              {row.index !== null ? (
-                <AnswerChip index={row.index} size="sm" />
-              ) : (
-                <div className="border-accent flex size-6 shrink-0 items-center justify-center rounded-md border-2 bg-white">
-                  <X className="text-muted-foreground size-3 stroke-4" />
-                </div>
-              )}
-
-              <span
-                className={clsx("min-w-0 truncate text-sm font-medium", {
-                  "text-muted-foreground": row.index === null,
-                })}
-              >
-                {row.label}
-              </span>
-
-              <div className="shrink-0">
-                {row.isCorrect ? (
-                  <Check className="text-success size-5 stroke-4" />
+        {ResultSummary ? (
+          <ResultSummary
+            question={questionResult}
+            noAnswerCount={noAnswerCount}
+          />
+        ) : (
+          <div className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-x-3 gap-y-1.5 md:gap-y-2">
+            {rows.map((row, i) => (
+              <div key={i} className="contents">
+                {row.index !== null ? (
+                  <AnswerChip index={row.index} size="sm" />
                 ) : (
-                  <X
-                    className={clsx(
-                      "size-5 stroke-4",
-                      row.index === null ? "text-danger-soft" : "text-danger",
-                    )}
-                  />
+                  <div className="border-accent flex size-6 shrink-0 items-center justify-center rounded-md border-2 bg-white">
+                    <X className="text-muted-foreground size-3 stroke-4" />
+                  </div>
                 )}
-              </div>
 
-              <span className="text-accent-foreground text-center text-sm font-semibold">
-                {row.count}
-              </span>
-            </div>
-          ))}
-        </div>
+                <span
+                  className={clsx("min-w-0 truncate text-sm font-medium", {
+                    "text-muted-foreground": row.index === null,
+                  })}
+                >
+                  {row.label}
+                </span>
+
+                <div className="shrink-0">
+                  {row.isCorrect ? (
+                    <Check className="text-success size-5 stroke-4" />
+                  ) : (
+                    <X
+                      className={clsx(
+                        "size-5 stroke-4",
+                        row.index === null ? "text-danger-soft" : "text-danger",
+                      )}
+                    />
+                  )}
+                </div>
+
+                <span className="text-accent-foreground text-center text-sm font-semibold">
+                  {row.count}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

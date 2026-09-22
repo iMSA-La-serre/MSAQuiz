@@ -235,3 +235,30 @@ describe("rejected files", () => {
     ])
   })
 })
+
+describe("question types", () => {
+  it("only ever creates single and multi questions", async () => {
+    const quizz = await importXlsx([
+      [...HEADERS, "Type"],
+      ["Dans l'ordre ?", "Un", "Deux", "Trois", null, 20, "1,2,3", "ordering"],
+      [
+        "Ancien nom de Paris ?",
+        "Lutèce",
+        "Paname",
+        null,
+        null,
+        20,
+        "1",
+        "shortanswer",
+      ],
+      ["Sondage ?", "Oui", "Non", null, null, 20, "1", "poll"],
+    ])
+
+    expect(quizz.questions.map(({ type }) => type)).toEqual([
+      QUESTION_TYPES.MULTI,
+      QUESTION_TYPES.SINGLE,
+      QUESTION_TYPES.SINGLE,
+    ])
+    expect(quizz.questions.every((q) => !("accepted" in q))).toBe(true)
+  })
+})

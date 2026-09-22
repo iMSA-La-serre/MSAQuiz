@@ -1,4 +1,90 @@
-import type { GameResult } from "@razzia/common/types/game"
+import { QUESTION_TYPES } from "@razzia/common/constants"
+import type {
+  GameResult,
+  PlayerAnswerRecord,
+  QuestionResult,
+} from "@razzia/common/types/game"
+import { isKnownType } from "@razzia/socket/services/scoring"
+import {
+  hasAnswer,
+  isCorrectRecord,
+  recordScore,
+} from "@razzia/socket/services/stats"
+import type Excel from "exceljs"
+
+type AnsweredRecord = PlayerAnswerRecord & { answerIds: number[] }
+
+interface QuestionRows {
+  sheet: Excel.Worksheet
+  question: QuestionResult
+  answered: AnsweredRecord[]
+}
+
+// Choice types: one row per answer, the correct ones ticked.
+const addChoiceRows = ({ sheet, question, answered }: QuestionRows) => {
+  question.answers.forEach((label, answerIndex) => {
+    sheet.addRow({
+      answer: label,
+      correct: question.solutions.includes(answerIndex) ? "✓" : "",
+      votes: answered.filter((record) => record.answerIds.includes(answerIndex))
+        .length,
+    })
+  })
+}
+
+// Ordering: the items in the correct order, with the players who put each
+// one at its place, then the exact orders and the mean score.
+const addOrderingRows = ({ sheet, question, answered }: QuestionRows) => {
+  sheet.addRow({
+    answer: "Éléments dans l'ordre correct",
+    votes: "Bien placés",
+  }).font = { italic: true }
+
+  question.answers.forEach((label, itemIndex) => {
+    sheet.addRow({
+      answer: `${itemIndex + 1}. ${label}`,
+      votes: answered.filter(
+        (record) => record.answerIds[itemIndex] === itemIndex,
+      ).length,
+    })
+  })
+
+  sheet.addRow({
+    answer: "Ordres exacts",
+    votes: answered.filter((record) => isCorrectRecord(question, record))
+      .length,
+  })
+
+  const scoreSum = answered.reduce(
+    (sum, record) => sum + recordScore(question, record),
+    0,
+  )
+  const meanRow = sheet.addRow({
+    answer: "Score moyen",
+    votes: answered.length > 0 ? scoreSum / answered.length : null,
+  })
+
+  meanRow.getCell("votes").numFmt = "0%"
+}
+
+// Shortanswer: the accepted answers with the inputs each one recognized,
+// then how many inputs matched none (their text stays out of the report).
+const addShortAnswerRows = ({ sheet, question, answered }: QuestionRows) => {
+  for (const [acceptedIndex, label] of (question.accepted ?? []).entries()) {
+    sheet.addRow({
+      answer: label,
+      correct: "✓",
+      votes: answered.filter((record) =>
+        record.answerIds.includes(acceptedIndex),
+      ).length,
+    })
+  }
+
+  sheet.addRow({
+    answer: "Non reconnues",
+    votes: answered.filter((record) => record.answerIds.length === 0).length,
+  })
+}
 
 /** Builds an Excel report (ranking + per-question details) for a game result. */
 export const buildResultWorkbook = async (
@@ -38,28 +124,31 @@ export const buildResultWorkbook = async (
   const totalPlayers = result.players.length
 
   for (const [index, question] of result.questions.entries()) {
-    const answered = question.playerAnswers.filter(
-      (pa) => pa.answerIds !== null && pa.answerIds.length > 0,
-    ).length
+    // A type this version does not know is left out, numbering unchanged.
+    if (!isKnownType(question.type)) {
+      continue
+    }
+
+    const answered = question.playerAnswers.filter(hasAnswer)
 
     const titleRow = questions.addRow({
       question: `Q${index + 1} — ${question.question}`,
     })
     titleRow.font = { bold: true }
 
-    question.answers.forEach((label, answerIndex) => {
-      questions.addRow({
-        answer: label,
-        correct: question.solutions.includes(answerIndex) ? "✓" : "",
-        votes: question.playerAnswers.filter((pa) =>
-          pa.answerIds?.includes(answerIndex),
-        ).length,
-      })
-    })
+    const rows = { sheet: questions, question, answered }
+
+    if (question.type === QUESTION_TYPES.ORDERING) {
+      addOrderingRows(rows)
+    } else if (question.type === QUESTION_TYPES.SHORTANSWER) {
+      addShortAnswerRows(rows)
+    } else {
+      addChoiceRows(rows)
+    }
 
     questions.addRow({
       answer: "Sans réponse",
-      votes: totalPlayers - answered,
+      votes: totalPlayers - answered.length,
     })
     questions.addRow({})
   }

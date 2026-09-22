@@ -8,6 +8,7 @@ import {
   SelectValue,
 } from "@razzia/web/components/Select"
 import {
+  defaultTimeOf,
   QUESTION_REGISTRY,
   QUESTION_TYPE_LIST,
 } from "@razzia/web/features/questions"
@@ -23,27 +24,49 @@ const QuestionEditorConfig = () => {
 
   const handleTypeChange = (nextType: QuestionType) => {
     const meta = QUESTION_TYPE_META[nextType]
-    const { defaultOptions, defaultAnswerKeys } = QUESTION_REGISTRY[nextType]
+    const next = QUESTION_REGISTRY[nextType]
+    const { defaultOptions, defaultAnswerKeys, initialAnswers } = next
+    // A type with its own answers editor (ordering, shortanswer) shares
+    // nothing with the others: moving to or from one starts from a blank
+    // question of the new type.
+    const isReset = Boolean(
+      next.AnswersEditor ?? QUESTION_REGISTRY[questionType].AnswersEditor,
+    )
+    const answers = isReset ? [] : currentQuestion.answers
+    const solutions = isReset ? [] : currentQuestion.solutions
     const updates: Parameters<typeof updateQuestion>[1] = {
       type: nextType,
       options: defaultOptions,
     }
 
+    if (isReset) {
+      updates.accepted = next.initialAccepted && [...next.initialAccepted]
+      updates.speedBonus = undefined
+    }
+
+    // An answer time left at the old type's default follows the new one.
+    if (currentQuestion.time === defaultTimeOf(questionType)) {
+      updates.time = defaultTimeOf(nextType)
+    }
+
     if (!meta.acceptsAnswers) {
       updates.answers = []
+      updates.solutions = []
+    } else if (initialAnswers) {
+      updates.answers = [...initialAnswers]
       updates.solutions = []
     } else if (defaultAnswerKeys) {
       // Fixed answers (true/false): impose the wording and a single solution.
       updates.answers = defaultAnswerKeys.map((key) => t(key))
       updates.solutions = [0]
     } else {
-      if (currentQuestion.answers.length < 2) {
+      if (answers.length < 2) {
         updates.answers = ["", ""]
       }
 
       if (!meta.scored) {
         updates.solutions = []
-      } else if (currentQuestion.solutions.length === 0) {
+      } else if (solutions.length === 0) {
         updates.solutions = [0]
       }
     }

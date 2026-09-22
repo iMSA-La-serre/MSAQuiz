@@ -91,6 +91,8 @@ export const QUESTION_TYPES = {
   TRUEFALSE: "truefalse",
   POLL: "poll",
   SLIDE: "slide",
+  ORDERING: "ordering",
+  SHORTANSWER: "shortanswer",
 } as const
 
 /**
@@ -100,22 +102,113 @@ export const QUESTION_TYPES = {
  * `answersCount` marks a type whose answers are fixed (both in number and in
  * wording): the validator enforces the count, and the editor renders them
  * read-only instead of the add/remove controls.
+ *
+ * `minAnswers` and `maxAnswers` bound the public `answers` list; a type with
+ * a maximum of 0 has its answers dropped on save.
+ *
+ * `speedBonus` is the default of the per-question switch: when off, a player
+ * who scores gets the base points whatever the time or answer order.
+ *
+ * `partialOutcome` reports a multiplier strictly between 0 and 1 as a
+ * "partial" outcome instead of "correct".
  */
 export const QUESTION_TYPE_META: Record<
   (typeof QUESTION_TYPES)[keyof typeof QUESTION_TYPES],
-  { scored: boolean; acceptsAnswers: boolean; answersCount?: number }
+  {
+    scored: boolean
+    acceptsAnswers: boolean
+    answersCount?: number
+    minAnswers: number
+    maxAnswers: number
+    speedBonus: boolean
+    partialOutcome: boolean
+  }
 > = {
-  single: { scored: true, acceptsAnswers: true },
-  multi: { scored: true, acceptsAnswers: true },
-  truefalse: { scored: true, acceptsAnswers: true, answersCount: 2 },
-  poll: { scored: false, acceptsAnswers: true },
-  slide: { scored: false, acceptsAnswers: false },
+  single: {
+    scored: true,
+    acceptsAnswers: true,
+    minAnswers: 2,
+    maxAnswers: 4,
+    speedBonus: true,
+    partialOutcome: false,
+  },
+  multi: {
+    scored: true,
+    acceptsAnswers: true,
+    minAnswers: 2,
+    maxAnswers: 4,
+    speedBonus: true,
+    partialOutcome: false,
+  },
+  truefalse: {
+    scored: true,
+    acceptsAnswers: true,
+    answersCount: 2,
+    minAnswers: 2,
+    maxAnswers: 2,
+    speedBonus: true,
+    partialOutcome: false,
+  },
+  poll: {
+    scored: false,
+    acceptsAnswers: true,
+    minAnswers: 2,
+    maxAnswers: 4,
+    speedBonus: true,
+    partialOutcome: false,
+  },
+  slide: {
+    scored: false,
+    acceptsAnswers: false,
+    minAnswers: 0,
+    maxAnswers: 0,
+    speedBonus: true,
+    partialOutcome: false,
+  },
+  // Answers are the items, stored in the correct order.
+  ordering: {
+    scored: true,
+    acceptsAnswers: true,
+    minAnswers: 3,
+    maxAnswers: 6,
+    speedBonus: false,
+    partialOutcome: true,
+  },
+  // No public answers: the player types a text, compared to `accepted`.
+  shortanswer: {
+    scored: true,
+    acceptsAnswers: true,
+    minAnswers: 0,
+    maxAnswers: 0,
+    speedBonus: false,
+    partialOutcome: false,
+  },
 }
 
 export const SCORING_MODES = {
   STRICT: "strict",
   BALANCED: "balanced",
   LENIENT: "lenient",
+} as const
+
+// Ordering: share of items at their place, or all or nothing.
+export const ORDER_SCORING = {
+  POSITION: "position",
+  EXACT: "exact",
+} as const
+
+// Longest ordering item, in characters as counted by countInputChars.
+export const ORDERING_ITEM_MAX_LENGTH = 80
+
+export const SHORTANSWER_LIMITS = {
+  // Characters a player may type, as counted by countInputChars.
+  INPUT_LENGTH: 60,
+  // Accepted answers per question, and characters in each one.
+  ACCEPTED_COUNT: 10,
+  ACCEPTED_LENGTH: 60,
+  // Raw UTF-16 length cut before any processing, and cap of the socket
+  // payload: keeps the normalization cost bounded whatever a client sends.
+  RAW_LENGTH: 200,
 } as const
 
 export const MEDIA_TYPES = {

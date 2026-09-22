@@ -28,7 +28,7 @@ const SingleAnswers = ({
     }
 
     setChosen(key)
-    onSubmit([key])
+    onSubmit({ answerKeys: [key] })
   }
 
   return (

@@ -1,5 +1,6 @@
 import { EVENTS } from "@razzia/common/constants"
 import type {
+  AnswerPayload,
   GameResult,
   GameUpdateQuestion,
   Player,
@@ -138,7 +139,7 @@ export interface ClientToServerEvents {
   [EVENTS.PLAYER.RECONNECT]: (_message: { gameId: string }) => void
   [EVENTS.PLAYER.LEAVE]: (_message: { gameId: string }) => void
   [EVENTS.PLAYER.SELECTED_ANSWER]: (
-    _message: MessageWithoutStatus<{ answerKeys: number[] }>,
+    _message: MessageWithoutStatus<AnswerPayload>,
   ) => void
 
   // Results actions

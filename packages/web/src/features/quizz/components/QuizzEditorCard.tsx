@@ -1,4 +1,4 @@
-import { MEDIA_TYPES } from "@razzia/common/constants"
+import { MEDIA_TYPES, QUESTION_TYPES } from "@razzia/common/constants"
 import type { QuestionMedia } from "@razzia/common/types/game"
 import AlertDialog from "@razzia/web/components/AlertDialog"
 import { type QuestionWithId } from "@razzia/web/features/quizz/contexts/quizz-editor-context"
@@ -43,6 +43,14 @@ const QuizzEditorCard = ({
   onDelete,
 }: Props) => {
   const { t } = useTranslation()
+  // One bar per answer row, green for a right answer. A short answer has one
+  // field and no public answers: one bar, green, as any accepted answer is
+  // right.
+  const isShortAnswer = question.type === QUESTION_TYPES.SHORTANSWER
+  const bars = isShortAnswer ? [""] : question.answers
+  // Past four bars (an ordering), thinner ones in the height of four, so the
+  // title keeps its line above an image.
+  const thin = bars.length > 4
 
   return (
     <div
@@ -65,13 +73,16 @@ const QuizzEditorCard = ({
 
       <SlideMedia media={question.media} />
 
-      <div className="flex flex-col gap-1">
-        {question.answers.map((_, i) => (
+      <div className={clsx("flex flex-col", thin ? "gap-0.5" : "gap-1")}>
+        {bars.map((_, i) => (
           <div
             key={i}
             className={clsx(
-              "h-1.5 w-full rounded-full",
-              question.solutions.includes(i) ? "bg-primary" : "bg-muted",
+              "w-full rounded-full",
+              thin ? "h-1" : "h-1.5",
+              isShortAnswer || question.solutions.includes(i)
+                ? "bg-primary"
+                : "bg-muted",
             )}
           />
         ))}

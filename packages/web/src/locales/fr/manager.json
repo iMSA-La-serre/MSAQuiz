@@ -21,9 +21,12 @@
     "deleteConfirm": "Supprimer le résultat \"{{name}}\" ? Cette action est irréversible.",
     "deleted": "Résultat supprimé",
     "export": "Exporter en Excel",
+    "matched": "Reconnue comme « {{answer}} »",
     "noAnswer": "Sans réponse",
     "none": "Aucun résultat pour l'instant, terminez une partie pour voir les rapports",
     "paginationOf": " sur ",
+    "placed": "Bien placé",
+    "placedCount": "{{count}} bien placé(s)",
     "playerCount": "{{count}} joueur(s)",
     "stats": {
       "correctAnswers": "Bonnes réponses",
@@ -37,7 +40,17 @@
       "player": "Joueur",
       "points": "Points"
     },
-    "timeLimitSuffix": "s limite"
+    "timeLimitSuffix": "s limite",
+    "typed": "« {{text}} »",
+    "unrecognized": "Non reconnues",
+    "verdict": {
+      "correct": "Correct",
+      "noAnswer": "Sans réponse",
+      "partial": "En partie juste ({{percent}})",
+      "recognized": "Reconnue",
+      "unrecognized": "Non reconnue",
+      "wrong": "Incorrect"
+    }
   },
   "tabs": {
     "play": "Jouer",
@@ -47,11 +60,15 @@
   },
   "stats": {
     "answered": "{{count}} réponse(s)",
+    "averageScore": "score moyen {{rate}}",
+    "exactOrders": "{{count}} ordre(s) exact(s)",
     "gameCount": "{{count}} partie(s)",
     "missing": "{{count}} sans réponse",
     "none": "Aucune statistique pour l'instant, terminez une partie pour la voir ici",
     "noQuestion": "Aucune question exploitable",
+    "placedByItem": "Bien placés par élément",
     "playerCount": "{{count}} participation(s)",
+    "unrecognized": "Non reconnues",
     "unscored": "Non noté"
   }
 }

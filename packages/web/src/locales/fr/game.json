@@ -2,7 +2,11 @@
   "answer": {
     "multiEmpty": "Cochez au moins une réponse",
     "multiHint": "Plusieurs réponses possibles",
+    "orderingEmpty": "Numérotez tous les éléments",
+    "orderingHint": "Touchez les éléments dans l'ordre",
     "pollHint": "Sondage : pas de bonne réponse",
+    "shortanswerEmpty": "Tapez votre réponse",
+    "shortanswerHint": "Réponse à saisir",
     "slideHint": "Suivez la diapo à l'écran"
   },
   "band": {
@@ -45,6 +49,13 @@
     "title": "Rejoindre la partie"
   },
   "noAnswer": "Pas de réponse",
+  "ordering": {
+    "complete": "Tous les éléments sont placés, vous pouvez valider",
+    "itemLabel": "{{letter}} {{item}}, position {{position}}",
+    "placed": "{{item}} placé en position {{position}}",
+    "removed": "{{item}} retiré"
+  },
+  "partial": "En partie juste",
   "pollAnswered": "Vote enregistré",
   "pollNoVote": "Vous n'avez pas voté",
   "prepared": {
@@ -54,15 +65,36 @@
   "reconnect": "Reconnecter",
   "reconnectTitle": "Vous étiez dans une partie",
   "responses": {
+    "acceptedRowLabel": "{{answer}} : {{count}} sur {{total}} ({{percent}})",
     "correct": "Bonne réponse",
+    "correctOrder": "Ordre correct",
     "label": "Répartition des réponses",
     "noAnswer": "Sans réponse : {{count}}",
-    "rowLabel": "{{letter}} : {{count}} sur {{total}} ({{percent}})"
+    "orderingSummary_one": "Ordre correct · {{count}} ordre exact sur {{total}}",
+    "orderingSummary_other": "Ordre correct · {{count}} ordres exacts sur {{total}}",
+    "otherAccepted": "Autres réponses acceptées",
+    "otherAcceptedRowLabel": "Autres réponses acceptées : {{count}} sur {{total}} ({{percent}})",
+    "placedRowLabel": "Position {{position}} : {{letter}} {{item}}, bien placé par {{count}} sur {{total}} ({{percent}})",
+    "placedRowLabelNoLetter": "Position {{position}} : {{item}}, bien placé par {{count}} sur {{total}} ({{percent}})",
+    "rowLabel": "{{letter}} : {{count}} sur {{total}} ({{percent}})",
+    "shortanswerSummary_one": "{{count}} bonne réponse sur {{total}}",
+    "shortanswerSummary_other": "{{count}} bonnes réponses sur {{total}}",
+    "unrecognized": "Non reconnues",
+    "unrecognizedRowLabel": "Non reconnues : {{count}} sur {{total}} ({{percent}})"
   },
   "result": {
     "outOf": "sur {{total}}",
+    "placed_one": "{{count}} élément sur {{total}} bien placé",
+    "placed_other": "{{count}} éléments sur {{total}} bien placés",
     "rankLabel": "Rang",
     "total": "Total"
+  },
+  "shortanswer": {
+    "counter": "{{count}}/{{max}} caractères",
+    "counterLabel": "{{count}} caractères sur {{max}}",
+    "hostReading": "Vous pourrez bientôt répondre sur votre téléphone",
+    "hostTyping": "Répondez sur votre téléphone",
+    "label": "Votre réponse"
   },
   "slideInfo": "Aucune réponse attendue",
   "start": {

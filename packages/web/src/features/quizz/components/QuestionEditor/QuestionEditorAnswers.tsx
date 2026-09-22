@@ -20,6 +20,9 @@ const HINT_KEYS: Record<QuestionType, string> = {
   poll: "quizz:answers.hint.poll",
   // Slides render the no-answers panel instead of the card.
   slide: "quizz:slideNoAnswers",
+  // Shown by their own answers editor (QUESTION_REGISTRY.AnswersEditor).
+  ordering: "quizz:answers.hint.ordering",
+  shortanswer: "quizz:answers.hint.shortanswer",
 }
 
 // Chip, field, correct-answer box, delete button. Below sm the rows use two
@@ -62,13 +65,19 @@ const QuestionEditorAnswers = () => {
   })
 
   const questionType = currentQuestion.type
-  const { SolutionPicker } = QUESTION_REGISTRY[questionType]
+  const { SolutionPicker, AnswersEditor } = QUESTION_REGISTRY[questionType]
   const { acceptsAnswers, answersCount, scored } =
     QUESTION_TYPE_META[questionType]
   // Types with a fixed set of answers (true/false) only let the author pick
   // which one is correct.
   const hasFixedAnswers = answersCount !== undefined
   const isRadioGroup = questionType === QUESTION_TYPES.TRUEFALSE
+
+  // Types not answered by picking choices bring their own block. Keyed by
+  // question, so nothing typed in it carries over to the next one.
+  if (AnswersEditor) {
+    return <AnswersEditor key={currentQuestion.id} />
+  }
 
   if (!acceptsAnswers) {
     return (

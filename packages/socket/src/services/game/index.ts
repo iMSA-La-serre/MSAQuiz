@@ -1,5 +1,9 @@
 import { EVENTS } from "@razzia/common/constants"
-import type { Player, QuizzWithId } from "@razzia/common/types/game"
+import type {
+  AnswerPayload,
+  Player,
+  QuizzWithId,
+} from "@razzia/common/types/game"
 import type { Server, Socket } from "@razzia/common/types/game/socket"
 import {
   STATUS,
@@ -208,6 +212,7 @@ class Game {
 
     const oldSocketId = player.id
     this.playerManager.updateSocketId(oldSocketId, socket.id)
+    this.round.remapPlayer(oldSocketId, socket.id)
     player.connected = true
 
     const status = this.playerStatus.get(oldSocketId) ??
@@ -268,8 +273,8 @@ class Game {
     await this.round.start(socket)
   }
 
-  selectAnswer(socket: Socket, answerIds: number[]) {
-    this.round.selectAnswer(socket, answerIds)
+  selectAnswer(socket: Socket, payload: AnswerPayload) {
+    this.round.selectAnswer(socket, payload)
   }
 
   nextRound(socket: Socket) {

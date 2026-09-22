@@ -1,11 +1,21 @@
+import { QUESTION_TYPE_META } from "@razzia/common/constants"
 import type { Question, QuestionType } from "@razzia/common/types/game"
 import * as multi from "./multi"
+import * as ordering from "./ordering"
 import * as poll from "./poll"
+import * as shortanswer from "./shortanswer"
 import * as single from "./single"
 import * as slide from "./slide"
 import * as truefalse from "./truefalse"
 
-export type ScoringFn = (_question: Question, _answerIds: number[]) => number
+// What the scoring reads of an answer, see Answer in the common types.
+export interface ScoredAnswer {
+  answerIds: number[]
+  text?: string
+}
+
+// Multiplier of an answer, from 0 (no credit) to 1 (full credit).
+export type ScoringFn = (_question: Question, _answer: ScoredAnswer) => number
 
 export const QUESTION_SCORING: Record<QuestionType, ScoringFn> = {
   [single.type]: single.scoring,
@@ -13,4 +23,11 @@ export const QUESTION_SCORING: Record<QuestionType, ScoringFn> = {
   [truefalse.type]: truefalse.scoring,
   [poll.type]: poll.scoring,
   [slide.type]: slide.scoring,
+  [ordering.type]: ordering.scoring,
+  [shortanswer.type]: shortanswer.scoring,
 }
+
+// Stored results may hold a type this version does not know (a later one, or
+// data edited by hand): readers skip it instead of failing.
+export const isKnownType = (type: unknown): type is QuestionType =>
+  typeof type === "string" && Object.hasOwn(QUESTION_TYPE_META, type)

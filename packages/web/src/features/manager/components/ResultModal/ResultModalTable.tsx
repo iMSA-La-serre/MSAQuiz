@@ -1,11 +1,13 @@
 import AnswerChip from "@razzia/web/features/game/components/AnswerChip"
 import { useResultModal } from "@razzia/web/features/manager/contexts/result-modal-context"
+import { QUESTION_REGISTRY } from "@razzia/web/features/questions"
 import { Check, X } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
 const ResultModalTable = () => {
   const { questionResult, getPlayerPoints } = useResultModal()
   const { t } = useTranslation()
+  const { ResultCells } = QUESTION_REGISTRY[questionResult.type]
 
   return (
     <table className="w-full text-sm">
@@ -27,6 +29,19 @@ const ResultModalTable = () => {
           const isCorrect =
             pa.answerIds?.some((id) => questionResult.solutions.includes(id)) ??
             false
+
+          // Types not answered by picking choices bring their own cells.
+          if (ResultCells) {
+            return (
+              <tr key={i}>
+                <td className="px-5 py-2.5 font-medium">{pa.playerName}</td>
+                <ResultCells question={questionResult} record={pa} />
+                <td className="text-foreground px-4 py-2.5 text-right font-semibold">
+                  {getPlayerPoints(pa.playerName)}
+                </td>
+              </tr>
+            )
+          }
 
           return (
             <tr key={i}>

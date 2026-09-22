@@ -1,5 +1,6 @@
 import { MEDIA_TYPES } from "@razzia/common/constants"
 import type {
+  AnswerPayload,
   QuestionMedia,
   QuestionOptions,
   QuestionType,
@@ -10,7 +11,13 @@ import StageMedia from "@razzia/web/features/game/components/question/StageMedia
 import { enter } from "@razzia/web/features/game/utils/motion"
 import { QUESTION_REGISTRY } from "@razzia/web/features/questions"
 import clsx from "clsx"
-import { ListChecks, type LucideIcon, Vote } from "lucide-react"
+import {
+  Keyboard,
+  ListChecks,
+  ListOrdered,
+  type LucideIcon,
+  Vote,
+} from "lucide-react"
 import { motion, MotionConfig } from "motion/react"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -28,7 +35,7 @@ interface Props {
   answered: number
   remaining: number | null
   options?: QuestionOptions
-  onSubmit: (_answerKeys: number[]) => void
+  onSubmit: (_answer: AnswerPayload) => void
   isHost: boolean
 }
 
@@ -36,6 +43,8 @@ const HINTS: Partial<Record<QuestionType, { icon: LucideIcon; key: string }>> =
   {
     multi: { icon: ListChecks, key: "game:answer.multiHint" },
     poll: { icon: Vote, key: "game:answer.pollHint" },
+    ordering: { icon: ListOrdered, key: "game:answer.orderingHint" },
+    shortanswer: { icon: Keyboard, key: "game:answer.shortanswerHint" },
   }
 
 const TITLE = "font-bold text-balance text-white drop-shadow-lg"
@@ -93,7 +102,7 @@ const QuestionStage = ({
     media?.type === MEDIA_TYPES.IMAGE ||
     media?.type === MEDIA_TYPES.VIDEO ||
     upcomingMedia === MEDIA_TYPES.VIDEO
-  const { AnswerComponent } = QUESTION_REGISTRY[questionType]
+  const { AnswerComponent, hostTopAligned } = QUESTION_REGISTRY[questionType]
 
   // Reading: each block fades and rises in. Answering: already in place.
   const appear = (delay: number) => (isReading ? enter(delay) : {})
@@ -186,7 +195,12 @@ const QuestionStage = ({
 
     if (hasVisualMedia) {
       return (
-        <div className="mx-auto grid w-full max-w-7xl flex-1 items-center gap-8 px-6 py-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-12">
+        <div
+          className={clsx(
+            "mx-auto grid w-full max-w-7xl flex-1 gap-8 px-6 py-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-12",
+            hostTopAligned ? "items-start" : "items-center",
+          )}
+        >
           <div className="flex flex-col gap-6">
             <motion.h2
               {...appear(0.05)}
@@ -205,7 +219,12 @@ const QuestionStage = ({
     }
 
     return (
-      <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col justify-center gap-10 px-6 py-8">
+      <div
+        className={clsx(
+          "mx-auto flex w-full max-w-5xl flex-1 flex-col gap-10 px-6 py-8",
+          hostTopAligned ? "justify-start" : "justify-center",
+        )}
+      >
         <motion.h2
           {...appear(0.05)}
           className={clsx(TITLE, HOST_TITLE, "text-center")}

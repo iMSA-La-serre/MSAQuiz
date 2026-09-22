@@ -12,23 +12,36 @@ import {
   SelectValue,
 } from "@razzia/web/components/Select"
 import Switch from "@razzia/web/components/Switch"
-import { QUESTION_REGISTRY } from "@razzia/web/features/questions"
+import {
+  defaultTimeOf,
+  QUESTION_REGISTRY,
+} from "@razzia/web/features/questions"
 import ConfigField from "@razzia/web/features/quizz/components/QuestionEditor/QuestionEditorConfig/ConfigField"
 import ConfigNumberInput from "@razzia/web/features/quizz/components/QuestionEditor/QuestionEditorConfig/ConfigNumberInput"
 import ConfigSection from "@razzia/web/features/quizz/components/QuestionEditor/QuestionEditorConfig/ConfigSection"
 import { useQuizzEditor } from "@razzia/web/features/quizz/contexts/quizz-editor-context"
-import { ArrowBigDownDash, Clock, ListChecks, Star, Timer } from "lucide-react"
+import {
+  ArrowBigDownDash,
+  Clock,
+  ListChecks,
+  Star,
+  Timer,
+  Zap,
+} from "lucide-react"
+import type { PropsWithChildren } from "react"
 import { useTranslation } from "react-i18next"
 
-const DEFAULT_TIME = 20
 const DEFAULT_PENALTY = 100
 
-const BaseConfig = () => {
+// Children: the type's own scoring fields, at the end of the scoring section.
+const BaseConfig = ({ children }: PropsWithChildren) => {
   const { currentQuestion, currentIndex, updateQuestion } = useQuizzEditor()
   const { t } = useTranslation()
   const isTimeLimitEnabled = currentQuestion.time !== NO_TIME_LIMIT
   const isPenaltyEnabled = (currentQuestion.penalty ?? 0) > 0
-  const isScored = QUESTION_TYPE_META[currentQuestion.type].scored
+  const meta = QUESTION_TYPE_META[currentQuestion.type]
+  const isScored = meta.scored
+  const isSpeedBonusEnabled = currentQuestion.speedBonus ?? meta.speedBonus
   const { scoringModes } = QUESTION_REGISTRY[currentQuestion.type]
   const scoringMode = currentQuestion.options?.scoringMode
 
@@ -42,9 +55,18 @@ const BaseConfig = () => {
 
   const handleToggleTimeLimit = (checked: boolean) => {
     updateQuestion(currentIndex, {
-      time: checked ? DEFAULT_TIME : NO_TIME_LIMIT,
+      time: checked ? defaultTimeOf(currentQuestion.type) : NO_TIME_LIMIT,
     })
   }
+
+  const handleToggleSpeedBonus = (checked: boolean) => {
+    updateQuestion(currentIndex, { speedBonus: checked })
+  }
+
+  // Without a time limit, the speed bonus follows the order of the answers.
+  const noTimeLimitHint = isSpeedBonusEnabled
+    ? t("quizz:question.config.noTimeLimitHint")
+    : t("quizz:question.config.noTimeLimitNoBonusHint")
 
   const handleTogglePenalty = (checked: boolean) => {
     updateQuestion(currentIndex, {
@@ -74,6 +96,25 @@ const BaseConfig = () => {
             />
             <ConfigField.Description>
               {t("quizz:question.config.maxPointsHint")}
+            </ConfigField.Description>
+          </ConfigField>
+
+          <ConfigField>
+            <ConfigField.Label
+              icon={<Zap className="size-4" />}
+              label={t("quizz:question.config.speedBonus")}
+              action={
+                <Switch
+                  aria-label={t("quizz:question.config.speedBonus")}
+                  checked={isSpeedBonusEnabled}
+                  onCheckedChange={handleToggleSpeedBonus}
+                />
+              }
+            />
+            <ConfigField.Description>
+              {isSpeedBonusEnabled
+                ? t("quizz:question.config.speedBonusHint")
+                : t("quizz:question.config.noSpeedBonusHint")}
             </ConfigField.Description>
           </ConfigField>
 
@@ -127,6 +168,8 @@ const BaseConfig = () => {
               </ConfigField.Description>
             </ConfigField>
           )}
+
+          {children}
         </ConfigSection>
       )}
 
@@ -170,7 +213,7 @@ const BaseConfig = () => {
           <ConfigField.Description>
             {isTimeLimitEnabled
               ? t("quizz:question.config.answerTimeHint")
-              : t("quizz:question.config.noTimeLimitHint")}
+              : noTimeLimitHint}
           </ConfigField.Description>
         </ConfigField>
       </ConfigSection>

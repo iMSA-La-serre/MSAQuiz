@@ -6,7 +6,7 @@ import {
 } from "@razzia/web/features/game/utils/motion"
 import clsx from "clsx"
 import { motion, type Variants } from "motion/react"
-import type { ButtonHTMLAttributes, ReactNode } from "react"
+import type { ButtonHTMLAttributes, ReactNode, Ref } from "react"
 import { twMerge } from "tailwind-merge"
 
 interface AnswerRowProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -20,6 +20,9 @@ interface AnswerRowProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   outlined?: boolean
   // Smaller host text when an answer is long.
   dense?: boolean
+  // Host only: a shorter row with a smaller chip and text, for lists longer
+  // than a choice's (see isCompactList).
+  compact?: boolean
   // A button when true, a plain div otherwise (host display).
   interactive?: boolean
   // Checkbox (multi) or count and percentage (distribution).
@@ -28,7 +31,17 @@ interface AnswerRowProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   footer?: ReactNode
   // Taller row with larger text (true/false on phone).
   large?: boolean
+  // In place of the letter chip of `index`: the chip of another letter (an
+  // ordering distribution lists its items in the correct order), or an icon.
+  marker?: ReactNode
 }
+
+// A choice has four answers at most: its host rows are sized for four. Longer
+// lists (an ordering has up to six items) use compact rows, so they fit a
+// 1280×720 projector as four choice rows do.
+const FULL_ROWS = 4
+
+export const isCompactList = (count: number) => count > FULL_ROWS
 
 const TEXT_SIZES = {
   host: "text-lg leading-tight md:text-2xl xl:text-3xl",
@@ -40,14 +53,21 @@ const TEXT_SIZES = {
 const textSize = ({
   size,
   dense,
+  compact,
   large,
-}: Pick<AnswerRowProps, "size" | "dense" | "large">) => {
+}: Pick<AnswerRowProps, "size" | "dense" | "compact" | "large">) => {
   if (size === "host") {
-    return dense ? TEXT_SIZES.hostDense : TEXT_SIZES.host
+    return dense || compact ? TEXT_SIZES.hostDense : TEXT_SIZES.host
   }
 
   return large ? TEXT_SIZES.phoneLarge : TEXT_SIZES.phone
 }
+
+// The letter chip of a row, or of the marker standing in its place.
+export const rowChipSize = (
+  size: AnswerRowProps["size"],
+  compact = false,
+): "md" | "lg" => (size === "host" && !compact ? "lg" : "md")
 
 // One row shell for the host list, the phone list and the distribution. The
 // colour lives in the letter chip only; the row itself stays white.
@@ -58,10 +78,12 @@ const AnswerRow = ({
   locked = false,
   outlined = false,
   dense = false,
+  compact = false,
   interactive = false,
   trailing,
   footer,
   large = false,
+  marker,
   className,
   disabled,
   ...buttonProps
@@ -70,7 +92,10 @@ const AnswerRow = ({
     clsx(
       "text-secondary relative flex w-full items-center rounded-2xl text-left transition-[background-color,box-shadow,opacity] duration-300 ease-out-quart motion-reduce:transition-none",
       size === "host"
-        ? "min-h-20 gap-5 px-5 py-3 xl:min-h-24 xl:px-6"
+        ? clsx(
+            "gap-5 px-5 xl:px-6",
+            compact ? "min-h-14 py-1.5" : "min-h-20 py-3 xl:min-h-24",
+          )
         : "min-h-16 gap-3 px-3 py-2.5",
       {
         "min-h-20": size === "phone" && large,
@@ -87,12 +112,12 @@ const AnswerRow = ({
   // Spans with display block: a button may only hold phrasing content.
   const content = (
     <>
-      <AnswerChip index={index} size={size === "host" ? "lg" : "md"} />
+      {marker ?? <AnswerChip index={index} size={rowChipSize(size, compact)} />}
       <span className="block min-w-0 flex-1">
         <span
           className={clsx(
             "block font-semibold break-words",
-            textSize({ size, dense, large }),
+            textSize({ size, dense, compact, large }),
           )}
         >
           {text}
@@ -139,6 +164,8 @@ interface AnswerRevealProps {
   index: number
   as?: "li" | "div"
   className?: string
+  // The div only: lets a caller scroll the block into view.
+  ref?: Ref<HTMLDivElement>
   children: ReactNode
 }
 
@@ -146,11 +173,17 @@ export const AnswerReveal = ({
   index,
   as = "li",
   className,
+  ref,
   children,
 }: AnswerRevealProps) => {
   if (as === "div") {
     return (
-      <motion.div custom={index} variants={REVEAL} className={className}>
+      <motion.div
+        ref={ref}
+        custom={index}
+        variants={REVEAL}
+        className={className}
+      >
         {children}
       </motion.div>
     )

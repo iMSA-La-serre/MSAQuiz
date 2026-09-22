@@ -1,5 +1,8 @@
 import { EVENTS, MEDIA_TYPES, NO_TIME_LIMIT } from "@razzia/common/constants"
-import type { QuestionMediaType } from "@razzia/common/types/game"
+import type {
+  AnswerPayload,
+  QuestionMediaType,
+} from "@razzia/common/types/game"
 import type { CommonStatusDataMap } from "@razzia/common/types/game/status"
 import QuestionStage from "@razzia/web/features/game/components/question/QuestionStage"
 import {
@@ -37,18 +40,16 @@ const Answers = ({
     loop: true,
   })
 
-  const handleSubmit = (answerKeys: number[]) => {
+  const handleSubmit = (answer: AnswerPayload) => {
     if (!player || !gameId) {
       return
     }
 
     socket.emit(EVENTS.PLAYER.SELECTED_ANSWER, {
       gameId,
-      data: {
-        answerKeys,
-      },
+      data: answer,
     })
-    setLastAnswer(answerKeys)
+    setLastAnswer({ questionType, answer })
     sfxPop()
   }
 
