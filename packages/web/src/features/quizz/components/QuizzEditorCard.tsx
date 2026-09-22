@@ -1,5 +1,6 @@
 import { MEDIA_TYPES, QUESTION_TYPES } from "@razzia/common/constants"
 import type { QuestionMedia } from "@razzia/common/types/game"
+import { wordCountOf } from "@razzia/common/utils/wordcloud"
 import AlertDialog from "@razzia/web/components/AlertDialog"
 import { type QuestionWithId } from "@razzia/web/features/quizz/contexts/quizz-editor-context"
 import clsx from "clsx"
@@ -45,9 +46,17 @@ const QuizzEditorCard = ({
   const { t } = useTranslation()
   // One bar per answer row, green for a right answer. A short answer has one
   // field and no public answers: one bar, green, as any accepted answer is
-  // right.
+  // right. A word cloud has one grey bar per field: nobody is right.
   const isShortAnswer = question.type === QUESTION_TYPES.SHORTANSWER
-  const bars = isShortAnswer ? [""] : question.answers
+  const isWordCloud = question.type === QUESTION_TYPES.WORDCLOUD
+  let bars = question.answers
+
+  if (isShortAnswer) {
+    bars = [""]
+  } else if (isWordCloud) {
+    bars = Array.from({ length: wordCountOf(question.options) }, () => "")
+  }
+
   // Past four bars (an ordering), thinner ones in the height of four, so the
   // title keeps its line above an image.
   const thin = bars.length > 4

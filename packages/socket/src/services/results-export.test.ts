@@ -410,3 +410,120 @@ describe("buildResultWorkbook, newer types", () => {
     `)
   })
 })
+
+describe("buildResultWorkbook, wordcloud", () => {
+  const WORDCLOUD = question({
+    type: QUESTION_TYPES.WORDCLOUD,
+    question: "Un mot pour la MSA ?",
+    answers: [],
+    solutions: [],
+    playerAnswers: [
+      { playerName: "Alex", answerIds: [], answered: true, score: 0 },
+      { playerName: "Bea", answerIds: [], answered: true, score: 0 },
+      { playerName: "Cyd", answerIds: null, answered: false, score: 0 },
+    ],
+    words: [
+      { text: "Écoute", count: 2 },
+      { text: "Terrain", count: 1 },
+    ],
+  })
+
+  it("reports the words and who answered, never who typed what", async () => {
+    const sheets = await readWorkbook(
+      result([
+        question({ playerAnswers: answers(["Alex", [0]], ["Bea", [1]]) }),
+        WORDCLOUD,
+      ]),
+    )
+
+    expect(sheets.map(({ name }) => name)).toEqual([
+      "Classement",
+      "Questions",
+      "Participation",
+    ])
+    // The blank row closing the question is not counted as the last one.
+    expect(sheets[1]?.rows.slice(-6)).toEqual([
+      ["Q2 — Un mot pour la MSA ?", null, null, null],
+      [null, "Mots proposés", null, "Nombre"],
+      [null, "Écoute", null, 2],
+      [null, "Terrain", null, 1],
+      [null, "Ont répondu", null, 2],
+      [null, "Sans réponse", null, 1],
+    ])
+    expect(sheets[2]?.rows).toEqual([
+      ["Joueur", "Q2"],
+      ["Alex", "Oui"],
+      ["Bea", "Oui"],
+      ["Cyd", "Non"],
+    ])
+  })
+
+  it("says when no word was kept", async () => {
+    const [, questions] = await readWorkbook(
+      result([{ ...WORDCLOUD, words: [] }]),
+    )
+
+    expect(questions.rows.slice(2, 4)).toEqual([
+      [null, "Mots proposés", null, "Nombre"],
+      [null, "Aucun mot", null, null],
+    ])
+  })
+
+  it("lists no word typed by too few players, only who answered", async () => {
+    const { words: _words, ...withoutWords } = WORDCLOUD
+    const [, questions, participation] = await readWorkbook(
+      result([
+        {
+          ...withoutWords,
+          playerAnswers: [
+            { playerName: "Alex", answerIds: [], answered: true, score: 0 },
+            { playerName: "Bea", answerIds: null, answered: false, score: 0 },
+            { playerName: "Cyd", answerIds: null, answered: false, score: 0 },
+          ],
+          wordsWithheld: true,
+        },
+      ]),
+    )
+
+    expect(questions.rows.slice(1)).toEqual([
+      ["Q1 — Un mot pour la MSA ?", null, null, null],
+      [null, "Mots proposés", null, "Nombre"],
+      [null, "Trop peu de réponses pour afficher les mots", null, null],
+      [null, "Ont répondu", null, 1],
+      [null, "Sans réponse", null, 2],
+    ])
+    expect(participation.rows).toEqual([
+      ["Joueur", "Q1"],
+      ["Alex", "Oui"],
+      ["Bea", "Non"],
+      ["Cyd", "Non"],
+    ])
+  })
+
+  it("takes each record once when two players share a username", async () => {
+    const [, , participation] = await readWorkbook({
+      ...result([
+        {
+          ...WORDCLOUD,
+          playerAnswers: [
+            { playerName: "Marie", answerIds: [], answered: true, score: 0 },
+            { playerName: "Marie", answerIds: null, answered: false, score: 0 },
+            { playerName: "Paul", answerIds: null, answered: false, score: 0 },
+          ],
+        },
+      ]),
+      players: [
+        { username: "Marie", points: 0, rank: 1 },
+        { username: "Marie", points: 0, rank: 2 },
+        { username: "Paul", points: 0, rank: 3 },
+      ],
+    })
+
+    expect(participation.rows).toEqual([
+      ["Joueur", "Q1"],
+      ["Marie", "Oui"],
+      ["Marie", "Non"],
+      ["Paul", "Non"],
+    ])
+  })
+})

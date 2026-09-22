@@ -24,6 +24,8 @@ export interface QuestionOptions {
   orderScoring?: OrderScoring
   // Shortanswer: also accept a close spelling. Off when absent.
   typoTolerance?: boolean
+  // Wordcloud: fields on the phone, 1 to 3, 1 when absent.
+  wordCount?: number
 }
 
 export interface Player {
@@ -49,11 +51,17 @@ export interface Answer {
   answerIds: number[]
   // Shortanswer: the input once cleaned (cleanInput).
   text?: string
+  // Wordcloud: the words kept (cleaned, deduplicated, moderated). Only held
+  // until the question closes: the history keeps their count, not who typed
+  // them.
+  texts?: string[]
   points: number
 }
 
-// What a player sends: answer indices, or a text for shortanswer.
-export type AnswerPayload = { answerKeys: number[] } | { text: string }
+// What a player sends: answer indices, a text for shortanswer, or 1 to 3
+// texts for wordcloud.
+export type AnswerPayload =
+  { answerKeys: number[] } | { text: string } | { texts: string[] }
 
 export type QuestionMediaType =
   (typeof MEDIA_TYPES)[keyof typeof MEDIA_TYPES] | undefined
@@ -104,13 +112,28 @@ export interface PlayerAnswerRecord {
   answerIds: number[] | null
   // Shortanswer only: the cleaned input, null when the player did not answer.
   text?: string | null
+  // Types that are not nominative (wordcloud, QUESTION_TYPE_META): whether
+  // the player answered. `answerIds` is then empty, or null without an
+  // answer, and the answer itself only counts in QuestionResult.words.
+  answered?: boolean
   // Multiplier (0 to 1) applied when the question closed, 0 when the player
   // did not answer. Absent from results saved before it existed.
   score?: number
 }
 
+/** A word of a word cloud and the players who typed it, whoever they are. */
+export interface WordCount {
+  text: string
+  count: number
+}
+
 export type QuestionResult = Question & {
   playerAnswers: PlayerAnswerRecord[]
+  // Wordcloud: every word kept, the most frequent first (countWords).
+  words?: WordCount[]
+  // Wordcloud: the words were not kept, too few players typed any
+  // (WORDCLOUD_LIMITS.MIN_AUTHORS). `words` is then absent.
+  wordsWithheld?: boolean
 }
 
 export interface GameResultPlayer {
@@ -153,7 +176,8 @@ export interface QuestionStats {
   successRate: number | null
   // Choice types: picks per answer. Ordering: the items in the correct order,
   // with the players who put each one at its place. Shortanswer: the
-  // accepted answers, with the inputs each one recognized.
+  // accepted answers, with the inputs each one recognized. Wordcloud: the
+  // most frequent words across the games (WORDCLOUD_LIMITS.CLOUD_WORDS).
   answers: Array<{ label: string; count: number }>
   // Wording of the correct answers, taken from the most recent game: a quizz
   // can be edited between two games. Shortanswer: the accepted answers.
@@ -164,6 +188,9 @@ export interface QuestionStats {
   averageScore?: number | null
   // Shortanswer: inputs that matched no accepted answer.
   unrecognizedCount?: number
+  // Wordcloud: no word to list because no game kept its words, too few
+  // players having typed any (WORDCLOUD_LIMITS.MIN_AUTHORS).
+  wordsWithheld?: boolean
 }
 
 export interface QuizzStats {

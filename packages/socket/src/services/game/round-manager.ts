@@ -6,6 +6,7 @@ import {
   NO_TIME_LIMIT,
   QUESTION_TYPE_META,
   QUESTION_TYPES,
+  WORDCLOUD_LIMITS,
 } from "@razzia/common/constants"
 import type {
   Answer,
@@ -16,6 +17,7 @@ import type {
   QuestionResult,
   QuestionType,
   QuizzWithId,
+  WordCount,
 } from "@razzia/common/types/game"
 import type { Server, Socket } from "@razzia/common/types/game/socket"
 import {
@@ -25,7 +27,13 @@ import {
   STATUS,
   type StatusDataMap,
 } from "@razzia/common/types/game/status"
+import {
+  BUILTIN_BLOCKLIST,
+  type Blocklist,
+  buildBlocklist,
+} from "@razzia/common/utils/moderation"
 import { placedItems } from "@razzia/common/utils/ordering"
+import { countWords } from "@razzia/common/utils/wordcloud"
 import { CooldownTimer } from "@razzia/socket/services/game/cooldown-timer"
 import { PlayerManager } from "@razzia/socket/services/game/player-manager"
 import {
@@ -34,8 +42,8 @@ import {
 } from "@razzia/socket/services/game/public-answers"
 import { QUESTION_SCORING } from "@razzia/socket/services/scoring"
 import {
+  answerParser,
   countResponses,
-  parseAnswer,
 } from "@razzia/socket/services/scoring/answers"
 import { orderToPoint, timeToPoint } from "@razzia/socket/utils/game"
 import sleep from "@razzia/socket/utils/sleep"
@@ -62,6 +70,9 @@ export interface RoundManagerOptions {
   send: SendFn
   onNewQuestion: () => void
   onGameFinished: (_result: GameResult) => void
+  // Words a word cloud drops besides the built-in list (moderation.txt),
+  // read when such a question starts.
+  moderationWords?: () => readonly string[]
 }
 
 // Heading shown on the player's result screen, as an i18n key.
@@ -72,6 +83,13 @@ const RESULT_MESSAGES: Record<ResultOutcome, string> = {
   noAnswer: "game:noAnswer",
   voted: "game:pollAnswered",
   noVote: "game:pollNoVote",
+}
+
+// Types with their own heading for some outcomes.
+const TYPE_RESULT_MESSAGES: Partial<
+  Record<QuestionType, Partial<Record<ResultOutcome, string>>>
+> = {
+  wordcloud: { voted: "game:wordcloudAnswered", noVote: "game:noAnswer" },
 }
 
 // Scored types that existed before partial credit: their outcome keeps
@@ -95,8 +113,8 @@ const roundOutcome = (
 ): ResultOutcome => {
   const { scored, partialOutcome } = QUESTION_TYPE_META[type]
 
-  // Unscored types (poll): confirm the vote, or flag the missing one, never
-  // claim a vote that was not cast.
+  // Unscored types (poll, wordcloud): confirm the vote, or flag the missing
+  // one, never claim a vote that was not cast.
   if (!scored) {
     return answered ? "voted" : "noVote"
   }
@@ -139,6 +157,8 @@ export class RoundManager {
   private playersAnswers: Answer[] = []
   // The answer list of the current question as players see it.
   private publicAnswers: PublicAnswers = { answers: [], order: [] }
+  // Words the current word cloud drops.
+  private blocklist: Blocklist = BUILTIN_BLOCKLIST
   private startTime = 0
   // Answers only count while SELECT_ANSWER is on screen: not during the
   // reading time, and not once the results are out.
@@ -202,6 +222,12 @@ export class RoundManager {
     this.publicAnswers = toPublicAnswers(question)
     const { answers } = this.publicAnswers
 
+    // Read at each word cloud, so an edited moderation.txt applies to the
+    // next one without a restart.
+    if (question.type === QUESTION_TYPES.WORDCLOUD) {
+      this.blocklist = buildBlocklist(this.opts.moderationWords?.() ?? [])
+    }
+
     this.opts.onNewQuestion()
 
     this.opts.io.to(this.opts.gameId).emit(EVENTS.GAME.UPDATE_QUESTION, {
@@ -241,6 +267,7 @@ export class RoundManager {
       questionType: question.type,
       time: question.time,
       totalPlayer: this.opts.players.count(),
+      options: question.options,
     })
 
     await sleep(question.cooldown)
@@ -274,7 +301,8 @@ export class RoundManager {
   private showResults(question: Question): void {
     this.acceptingAnswers = false
 
-    const { scored, acceptsAnswers } = QUESTION_TYPE_META[question.type]
+    const { scored, acceptsAnswers, nominative } =
+      QUESTION_TYPE_META[question.type]
     const scoring = QUESTION_SCORING[question.type]
     const currentPlayers = this.opts.players.getAll()
 
@@ -359,7 +387,9 @@ export class RoundManager {
         this.opts.send(player.id, STATUS.SHOW_RESULT, {
           outcome,
           correct: scored ? player.lastCorrect : player.lastAnswered,
-          message: RESULT_MESSAGES[outcome],
+          message:
+            TYPE_RESULT_MESSAGES[question.type]?.[outcome] ??
+            RESULT_MESSAGES[outcome],
           points: player.lastPoints,
           myPoints: player.points,
           rank: index + 1,
@@ -376,6 +406,28 @@ export class RoundManager {
       scoring(question, answer),
     )
 
+    // Wordcloud: the words of every answer, counted together. They leave the
+    // answers here, which are dropped once the question closes.
+    const words: WordCount[] | undefined =
+      question.type === QUESTION_TYPES.WORDCLOUD
+        ? countWords(
+            this.playersAnswers.flatMap(({ texts = [] }) =>
+              texts.map((text) => ({ text })),
+            ),
+            question.question.trim(),
+          )
+        : undefined
+    // Players with at least one word kept: with too few of them, the history
+    // keeps no word, or who answered would tell who typed what.
+    const authors = this.playersAnswers.filter(
+      ({ texts = [] }) => texts.length > 0,
+    ).length
+    const historyWords =
+      words &&
+      (words.length > 0 && authors < WORDCLOUD_LIMITS.MIN_AUTHORS
+        ? { wordsWithheld: true }
+        : { words })
+
     this.opts.send(this.opts.getManagerId(), STATUS.SHOW_RESPONSES, {
       ...question,
       responses: countResponses(question, this.playersAnswers),
@@ -383,6 +435,10 @@ export class RoundManager {
       totalPlayers: currentPlayers.length,
       ...(question.type === QUESTION_TYPES.ORDERING && {
         publicOrder: this.publicAnswers.order,
+      }),
+      ...(words && {
+        words: words.slice(0, WORDCLOUD_LIMITS.CLOUD_WORDS),
+        distinctWords: words.length,
       }),
       ...(scored && {
         correctCount: answeredScores.filter((score) => score === 1).length,
@@ -392,6 +448,8 @@ export class RoundManager {
     })
 
     // Answerless types carry nothing to report: keep them out of history.
+    // A type that is not nominative keeps whether each player answered, and
+    // its answers at the question level only (none from too few authors).
     if (acceptsAnswers) {
       this.questionsHistory.push({
         ...question,
@@ -401,8 +459,10 @@ export class RoundManager {
           ...(question.type === QUESTION_TYPES.SHORTANSWER && {
             text: answer?.text ?? null,
           }),
+          ...(!nominative && { answered: Boolean(answer) }),
           score,
         })),
+        ...historyWords,
       })
     }
 
@@ -451,7 +511,11 @@ export class RoundManager {
       return
     }
 
-    const answer = parseAnswer(question, payload, this.publicAnswers.order)
+    const answer = answerParser(this.blocklist)(
+      question,
+      payload,
+      this.publicAnswers.order,
+    )
 
     if (!answer) {
       return

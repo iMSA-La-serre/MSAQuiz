@@ -164,11 +164,11 @@ Quizzes can be created three ways, all from the manager dashboard:
 
 > **Trademark note**: Kahoot! is a trademark of its owner, which is not affiliated with MSAQuiz and does not endorse or sponsor it. The name is only used to say which spreadsheet files the importer can read.
 
-The JSON format, the five question types (`single`, `multi`, `truefalse`, `poll`, `slide`), the scoring modes and the spreadsheet import rules are documented in **[docs/quiz.md](docs/quiz.md)**.
+The JSON format, the eight question types (`single`, `multi`, `truefalse`, `poll`, `slide`, `ordering`, `shortanswer`, `wordcloud`), the scoring modes and the spreadsheet import rules are documented in **[docs/quiz.md](docs/quiz.md)**.
 
 ### 4. Game results
 
-Results are saved automatically at the end of each game and browsable in the manager (Résultats tab). Each result can be **downloaded as an Excel report** (ranking sheet + per-question answer distribution).
+Results are saved automatically at the end of each game and browsable in the manager (Résultats tab). Each result can be **downloaded as an Excel report** (ranking sheet + per-question answer distribution, and a participation sheet for the word clouds, whose words are never linked to a player).
 
 The **Stats tab** aggregates every game of a quizz: success rate per question, hardest questions first, how many players let the timer run out, and which answers were picked. Questions are matched by their text, so editing or reordering a quizz keeps its history readable. Only games played after this feature landed are linked to their quizz — older results stay in the Résultats tab but carry no link, so they are not counted.
 

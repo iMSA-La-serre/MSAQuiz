@@ -12,6 +12,7 @@ import * as shortanswer from "@razzia/web/features/questions/shortanswer"
 import * as single from "@razzia/web/features/questions/single"
 import * as slide from "@razzia/web/features/questions/slide"
 import * as truefalse from "@razzia/web/features/questions/truefalse"
+import * as wordcloud from "@razzia/web/features/questions/wordcloud"
 import type {
   AnswerComponentProps,
   DistributionProps,
@@ -76,6 +77,7 @@ export const QUESTION_REGISTRY: Record<QuestionType, QuestionRegistryEntry> = {
   slide,
   ordering,
   shortanswer,
+  wordcloud,
 }
 
 export const QUESTION_TYPE_LIST = Object.keys(

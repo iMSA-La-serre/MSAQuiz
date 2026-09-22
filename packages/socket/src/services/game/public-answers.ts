@@ -46,10 +46,14 @@ export const drawPublicOrder = (length: number): number[] => {
 
 /**
  * Drawn once per question: every screen, and every reconnection, gets this
- * same list. An ordering is shuffled; a shortanswer shows no answers at all.
+ * same list. An ordering is shuffled; a shortanswer and a word cloud show no
+ * answers at all.
  */
 export const toPublicAnswers = (question: Question): PublicAnswers => {
-  if (question.type === QUESTION_TYPES.SHORTANSWER) {
+  if (
+    question.type === QUESTION_TYPES.SHORTANSWER ||
+    question.type === QUESTION_TYPES.WORDCLOUD
+  ) {
     return { answers: [], order: [] }
   }
 

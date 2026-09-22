@@ -14,6 +14,7 @@ import { saveResult } from "@razzia/socket/repositories/results"
 import { CooldownTimer } from "@razzia/socket/services/game/cooldown-timer"
 import { PlayerManager } from "@razzia/socket/services/game/player-manager"
 import { RoundManager } from "@razzia/socket/services/game/round-manager"
+import { getModerationWords } from "@razzia/socket/services/moderation"
 import Registry from "@razzia/socket/services/registry"
 import { createInviteCode } from "@razzia/socket/utils/game"
 import { getClientId } from "@razzia/socket/utils/socket"
@@ -90,6 +91,7 @@ class Game {
         this.managerStatus = null
       },
       onGameFinished: saveResult,
+      moderationWords: getModerationWords,
     })
 
     socket.join(this.gameId)

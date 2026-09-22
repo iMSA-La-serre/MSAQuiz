@@ -444,3 +444,136 @@ describe("aggregateQuestions, unknown types", () => {
     expect(overallSuccessRate(stats)).toBe(1)
   })
 })
+
+describe("aggregateQuestions, wordcloud", () => {
+  const wordcloud = (over: Partial<QuestionResult>): QuestionResult =>
+    question({
+      type: QUESTION_TYPES.WORDCLOUD,
+      question: "Un mot pour la MSA ?",
+      answers: [],
+      solutions: [],
+      ...over,
+    })
+
+  it("counts who answered and the words of every game, never per player", () => {
+    const [stats] = aggregateQuestions([
+      game(
+        [
+          wordcloud({
+            playerAnswers: [
+              { playerName: "Alex", answerIds: [], answered: true, score: 0 },
+              { playerName: "Bea", answerIds: [], answered: true, score: 0 },
+              { playerName: "Cyd", answerIds: null, answered: false, score: 0 },
+            ],
+            words: [
+              { text: "Écoute", count: 2 },
+              { text: "Terrain", count: 2 },
+            ],
+          }),
+        ],
+        "2026-09-02",
+      ),
+      game([
+        wordcloud({
+          playerAnswers: [
+            { playerName: "Dan", answerIds: [], answered: true, score: 0 },
+          ],
+          words: [
+            { text: "écoute", count: 1 },
+            { text: "Proximité", count: 1 },
+          ],
+        }),
+      ]),
+    ])
+
+    expect(stats).toEqual({
+      question: "Un mot pour la MSA ?",
+      type: QUESTION_TYPES.WORDCLOUD,
+      scored: false,
+      gameCount: 2,
+      answerCount: 3,
+      missingCount: 1,
+      correctCount: 0,
+      successRate: null,
+      answers: [
+        { label: "Écoute", count: 3 },
+        { label: "Terrain", count: 2 },
+        { label: "Proximité", count: 1 },
+      ],
+      solutionLabels: [],
+    })
+  })
+
+  it("says when no game kept its words, too few players having typed any", () => {
+    const withheld = wordcloud({
+      playerAnswers: [
+        { playerName: "Alex", answerIds: [], answered: true, score: 0 },
+      ],
+      wordsWithheld: true,
+    })
+
+    const [alone] = aggregateQuestions([game([withheld])])
+
+    expect(alone).toMatchObject({ answerCount: 1, wordsWithheld: true })
+    expect(alone.answers).toEqual([])
+
+    // Another game kept its words: they are listed, with no flag.
+    const [mixed] = aggregateQuestions([
+      game([withheld]),
+      game([
+        wordcloud({
+          playerAnswers: [
+            { playerName: "Bea", answerIds: [], answered: true, score: 0 },
+          ],
+          words: [{ text: "Écoute", count: 3 }],
+        }),
+      ]),
+    ])
+
+    expect(mixed.answers).toEqual([{ label: "Écoute", count: 3 }])
+    expect(mixed).not.toHaveProperty("wordsWithheld")
+  })
+
+  it("keeps a word cloud apart from a poll with the same wording", () => {
+    const stats = aggregateQuestions([
+      game([
+        wordcloud({
+          question: "Votre avis ?",
+          playerAnswers: [
+            { playerName: "Alex", answerIds: [], answered: true, score: 0 },
+          ],
+          words: [{ text: "Utile", count: 1 }],
+        }),
+        question({
+          type: QUESTION_TYPES.POLL,
+          question: "Votre avis ?",
+          answers: ["Utile", "Inutile"],
+          solutions: [],
+          playerAnswers: answers(["Alex", [0]]),
+        }),
+      ]),
+    ])
+
+    expect(stats.map(({ type }) => type).sort()).toEqual([
+      QUESTION_TYPES.POLL,
+      QUESTION_TYPES.WORDCLOUD,
+    ])
+  })
+
+  it("skips words edited by hand into something else", () => {
+    const [stats] = aggregateQuestions([
+      game([
+        wordcloud({
+          words: [
+            { text: "Écoute", count: 1 },
+            { text: 3, count: 1 },
+            null,
+            { text: "Terrain", count: "2" },
+          ] as unknown as QuestionResult["words"],
+        }),
+      ]),
+    ])
+
+    expect(stats.answers).toEqual([{ label: "Écoute", count: 1 }])
+  })
+})

@@ -141,6 +141,60 @@ const ResponseRow = ({
   )
 }
 
+interface ResponseFrameProps {
+  hint?: { icon: LucideIcon; text: string }
+  // On the hint's line, at the other end: controls of the distribution.
+  actions?: ReactNode
+  // Noted under the content, at the other end from the missing answers:
+  // what the content leaves out.
+  aside?: ReactNode
+  // Players of the game with no answer, noted under the content.
+  unanswered: number
+  children: ReactNode
+}
+
+// Where the answering screen put its hint and rows: the hint, then the
+// distribution, with the count of missing answers under it.
+export const ResponseFrame = ({
+  hint,
+  actions,
+  aside,
+  unanswered,
+  children,
+}: ResponseFrameProps) => {
+  const { t } = useTranslation()
+
+  return (
+    <div className="flex flex-col gap-4">
+      {(hint ?? actions) && (
+        <div
+          className={
+            actions ? "flex items-center justify-between gap-4" : "self-start"
+          }
+        >
+          {hint && <HintChip icon={hint.icon}>{hint.text}</HintChip>}
+          {actions}
+        </div>
+      )}
+      {/* The count of missing answers hangs under the content, out of the
+      flow, so the centred rows stay where the answering screen put them. */}
+      <div className="relative">
+        {children}
+        {aside && (
+          <p className="absolute top-full left-0 mt-4 text-xl whitespace-nowrap text-white/80 xl:text-2xl">
+            {aside}
+          </p>
+        )}
+        {unanswered > 0 && (
+          <p className="absolute top-full right-0 mt-4 text-right text-xl whitespace-nowrap text-white/80 xl:text-2xl">
+            {t("game:responses.noAnswer", { count: unanswered })}
+          </p>
+        )}
+      </div>
+    </div>
+  )
+}
+
 interface ResponseListProps {
   hint?: { icon: LucideIcon; text: string }
   // Players of the game with no answer, noted under the list.
@@ -164,31 +218,17 @@ export const ResponseList = ({
   const { t } = useTranslation()
 
   return (
-    <div className="flex flex-col gap-4">
-      {hint && (
-        <div className="self-start">
-          <HintChip icon={hint.icon}>{hint.text}</HintChip>
-        </div>
-      )}
-      {/* The count of missing answers hangs under the list, out of the flow,
-      so the centred rows stay where the answering screen put them. */}
-      <div className="relative">
-        <ol
-          aria-label={label ?? t("game:responses.label")}
-          className={clsx(
-            "flex flex-col",
-            isCompactList(rows) ? "gap-2" : "short:gap-2 gap-3 xl:gap-4",
-          )}
-        >
-          {children}
-        </ol>
-        {unanswered > 0 && (
-          <p className="absolute top-full right-0 mt-4 text-right text-xl whitespace-nowrap text-white/80 xl:text-2xl">
-            {t("game:responses.noAnswer", { count: unanswered })}
-          </p>
+    <ResponseFrame hint={hint} unanswered={unanswered}>
+      <ol
+        aria-label={label ?? t("game:responses.label")}
+        className={clsx(
+          "flex flex-col",
+          isCompactList(rows) ? "gap-2" : "short:gap-2 gap-3 xl:gap-4",
         )}
-      </div>
-    </div>
+      >
+        {children}
+      </ol>
+    </ResponseFrame>
   )
 }
 

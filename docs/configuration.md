@@ -4,12 +4,13 @@ The configuration lives in the `config` folder (mounted as a Docker volume, or `
 
 ## What the folder holds
 
-| Path                 | Contents                                                                            |
-| -------------------- | ----------------------------------------------------------------------------------- |
-| `game.json`          | Manager password, see below.                                                        |
-| `msaquiz.db`         | **The database**: quizzes and game results. `-wal` / `-shm` files sit next to it.   |
-| `branding/`          | Optional theme (colors, logo, app name), see [Custom Branding](branding.md).        |
-| `quizz/`, `results/` | Legacy file storage. Kept for reference only — MSAQuiz no longer reads these files. |
+| Path                 | Contents                                                                                       |
+| -------------------- | ---------------------------------------------------------------------------------------------- |
+| `game.json`          | Manager password, see below.                                                                   |
+| `msaquiz.db`         | **The database**: quizzes and game results. `-wal` / `-shm` files sit next to it.              |
+| `branding/`          | Optional theme (colors, logo, app name), see [Custom Branding](branding.md).                   |
+| `moderation.txt`     | Optional words a word cloud drops, see [Word cloud moderation](quiz.md#word-cloud-moderation). |
+| `quizz/`, `results/` | Legacy file storage. Kept for reference only — MSAQuiz no longer reads these files.            |
 
 > **Back up this folder.** Since quizzes and results moved to SQLite, `msaquiz.db` is the only copy of everything the team has created. The database is in WAL mode, so a hot copy of the volume is safe.
 

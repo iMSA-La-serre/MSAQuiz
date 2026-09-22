@@ -19,9 +19,32 @@ const TRAY = "rounded-2xl bg-white p-2 shadow-lg shadow-black/15"
 // The letters of the answers picked, or the text typed. An ordering keeps
 // its letters in the order chosen, in smaller chips: six must fit a 320 px
 // phone. Every tray is as tall as the tray of one large letter chip, so the
-// screen keeps its layout from one type to the next.
+// screen keeps its layout from one type to the next; a long text wraps. Word
+// cloud words share the line of a typed text, apart from each other.
 const SentAnswerTray = ({ sent }: { sent: SentAnswer }) => {
   const { answer, questionType } = sent
+
+  if ("texts" in answer) {
+    return (
+      <ul
+        className={clsx(
+          TRAY,
+          "text-secondary flex max-w-full flex-wrap justify-center gap-x-2 px-5 py-4.5 text-xl leading-7 font-bold break-words",
+        )}
+      >
+        {answer.texts.map((text, index) => (
+          <li key={index} className="min-w-0">
+            {text}
+            {index < answer.texts.length - 1 && (
+              <span aria-hidden className="text-secondary/50 ml-2">
+                ·
+              </span>
+            )}
+          </li>
+        ))}
+      </ul>
+    )
+  }
 
   if ("text" in answer) {
     return (

@@ -48,7 +48,11 @@ const socketOf = (id: string) =>
 
 // Drives a RoundManager with stubbed players, timer and sockets, and records
 // every status it broadcasts or sends.
-const setup = (questions: Question[], players: Player[]) => {
+const setup = (
+  questions: Question[],
+  players: Player[],
+  moderationWords?: () => readonly string[],
+) => {
   let roster = players
   const broadcasts: Array<{ name: Status; data: unknown }> = []
   const sent: Array<{ target: string; name: Status; data: unknown }> = []
@@ -101,6 +105,7 @@ const setup = (questions: Question[], players: Player[]) => {
     onGameFinished: (result) => {
       finished.push(result)
     },
+    moderationWords,
   })
 
   const manager = socketOf(MANAGER_ID)
@@ -712,6 +717,236 @@ describe("RoundManager, shortanswer", () => {
   })
 })
 
+const WORDCLOUD = question({
+  type: QUESTION_TYPES.WORDCLOUD,
+  question: "En un mot, qu'attendez-vous de votre caisse ?",
+  answers: [],
+  solutions: [],
+  options: { wordCount: 2 },
+})
+
+describe("RoundManager, wordcloud", () => {
+  it("counts the words together and keeps only who answered", async () => {
+    const game = setup(
+      [WORDCLOUD],
+      [
+        player("camille", 300),
+        player("yanis"),
+        player("ines"),
+        player("lea"),
+        player("noe"),
+      ],
+      () => ["patate"],
+    )
+
+    await game.reachFirstQuestion()
+
+    expect(game.lastBroadcast(STATUS.SHOW_PREPARED)?.totalAnswers).toBe(0)
+    expect(game.lastBroadcast(STATUS.SHOW_QUESTION)).toMatchObject({
+      answers: [],
+      options: { wordCount: 2 },
+    })
+
+    await game.openAnswers(5)
+
+    game.round.selectAnswer(socketOf("camille"), {
+      texts: ["Écoute", "Proximité"],
+    })
+    game.round.selectAnswer(socketOf("yanis"), { texts: ["écoute", "Merde"] })
+    // Every word dropped: the answer still counts, with no word.
+    game.round.selectAnswer(socketOf("ines"), { texts: ["Patate"] })
+    game.round.selectAnswer(socketOf("noe"), { texts: ["Écoute"] })
+
+    expect(game.lastSent("ines", STATUS.WAIT)).toEqual({
+      text: "game:waitingForAnswers",
+    })
+
+    await game.closeAnswers()
+
+    expect(game.lastSent("camille", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "voted",
+      correct: true,
+      message: "game:wordcloudAnswered",
+      points: 0,
+      myPoints: 300,
+    })
+    expect(game.lastSent("ines", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "voted",
+      message: "game:wordcloudAnswered",
+    })
+    expect(game.lastSent("lea", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "noVote",
+      correct: false,
+      message: "game:noAnswer",
+      points: 0,
+    })
+
+    const responses = game.lastSent(MANAGER_ID, STATUS.SHOW_RESPONSES)
+
+    expect(responses).toMatchObject({
+      words: [
+        { text: "Écoute", count: 3 },
+        { text: "Proximité", count: 1 },
+      ],
+      distinctWords: 2,
+      totalAnswered: 4,
+      totalPlayers: 5,
+    })
+    // A plain toMatchObject would take any object for {}.
+    expect(responses?.responses).toEqual({})
+    expect(responses).not.toHaveProperty("correctCount")
+
+    game.round.showLeaderboard(game.manager)
+
+    const [saved] = game.finished[0].questions
+
+    expect(saved.playerAnswers).toEqual([
+      { playerName: "camille", answerIds: [], answered: true, score: 0 },
+      { playerName: "yanis", answerIds: [], answered: true, score: 0 },
+      { playerName: "ines", answerIds: [], answered: true, score: 0 },
+      { playerName: "lea", answerIds: null, answered: false, score: 0 },
+      { playerName: "noe", answerIds: [], answered: true, score: 0 },
+    ])
+    expect(saved.words).toEqual([
+      { text: "Écoute", count: 3 },
+      { text: "Proximité", count: 1 },
+    ])
+    expect(saved).not.toHaveProperty("wordsWithheld")
+    // Nothing a player typed sits next to a username.
+    expect(JSON.stringify(saved.playerAnswers)).not.toMatch(
+      /coute|Proximit|Merde|Patate/u,
+    )
+  })
+
+  it.each([
+    ["one player", [["Écoute", "Terrain"]]],
+    ["two players", [["Écoute"], ["Proximité"]]],
+    // The third answer counts, but none of its words was kept.
+    ["two players and a word dropped", [["Écoute"], ["Proximité"], ["Merde"]]],
+  ])("keeps no word when %s typed the words kept", async (_, typedWords) => {
+    const players = ["camille", "yanis", "ines", "lea"].map((id) => player(id))
+    const game = setup([WORDCLOUD], players)
+
+    await game.reachFirstQuestion()
+    await game.openAnswers(5)
+
+    for (const [index, texts] of typedWords.entries()) {
+      game.round.selectAnswer(socketOf(players[index].id), { texts })
+    }
+
+    await game.closeAnswers()
+
+    // The room still sees them.
+    expect(
+      game.lastSent(MANAGER_ID, STATUS.SHOW_RESPONSES)?.words,
+    ).not.toHaveLength(0)
+
+    game.round.showLeaderboard(game.manager)
+
+    const [saved] = game.finished[0].questions
+
+    expect(saved.wordsWithheld).toBe(true)
+    expect(saved).not.toHaveProperty("words")
+    expect(saved.playerAnswers.filter(({ answered }) => answered)).toHaveLength(
+      typedWords.length,
+    )
+    expect(JSON.stringify(saved)).not.toMatch(/coute|Terrain|Proximit/u)
+  })
+
+  it("has nothing to withhold when no word was kept", async () => {
+    const game = setup([WORDCLOUD], [player("camille"), player("yanis")])
+
+    await game.reachFirstQuestion()
+    await game.openAnswers(5)
+    game.round.selectAnswer(socketOf("camille"), { texts: ["Merde"] })
+    await game.closeAnswers()
+    game.round.showLeaderboard(game.manager)
+
+    const [saved] = game.finished[0].questions
+
+    expect(saved.words).toEqual([])
+    expect(saved).not.toHaveProperty("wordsWithheld")
+  })
+
+  it("shows the most frequent words only, but keeps them all", async () => {
+    const players = Array.from({ length: 35 }, (_, index) =>
+      player(`joueur${index}`),
+    )
+    const game = setup([{ ...WORDCLOUD, options: { wordCount: 1 } }], players)
+
+    await game.reachFirstQuestion()
+    await game.openAnswers(5)
+
+    for (const [index, { id }] of players.entries()) {
+      game.round.selectAnswer(socketOf(id), { texts: [`Mot ${index}`] })
+    }
+
+    await game.closeAnswers()
+
+    const responses = game.lastSent(MANAGER_ID, STATUS.SHOW_RESPONSES)
+
+    expect(responses?.words).toHaveLength(30)
+    expect(responses?.distinctWords).toBe(35)
+
+    game.round.showLeaderboard(game.manager)
+
+    expect(game.finished[0]?.questions[0]?.words).toHaveLength(35)
+  })
+
+  it("reads moderation.txt at each word cloud", async () => {
+    const moderationWords = vi.fn(() => ["patate"])
+    const game = setup(
+      [WORDCLOUD, question(), WORDCLOUD],
+      [player("camille")],
+      moderationWords,
+    )
+
+    await game.reachFirstQuestion()
+
+    expect(moderationWords).toHaveBeenCalledTimes(1)
+
+    await game.openAnswers(5)
+    await game.closeAnswers()
+    await game.reachNextQuestion()
+
+    expect(moderationWords).toHaveBeenCalledTimes(1)
+
+    await game.openAnswers(5)
+    await game.closeAnswers()
+    moderationWords.mockReturnValue(["tomate"])
+    await game.reachNextQuestion()
+    await game.openAnswers(5)
+    game.round.selectAnswer(socketOf("camille"), {
+      texts: ["Tomate", "Patate"],
+    })
+    await game.closeAnswers()
+
+    expect(moderationWords).toHaveBeenCalledTimes(2)
+    expect(game.lastSent(MANAGER_ID, STATUS.SHOW_RESPONSES)?.words).toEqual([
+      { text: "Patate", count: 1 },
+    ])
+  })
+
+  it("never sends a word to a player", async () => {
+    const game = setup([WORDCLOUD], [player("camille"), player("yanis")])
+
+    await game.reachFirstQuestion()
+    await game.openAnswers(5)
+    game.round.selectAnswer(socketOf("camille"), {
+      texts: ["Solidarité", "Terrain"],
+    })
+    await game.closeAnswers()
+    game.round.showLeaderboard(game.manager)
+
+    const toPlayers = [
+      ...game.broadcasts,
+      ...game.sent.filter(({ target }) => target !== MANAGER_ID),
+    ]
+
+    expect(JSON.stringify(toPlayers)).not.toMatch(/Solidarit|Terrain/u)
+  })
+})
+
 describe("RoundManager, what players receive", () => {
   // Every key a player may receive, per status. Anything else (accepted
   // answers, solutions, the correct order, a clientId) must stay server side.
@@ -722,6 +957,7 @@ describe("RoundManager, what players receive", () => {
       "answers",
       "cooldown",
       "media",
+      "options",
       "question",
       "questionType",
       "time",

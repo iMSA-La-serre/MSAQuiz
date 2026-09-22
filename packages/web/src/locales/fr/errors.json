@@ -47,7 +47,8 @@
     "acceptedDuplicate": "Deux réponses acceptées sont identiques une fois les majuscules, les accents et la ponctuation ignorés",
     "orderItemTooLong": "Un élément ne peut pas dépasser 80 caractères",
     "orderItemDuplicate": "Deux éléments sont identiques une fois les majuscules, les accents et la ponctuation ignorés",
-    "timeTooShort": "Le temps de réponse doit être d'au moins 5 secondes, ou sans limite"
+    "timeTooShort": "Le temps de réponse doit être d'au moins 5 secondes, ou sans limite",
+    "wordCountRange": "Un nuage de mots demande de 1 à 3 mots par participant"
   },
   "route": {
     "back": "Retour à l'accueil",

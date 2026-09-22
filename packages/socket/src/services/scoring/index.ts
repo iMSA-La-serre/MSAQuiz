@@ -7,11 +7,13 @@ import * as shortanswer from "./shortanswer"
 import * as single from "./single"
 import * as slide from "./slide"
 import * as truefalse from "./truefalse"
+import * as wordcloud from "./wordcloud"
 
 // What the scoring reads of an answer, see Answer in the common types.
 export interface ScoredAnswer {
   answerIds: number[]
   text?: string
+  texts?: string[]
 }
 
 // Multiplier of an answer, from 0 (no credit) to 1 (full credit).
@@ -25,6 +27,7 @@ export const QUESTION_SCORING: Record<QuestionType, ScoringFn> = {
   [slide.type]: slide.scoring,
   [ordering.type]: ordering.scoring,
   [shortanswer.type]: shortanswer.scoring,
+  [wordcloud.type]: wordcloud.scoring,
 }
 
 // Stored results may hold a type this version does not know (a later one, or

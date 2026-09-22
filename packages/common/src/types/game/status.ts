@@ -4,6 +4,7 @@ import type {
   QuestionMedia,
   QuestionOptions,
   QuestionType,
+  WordCount,
 } from "@razzia/common/types/game"
 
 export const STATUS = {
@@ -22,7 +23,7 @@ export const STATUS = {
 export type Status = (typeof STATUS)[keyof typeof STATUS]
 
 // How a round ended for one player: scored questions give correct, wrong or
-// noAnswer, polls give voted or noVote. Partial only comes from the types with
+// noAnswer, polls and word clouds give voted or noVote. Partial only comes from the types with
 // QUESTION_TYPE_META.partialOutcome (ordering): some credit, not all of it.
 export type ResultOutcome =
   "correct" | "partial" | "wrong" | "noAnswer" | "voted" | "noVote"
@@ -33,7 +34,8 @@ export type LeaderboardEntry = Player & { gain: number }
 export interface CommonStatusDataMap {
   SHOW_START: { time: number; subject: string }
   SHOW_PREPARED: {
-    // Length of the public answer list (0 for a shortanswer).
+    // Length of the public answer list (0 for a shortanswer or a word
+    // cloud).
     totalAnswers: number
     questionNumber: number
     questionType: QuestionType
@@ -52,6 +54,9 @@ export interface CommonStatusDataMap {
     questionType: QuestionType
     time: number
     totalPlayer: number
+    // Public, as in SELECT_ANSWER: the answer area is laid out as it will be
+    // (the fields of a word cloud).
+    options?: QuestionOptions
   }
   SELECT_ANSWER: {
     question: string
@@ -68,7 +73,8 @@ export interface CommonStatusDataMap {
     // Whether the answer earned credit: true for a partial outcome too. On a
     // poll, whether the vote was recorded.
     correct: boolean
-    // I18n key of the heading, one per outcome.
+    // I18n key of the heading, one per outcome; a word cloud has its own for
+    // voted and noVote.
     message: string
     // Change actually applied to myPoints this round (a penalty after the
     // floor at 0).
@@ -102,6 +108,11 @@ interface ManagerExtraStatus {
     answers: string[]
     // Shortanswer: the accepted answers, only ever sent to the manager.
     accepted?: string[]
+    // Wordcloud: the most frequent words (WORDCLOUD_LIMITS.CLOUD_WORDS), with
+    // no link to who typed them, and how many different words were kept in
+    // all. `responses` is empty.
+    words?: WordCount[]
+    distinctWords?: number
     // Ordering: the list players were shown, as indices into `answers`
     // (publicOrder[publicIndex] = index in answers), so the host can letter
     // each item as the phones did.

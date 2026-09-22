@@ -1,4 +1,8 @@
-import { EVENTS, SHORTANSWER_LIMITS } from "@razzia/common/constants"
+import {
+  EVENTS,
+  SHORTANSWER_LIMITS,
+  WORDCLOUD_LIMITS,
+} from "@razzia/common/constants"
 import type {
   ClientToServerEvents,
   Socket,
@@ -33,10 +37,35 @@ const answerText = z.custom<string>(
     typeof value === "string" && value.length <= SHORTANSWER_LIMITS.RAW_LENGTH,
 )
 
-// Indices or a text, never both.
+// Word cloud texts, as few and as short as a regular client sends them. Their
+// content is checked by parseAnswer.
+const answerTexts = z.custom<string[]>(
+  (value) =>
+    Array.isArray(value) &&
+    value.length <= WORDCLOUD_LIMITS.MAX_WORDS &&
+    value.every(
+      (text) =>
+        typeof text === "string" && text.length <= WORDCLOUD_LIMITS.RAW_LENGTH,
+    ),
+)
+
+// Indices, a text or texts, never two of them.
 const selectedAnswer = z.union([
-  z.object({ answerKeys, text: z.undefined().optional() }),
-  z.object({ text: answerText, answerKeys: z.undefined().optional() }),
+  z.object({
+    answerKeys,
+    text: z.undefined().optional(),
+    texts: z.undefined().optional(),
+  }),
+  z.object({
+    text: answerText,
+    answerKeys: z.undefined().optional(),
+    texts: z.undefined().optional(),
+  }),
+  z.object({
+    texts: answerTexts,
+    answerKeys: z.undefined().optional(),
+    text: z.undefined().optional(),
+  }),
 ])
 
 // Expected shape of the first argument of every event a client may send.

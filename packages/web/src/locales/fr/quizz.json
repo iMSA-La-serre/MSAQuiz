@@ -35,7 +35,12 @@
       "orderScoringHint.position": "Points en proportion des éléments placés au bon rang",
       "orderScoringHint.exact": "Points seulement si l'ordre est entièrement exact",
       "typoTolerance": "Tolérance aux fautes",
-      "typoToleranceHint": "Fautes de frappe : une lettre de différence acceptée à partir de 6 caractères, deux à partir de 12, jamais sur une réponse avec un chiffre ou un nombre romain"
+      "typoToleranceHint": "Fautes de frappe : une lettre de différence acceptée à partir de 6 caractères, deux à partir de 12, jamais sur une réponse avec un chiffre ou un nombre romain",
+      "input": "Saisie",
+      "wordCount": "Mots par participant",
+      "wordCountValue_one": "{{count}} mot",
+      "wordCountValue_other": "{{count}} mots",
+      "wordCountHint": "Champs sur le téléphone, {{max}} caractères chacun"
     },
     "deleteQuestion": "Supprimer la question",
     "deleteQuestionConfirm": "Êtes-vous sûr de vouloir supprimer cette question ?",
@@ -56,7 +61,8 @@
     "slide": "Diapo info",
     "truefalse": "Vrai / Faux",
     "ordering": "Mise en ordre",
-    "shortanswer": "Réponse courte"
+    "shortanswer": "Réponse courte",
+    "wordcloud": "Nuage de mots"
   },
   "titleQuizzPlaceholder": "Titre du quiz...",
   "slideNoAnswers": "Une diapo info n'attend pas de réponses — elle affiche simplement la question et son média.",
@@ -74,7 +80,8 @@
       "single": "Cochez la ou les réponses acceptées",
       "truefalse": "Choisissez la bonne réponse",
       "ordering": "Saisissez-les dans le bon ordre",
-      "shortanswer": "Majuscules et accents ignorés"
+      "shortanswer": "Majuscules et accents ignorés",
+      "wordcloud": "Réponses non associées au pseudo"
     },
     "placeholder": "Réponse {{letter}}",
     "remove": "Supprimer la réponse {{letter}}",
@@ -105,5 +112,19 @@
     "testPlaceholder": "Ce qu'un participant pourrait taper",
     "testRejected": "Refusée : ne correspond à aucune réponse acceptée",
     "title": "Réponses acceptées"
+  },
+  "wordcloud": {
+    "display": "À l'écran, les mots les plus donnés sont les plus grands. Un clic sur un mot le masque, un second le réaffiche.",
+    "fields_one": "Chaque participant tape un mot ou une courte expression, {{max}} caractères au plus.",
+    "fields_other": "Chaque participant tape jusqu'à {{count}} mots ou courtes expressions, {{max}} caractères chacun.",
+    "moderation": "Les grossièretés, les insultes, les adresses e-mail, les liens et les numéros de téléphone sont écartés sans prévenir le participant. Un fichier moderation.txt dans le dossier de configuration complète la liste.",
+    "perPlayer_one": "{{count}} mot par participant",
+    "perPlayer_other": "{{count}} mots par participant",
+    "setting": {
+      "1": "1 mot par participant",
+      "2": "2 mots par participant",
+      "3": "3 mots par participant"
+    },
+    "unlinked": "Les réponses ne sont pas associées au pseudo : les résultats gardent seulement qui a répondu, et combien de fois chaque mot a été donné."
   }
 }

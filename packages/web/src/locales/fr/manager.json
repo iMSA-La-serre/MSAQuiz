@@ -24,6 +24,9 @@
     "matched": "Reconnue comme « {{answer}} »",
     "noAnswer": "Sans réponse",
     "none": "Aucun résultat pour l'instant, terminez une partie pour voir les rapports",
+    "noWord": "Aucun mot",
+    "otherWords_one": "{{count}} autre mot",
+    "otherWords_other": "{{count}} autres mots",
     "paginationOf": " sur ",
     "placed": "Bien placé",
     "placedCount": "{{count}} bien placé(s)",
@@ -42,15 +45,18 @@
     },
     "timeLimitSuffix": "s limite",
     "typed": "« {{text}} »",
+    "unlinked": "Réponse non associée au pseudo",
     "unrecognized": "Non reconnues",
     "verdict": {
       "correct": "Correct",
       "noAnswer": "Sans réponse",
       "partial": "En partie juste ({{percent}})",
       "recognized": "Reconnue",
+      "recorded": "Réponse enregistrée",
       "unrecognized": "Non reconnue",
       "wrong": "Incorrect"
-    }
+    },
+    "wordsWithheld": "Trop peu de réponses pour afficher les mots"
   },
   "tabs": {
     "play": "Jouer",
@@ -66,9 +72,11 @@
     "missing": "{{count}} sans réponse",
     "none": "Aucune statistique pour l'instant, terminez une partie pour la voir ici",
     "noQuestion": "Aucune question exploitable",
+    "noWord": "Aucun mot",
     "placedByItem": "Bien placés par élément",
     "playerCount": "{{count}} participation(s)",
     "unrecognized": "Non reconnues",
-    "unscored": "Non noté"
+    "unscored": "Non noté",
+    "wordsWithheld": "Trop peu de réponses pour afficher les mots"
   }
 }

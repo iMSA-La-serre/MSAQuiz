@@ -23,6 +23,7 @@ const HINT_KEYS: Record<QuestionType, string> = {
   // Shown by their own answers editor (QUESTION_REGISTRY.AnswersEditor).
   ordering: "quizz:answers.hint.ordering",
   shortanswer: "quizz:answers.hint.shortanswer",
+  wordcloud: "quizz:answers.hint.wordcloud",
 }
 
 // Chip, field, correct-answer box, delete button. Below sm the rows use two

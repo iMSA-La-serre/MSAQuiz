@@ -431,3 +431,49 @@ describe("shortanswer", () => {
     expect(isValid({ ...SHORTANSWER, time: -1 })).toBe(true)
   })
 })
+
+describe("wordcloud", () => {
+  const WORDCLOUD = {
+    type: QUESTION_TYPES.WORDCLOUD,
+    question: "En un mot, qu'attendez-vous de votre caisse ?",
+    options: { wordCount: 3 },
+    cooldown: 5,
+    time: 40,
+  }
+
+  it("keeps its fields per player and nothing to score", () => {
+    const wordcloud = parse({
+      ...WORDCLOUD,
+      answers: ["Écoute", "Proximité"],
+      solutions: [0],
+      accepted: ["Écoute"],
+      maxPoints: 2000,
+      penalty: 100,
+    })
+
+    expect(wordcloud.options?.wordCount).toBe(3)
+    expect(wordcloud.answers).toEqual([])
+    expect(wordcloud.solutions).toEqual([])
+    expect(wordcloud).not.toHaveProperty("accepted")
+    expect(wordcloud.maxPoints).toBeUndefined()
+    expect(wordcloud.penalty).toBeUndefined()
+  })
+
+  it("takes 1 to 3 fields, 1 when absent", () => {
+    expect(isValid({ ...WORDCLOUD, options: undefined })).toBe(true)
+    expect(isValid({ ...WORDCLOUD, options: { wordCount: 1 } })).toBe(true)
+
+    for (const wordCount of [0, 4, 1.5]) {
+      expect(issuesOf({ ...WORDCLOUD, options: { wordCount } })).toEqual([
+        "errors:quizz.wordCountRange",
+      ])
+    }
+  })
+
+  it("needs 5 seconds at least, or no limit", () => {
+    expect(issuesOf({ ...WORDCLOUD, time: 3 })).toEqual([
+      "errors:quizz.timeTooShort",
+    ])
+    expect(isValid({ ...WORDCLOUD, time: -1 })).toBe(true)
+  })
+})

@@ -1,6 +1,8 @@
 import { QUESTION_TYPES } from "@razzia/common/constants"
 import type { Question, QuestionType } from "@razzia/common/types/game"
+import { buildBlocklist } from "@razzia/common/utils/moderation"
 import {
+  answerParser,
   countResponses,
   parseAnswer,
   parseAnswerIds,
@@ -186,6 +188,98 @@ describe("parseAnswer, shortanswer", () => {
         [],
       )?.answerIds,
     ).toEqual([])
+  })
+})
+
+describe("parseAnswer, wordcloud", () => {
+  const wordcloud = (wordCount?: number) =>
+    ({
+      ...question(QUESTION_TYPES.WORDCLOUD, []),
+      solutions: [],
+      ...(wordCount !== undefined && { options: { wordCount } }),
+    }) satisfies Question
+
+  it("keeps the cleaned words, and no answer id", () => {
+    expect(
+      parseAnswer(
+        wordcloud(3),
+        { texts: ["  Écoute ", "Proximité​", "Terrain"] },
+        [],
+      ),
+    ).toEqual({ answerIds: [], texts: ["Écoute", "Proximité", "Terrain"] })
+  })
+
+  it("takes as many words as the question has fields, 1 by default", () => {
+    expect(parseAnswer(wordcloud(), { texts: ["Écoute"] }, [])).not.toBeNull()
+    expect(parseAnswer(wordcloud(), { texts: ["Écoute", "Terrain"] }, [])).toBe(
+      null,
+    )
+    expect(
+      parseAnswer(wordcloud(2), { texts: ["Écoute", "Terrain"] }, []),
+    ).not.toBeNull()
+    expect(
+      parseAnswer(wordcloud(3), { texts: ["a", "b", "c", "d"] }, []),
+    ).toBeNull()
+  })
+
+  it("refuses an empty, blank or too long word, or no word at all", () => {
+    expect(parseAnswer(wordcloud(2), { texts: [] }, [])).toBeNull()
+    expect(parseAnswer(wordcloud(2), { texts: ["Écoute", " "] }, [])).toBeNull()
+    expect(
+      parseAnswer(wordcloud(), { texts: ["m".repeat(30)] }, []),
+    ).not.toBeNull()
+    expect(parseAnswer(wordcloud(), { texts: ["m".repeat(31)] }, [])).toBeNull()
+  })
+
+  it("refuses anything but a list of texts", () => {
+    expect(parseAnswer(wordcloud(), { text: "Écoute" }, [])).toBeNull()
+    expect(parseAnswer(wordcloud(), { answerKeys: [0] }, [])).toBeNull()
+    expect(parseAnswer(wordcloud(), { texts: "Écoute" }, [])).toBeNull()
+    expect(parseAnswer(wordcloud(2), { texts: ["Écoute", 3] }, [])).toBeNull()
+  })
+
+  it("drops a word the player already gave, once normalized", () => {
+    expect(
+      parseAnswer(
+        wordcloud(3),
+        { texts: ["Écoute", "ECOUTE !", "Terrain"] },
+        [],
+      )?.texts,
+    ).toEqual(["Écoute", "Terrain"])
+  })
+
+  it("drops a moderated word or one with nothing to compare, silently", () => {
+    expect(
+      parseAnswer(
+        wordcloud(3),
+        { texts: ["Merde", "Écoute", "06 12 34 56 78"] },
+        [],
+      ),
+    ).toEqual({ answerIds: [], texts: ["Écoute"] })
+    expect(
+      parseAnswer(wordcloud(2), { texts: ["connard", "???"] }, []),
+    ).toEqual({ answerIds: [], texts: [] })
+  })
+
+  it("uses the blocklist it is given", () => {
+    const parse = answerParser(buildBlocklist(["patate"]))
+
+    expect(
+      parse(wordcloud(2), { texts: ["Patate", "Écoute"] }, [])?.texts,
+    ).toEqual(["Écoute"])
+    expect(parse(wordcloud(2), { texts: ["Merde"] }, [])?.texts).toEqual([])
+    expect(parseAnswer(wordcloud(2), { texts: ["Patate"] }, [])?.texts).toEqual(
+      ["Patate"],
+    )
+  })
+
+  it("counts no response by index", () => {
+    expect(
+      countResponses(wordcloud(2), [
+        { answerIds: [], texts: ["Écoute"] },
+        { answerIds: [], texts: [] },
+      ]),
+    ).toEqual({})
   })
 })
 

@@ -1,24 +1,33 @@
-import { QUESTION_TYPE_META, QUESTION_TYPES } from "@razzia/common/constants"
+import {
+  QUESTION_TYPE_META,
+  QUESTION_TYPES,
+  WORDCLOUD_LIMITS,
+} from "@razzia/common/constants"
 import type {
   GameResult,
   PlayerAnswerRecord,
   QuestionResult,
   QuestionStats,
+  WordCount,
 } from "@razzia/common/types/game"
 import { placedItems } from "@razzia/common/utils/ordering"
+import { countWords } from "@razzia/common/utils/wordcloud"
 import { isKnownType, QUESTION_SCORING } from "@razzia/socket/services/scoring"
 
 type AnsweredRecord = PlayerAnswerRecord & { answerIds: number[] }
 
 /**
  * Whether a record holds an answer. A shortanswer text that matched no
- * accepted answer is one too, with no answer id.
+ * accepted answer is one too, with no answer id, and so is the answer of a
+ * type that is not nominative (wordcloud), which only says it was given.
  */
 export const hasAnswer = (
   record: PlayerAnswerRecord,
 ): record is AnsweredRecord =>
   record.answerIds !== null &&
-  (record.answerIds.length > 0 || typeof record.text === "string")
+  (record.answerIds.length > 0 ||
+    typeof record.text === "string" ||
+    record.answered === true)
 
 /**
  * Multiplier of a recorded answer: the one saved when the question closed,
@@ -100,6 +109,10 @@ interface Tally {
   stats: QuestionStats
   // Ordering: sum of the multipliers, for the mean.
   scoreSum: number
+  // Wordcloud: the words of every game, counted together at the end, and
+  // whether a game kept none (too few authors).
+  words: WordCount[]
+  withheld: boolean
 }
 
 // Types whose answer ids are not picked choices: they never share a row with
@@ -108,6 +121,7 @@ interface Tally {
 const OWN_ROW_TYPES = new Set<string>([
   QUESTION_TYPES.ORDERING,
   QUESTION_TYPES.SHORTANSWER,
+  QUESTION_TYPES.WORDCLOUD,
 ])
 
 const groupKey = (question: QuestionResult, label: string): string =>
@@ -142,7 +156,29 @@ const newTally = (question: QuestionResult, label: string): Tally => {
       }),
     },
     scoreSum: 0,
+    words: [],
+    withheld: false,
   }
+}
+
+/**
+ * The words of a stored word cloud, skipping any entry edited into something
+ * else by hand.
+ */
+export const storedWords = ({ words }: QuestionResult): WordCount[] => {
+  const entries: unknown = words
+
+  if (!Array.isArray(entries)) {
+    return []
+  }
+
+  return entries.filter(
+    (word: unknown): word is WordCount =>
+      typeof word === "object" &&
+      word !== null &&
+      typeof (word as WordCount).text === "string" &&
+      Number.isFinite((word as WordCount).count),
+  )
 }
 
 const countRecord = (
@@ -192,9 +228,10 @@ const countRecord = (
  *
  * Questions are grouped by their text rather than by their position: a quizz
  * can be edited or reordered between two games, and merging "the same
- * question" is what makes the numbers readable. An ordering or a shortanswer
- * only merges with the same type, so the same wording can show up once more
- * under another type. Info slides never reach the history, so they never show
+ * question" is what makes the numbers readable. An ordering, a shortanswer or
+ * a word cloud only merges with the same type, so the same wording can show
+ * up once more under another type. A word cloud counts its words across the
+ * games that kept them, never per player. Info slides never reach the history, so they never show
  * up here either, and a type this version does not know is left out.
  *
  * `successRate` counts correct answers over answers actually given: players
@@ -220,13 +257,25 @@ export const aggregateQuestions = (games: GameResult[]): QuestionStats[] => {
         countRecord(tally, question, record)
       }
 
+      if (question.type === QUESTION_TYPES.WORDCLOUD) {
+        tally.words.push(...storedWords(question))
+        tally.withheld ||= question.wordsWithheld === true
+      }
+
       byQuestion.set(key, tally)
     }
   }
 
   return [...byQuestion.values()]
-    .map(({ stats, scoreSum }) => ({
+    .map(({ stats, scoreSum, words, withheld }) => ({
       ...stats,
+      ...(stats.type === QUESTION_TYPES.WORDCLOUD && {
+        // Salted as in the game: words given as often keep its order.
+        answers: countWords(words, stats.question)
+          .slice(0, WORDCLOUD_LIMITS.CLOUD_WORDS)
+          .map(({ text, count }) => ({ label: text, count })),
+        ...(words.length === 0 && withheld && { wordsWithheld: true }),
+      }),
       successRate:
         stats.scored && stats.answerCount > 0
           ? stats.correctCount / stats.answerCount

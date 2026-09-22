@@ -93,6 +93,7 @@ export const QUESTION_TYPES = {
   SLIDE: "slide",
   ORDERING: "ordering",
   SHORTANSWER: "shortanswer",
+  WORDCLOUD: "wordcloud",
 } as const
 
 /**
@@ -111,6 +112,11 @@ export const QUESTION_TYPES = {
  *
  * `partialOutcome` reports a multiplier strictly between 0 and 1 as a
  * "partial" outcome instead of "correct".
+ *
+ * `nominative` keeps each player's answer in the history. Without it, the
+ * history keeps whether each player answered and, at the question level, a
+ * count of the answers: nothing links an answer to a username, neither in the
+ * results, the statistics, the export nor the logs.
  */
 export const QUESTION_TYPE_META: Record<
   (typeof QUESTION_TYPES)[keyof typeof QUESTION_TYPES],
@@ -122,6 +128,7 @@ export const QUESTION_TYPE_META: Record<
     maxAnswers: number
     speedBonus: boolean
     partialOutcome: boolean
+    nominative: boolean
   }
 > = {
   single: {
@@ -131,6 +138,7 @@ export const QUESTION_TYPE_META: Record<
     maxAnswers: 4,
     speedBonus: true,
     partialOutcome: false,
+    nominative: true,
   },
   multi: {
     scored: true,
@@ -139,6 +147,7 @@ export const QUESTION_TYPE_META: Record<
     maxAnswers: 4,
     speedBonus: true,
     partialOutcome: false,
+    nominative: true,
   },
   truefalse: {
     scored: true,
@@ -148,6 +157,7 @@ export const QUESTION_TYPE_META: Record<
     maxAnswers: 2,
     speedBonus: true,
     partialOutcome: false,
+    nominative: true,
   },
   poll: {
     scored: false,
@@ -156,6 +166,7 @@ export const QUESTION_TYPE_META: Record<
     maxAnswers: 4,
     speedBonus: true,
     partialOutcome: false,
+    nominative: true,
   },
   slide: {
     scored: false,
@@ -164,6 +175,7 @@ export const QUESTION_TYPE_META: Record<
     maxAnswers: 0,
     speedBonus: true,
     partialOutcome: false,
+    nominative: true,
   },
   // Answers are the items, stored in the correct order.
   ordering: {
@@ -173,6 +185,7 @@ export const QUESTION_TYPE_META: Record<
     maxAnswers: 6,
     speedBonus: false,
     partialOutcome: true,
+    nominative: true,
   },
   // No public answers: the player types a text, compared to `accepted`.
   shortanswer: {
@@ -182,6 +195,18 @@ export const QUESTION_TYPE_META: Record<
     maxAnswers: 0,
     speedBonus: false,
     partialOutcome: false,
+    nominative: true,
+  },
+  // No public answers: each player types 1 to 3 words (options.wordCount),
+  // only counted at the question level.
+  wordcloud: {
+    scored: false,
+    acceptsAnswers: true,
+    minAnswers: 0,
+    maxAnswers: 0,
+    speedBonus: false,
+    partialOutcome: false,
+    nominative: false,
   },
 }
 
@@ -209,6 +234,22 @@ export const SHORTANSWER_LIMITS = {
   // Raw UTF-16 length cut before any processing, and cap of the socket
   // payload: keeps the normalization cost bounded whatever a client sends.
   RAW_LENGTH: 200,
+} as const
+
+export const WORDCLOUD_LIMITS = {
+  // Fields on the phone, set per question with options.wordCount.
+  MIN_WORDS: 1,
+  MAX_WORDS: 3,
+  // Characters in each word or expression, as counted by countInputChars.
+  WORD_LENGTH: 30,
+  // Raw UTF-16 length of each text in the socket payload, the cut cleanInput
+  // makes anyway.
+  RAW_LENGTH: SHORTANSWER_LIMITS.RAW_LENGTH,
+  // Words the host screen shows, the most frequent first.
+  CLOUD_WORDS: 30,
+  // Players whose words the history needs to keep them: with fewer, who
+  // answered would tell who typed which word. The room still sees them live.
+  MIN_AUTHORS: 3,
 } as const
 
 export const MEDIA_TYPES = {

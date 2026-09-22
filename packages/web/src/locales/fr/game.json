@@ -7,7 +7,10 @@
     "pollHint": "Sondage : pas de bonne réponse",
     "shortanswerEmpty": "Tapez votre réponse",
     "shortanswerHint": "Réponse à saisir",
-    "slideHint": "Suivez la diapo à l'écran"
+    "slideHint": "Suivez la diapo à l'écran",
+    "wordcloudEmpty_one": "Tapez un mot",
+    "wordcloudEmpty_other": "Tapez au moins un mot",
+    "wordcloudHint": "Réponse non associée à votre pseudo"
   },
   "band": {
     "answersLabel": "Réponses reçues : {{count}} sur {{total}}",
@@ -108,5 +111,24 @@
   },
   "waitingForAnswers": "En attente des réponses des joueurs",
   "waitingForPlayers": "En attente des joueurs",
+  "wordcloud": {
+    "answerCount_one": "{{count}} réponse",
+    "answerCount_other": "{{count}} réponses",
+    "empty": "Aucun mot à afficher",
+    "field": "Votre mot",
+    "fieldNumbered": "Mot {{number}} sur {{count}}",
+    "hideAll": "Tout masquer",
+    "listLabel": "Mots proposés",
+    "moreWords_one": "+ {{count}} autre mot",
+    "moreWords_other": "+ {{count}} autres mots",
+    "placeholder": "Votre mot",
+    "placeholderNumbered": "Mot {{number}}",
+    "showAll": "Tout afficher",
+    "toggle_one": "Masquer « {{word}} », {{count}} réponse",
+    "toggle_other": "Masquer « {{word}} », {{count}} réponses",
+    "wordCount_one": "{{count}} mot",
+    "wordCount_other": "{{count}} mots"
+  },
+  "wordcloudAnswered": "Réponse enregistrée",
   "wrong": "Pas cette fois"
 }

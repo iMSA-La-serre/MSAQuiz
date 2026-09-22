@@ -1,13 +1,24 @@
 import clsx from "clsx"
-import { Check, CircleDashed, type LucideIcon, Minus, X } from "lucide-react"
+import {
+  Check,
+  CircleDashed,
+  type LucideIcon,
+  Minus,
+  Vote,
+  X,
+} from "lucide-react"
 
-export type Verdict = "correct" | "partial" | "wrong" | "noAnswer"
+// Recorded: an answer to a question with no right answer (word cloud), with
+// the icon of the phone's « Réponse enregistrée », not the tick of a right
+// answer.
+export type Verdict = "correct" | "partial" | "wrong" | "noAnswer" | "recorded"
 
 const STYLES: Record<Verdict, { icon: LucideIcon; className: string }> = {
   correct: { icon: Check, className: "text-success-strong" },
   partial: { icon: CircleDashed, className: "text-foreground" },
   wrong: { icon: X, className: "text-danger" },
   noAnswer: { icon: Minus, className: "text-muted-foreground" },
+  recorded: { icon: Vote, className: "text-foreground" },
 }
 
 interface Props {

@@ -1,11 +1,22 @@
-import { QUESTION_TYPES, SHORTANSWER_LIMITS } from "@razzia/common/constants"
+import {
+  QUESTION_TYPES,
+  SHORTANSWER_LIMITS,
+  WORDCLOUD_LIMITS,
+} from "@razzia/common/constants"
 import type { Question } from "@razzia/common/types/game"
+import {
+  BUILTIN_BLOCKLIST,
+  type Blocklist,
+  isBlocked,
+} from "@razzia/common/utils/moderation"
 import { placedItems } from "@razzia/common/utils/ordering"
 import {
+  answerKey,
   cleanInput,
   countInputChars,
   matchAccepted,
 } from "@razzia/common/utils/text"
+import { wordCountOf } from "@razzia/common/utils/wordcloud"
 import type { ScoredAnswer } from "@razzia/socket/services/scoring"
 
 // Answer ids as sent by a player, checked against the question before they
@@ -92,6 +103,54 @@ const parseText = (question: Question, text: unknown): ScoredAnswer | null => {
   return { answerIds: index === -1 ? [] : [index], text: cleaned }
 }
 
+// Wordcloud: 1 to wordCount texts, each cleaned and 1 to 30 characters long,
+// or the whole answer is refused. A word the player already gave (same key),
+// a word with no key, and a word the blocklist refuses are then dropped
+// without a word to the player: the answer still counts, maybe with no word.
+const parseWords = (
+  question: Question,
+  texts: unknown,
+  blocklist: Blocklist,
+): ScoredAnswer | null => {
+  if (
+    !Array.isArray(texts) ||
+    texts.length === 0 ||
+    texts.length > wordCountOf(question.options)
+  ) {
+    return null
+  }
+
+  const words: unknown[] = texts
+  const valid = words.every((text) => {
+    if (typeof text !== "string") {
+      return false
+    }
+
+    const length = countInputChars(text)
+
+    return length > 0 && length <= WORDCLOUD_LIMITS.WORD_LENGTH
+  })
+
+  if (!valid) {
+    return null
+  }
+
+  const seen = new Set<string>()
+  const kept = (words as string[]).map(cleanInput).filter((text) => {
+    const key = answerKey(text)
+
+    if (key === "" || seen.has(key)) {
+      return false
+    }
+
+    seen.add(key)
+
+    return !isBlocked(text, blocklist)
+  })
+
+  return { answerIds: [], texts: kept }
+}
+
 const payloadField = (payload: unknown, field: string): unknown =>
   typeof payload === "object" &&
   payload !== null &&
@@ -100,32 +159,46 @@ const payloadField = (payload: unknown, field: string): unknown =>
     : undefined
 
 /**
- * An answer payload checked against the question, ready to be stored, or
- * null to ignore it. `publicOrder` maps each index of the list players were
- * shown to its original index (identity except for an ordering).
+ * The answer parser of a game, given the words a word cloud drops: the
+ * built-in list plus the lines of moderation.txt.
  */
-export const parseAnswer = (
-  question: Question,
-  payload: unknown,
-  publicOrder: readonly number[],
-): ScoredAnswer | null => {
-  if (question.type === QUESTION_TYPES.SHORTANSWER) {
-    return parseText(question, payloadField(payload, "text"))
+export const answerParser =
+  (blocklist: Blocklist) =>
+  (
+    question: Question,
+    payload: unknown,
+    publicOrder: readonly number[],
+  ): ScoredAnswer | null => {
+    if (question.type === QUESTION_TYPES.SHORTANSWER) {
+      return parseText(question, payloadField(payload, "text"))
+    }
+
+    if (question.type === QUESTION_TYPES.WORDCLOUD) {
+      return parseWords(question, payloadField(payload, "texts"), blocklist)
+    }
+
+    const answerKeys = payloadField(payload, "answerKeys")
+    const answerIds =
+      question.type === QUESTION_TYPES.ORDERING
+        ? parseOrder(answerKeys, publicOrder)
+        : parseAnswerIds(question, answerKeys)
+
+    return answerIds && { answerIds }
   }
 
-  const answerKeys = payloadField(payload, "answerKeys")
-  const answerIds =
-    question.type === QUESTION_TYPES.ORDERING
-      ? parseOrder(answerKeys, publicOrder)
-      : parseAnswerIds(question, answerKeys)
-
-  return answerIds && { answerIds }
-}
+/**
+ * An answer payload checked against the question, ready to be stored, or
+ * null to ignore it. `publicOrder` maps each index of the list players were
+ * shown to its original index (identity except for an ordering). A word cloud
+ * drops the words of the built-in list, see answerParser.
+ */
+export const parseAnswer = answerParser(BUILTIN_BLOCKLIST)
 
 /**
  * Tally shown with SHOW_RESPONSES, keyed by index. Choice types: votes per
  * answer. Ordering: players who put item i (original index) at its place.
- * Shortanswer: inputs recognized per accepted answer.
+ * Shortanswer: inputs recognized per accepted answer. Wordcloud: nothing, its
+ * words are counted apart (countWords).
  */
 export const countResponses = (
   question: Question,

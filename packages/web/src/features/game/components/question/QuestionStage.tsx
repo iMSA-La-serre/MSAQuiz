@@ -13,6 +13,7 @@ import { QUESTION_REGISTRY } from "@razzia/web/features/questions"
 import clsx from "clsx"
 import {
   Keyboard,
+  Link2Off,
   ListChecks,
   ListOrdered,
   type LucideIcon,
@@ -45,6 +46,7 @@ const HINTS: Partial<Record<QuestionType, { icon: LucideIcon; key: string }>> =
     poll: { icon: Vote, key: "game:answer.pollHint" },
     ordering: { icon: ListOrdered, key: "game:answer.orderingHint" },
     shortanswer: { icon: Keyboard, key: "game:answer.shortanswerHint" },
+    wordcloud: { icon: Link2Off, key: "game:answer.wordcloudHint" },
   }
 
 const TITLE = "font-bold text-balance text-white drop-shadow-lg"

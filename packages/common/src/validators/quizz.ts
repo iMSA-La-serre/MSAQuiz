@@ -7,6 +7,7 @@ import {
   QUESTION_TYPES,
   SCORING_MODES,
   SHORTANSWER_LIMITS,
+  WORDCLOUD_LIMITS,
 } from "@razzia/common/constants"
 import type { Question } from "@razzia/common/types/game"
 import {
@@ -29,6 +30,12 @@ const optionsValidator = z.object({
   scoringMode: z.enum(SCORING_MODES).default(SCORING_MODES.BALANCED),
   orderScoring: z.enum(ORDER_SCORING).optional(),
   typoTolerance: z.boolean().optional(),
+  wordCount: z
+    .number()
+    .int("errors:quizz.wordCountRange")
+    .min(WORDCLOUD_LIMITS.MIN_WORDS, "errors:quizz.wordCountRange")
+    .max(WORDCLOUD_LIMITS.MAX_WORDS, "errors:quizz.wordCountRange")
+    .optional(),
 })
 
 // Types added after quizzes were first stored: the stricter rules below only
@@ -36,6 +43,7 @@ const optionsValidator = z.object({
 const NEWER_TYPES = new Set<string>([
   QUESTION_TYPES.ORDERING,
   QUESTION_TYPES.SHORTANSWER,
+  QUESTION_TYPES.WORDCLOUD,
 ])
 
 const MIN_TIME = 5
@@ -177,7 +185,8 @@ const questionValidator = z.preprocess(
       }
 
       // Fixed answers (true/false) are reported as such rather than as too
-      // many; a type without answers (slide, shortanswer) has them dropped.
+      // many; a type without answers (slide, shortanswer, wordcloud) has them
+      // dropped.
       if (meta.answersCount !== undefined) {
         if (count < meta.minAnswers) {
           issue("errors:quizz.tooFewAnswers", ["answers"])
@@ -196,7 +205,8 @@ const questionValidator = z.preprocess(
         }
       }
 
-      // Ordering and shortanswer do not score against `solutions`.
+      // Ordering and shortanswer do not score against `solutions`; the newer
+      // unscored types do not score at all.
       if (
         meta.scored &&
         !NEWER_TYPES.has(question.type) &&
@@ -240,10 +250,12 @@ const questionValidator = z.preprocess(
         return question
       }
 
-      // Unscored types: no solutions, no points tuning; slides have no answers.
+      // Unscored types: no solutions, no points tuning; slides and word clouds
+      // have no answers.
       return {
         ...question,
-        answers: meta.acceptsAnswers ? question.answers : [],
+        answers:
+          meta.acceptsAnswers && meta.maxAnswers > 0 ? question.answers : [],
         solutions: [],
         maxPoints: undefined,
         penalty: undefined,

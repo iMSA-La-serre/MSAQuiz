@@ -22,4 +22,13 @@ describe("hasAnswer", () => {
   it("keeps an empty id list without text unanswered, as before", () => {
     expect(hasAnswer({ playerName: "Alice", answerIds: [] })).toBe(false)
   })
+
+  it("reads the participation of a word cloud, which keeps no answer", () => {
+    expect(
+      hasAnswer({ playerName: "Alice", answerIds: [], answered: true }),
+    ).toBe(true)
+    expect(
+      hasAnswer({ playerName: "Alice", answerIds: null, answered: false }),
+    ).toBe(false)
+  })
 })

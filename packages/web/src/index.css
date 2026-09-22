@@ -4,6 +4,10 @@
 browser window with its toolbar. Host layouts tighten below this height. */
 @custom-variant short (@media (max-height: 820px));
 
+/* A full screen 1080p projector or taller: the host columns keep their width
+(max-w-5xl) past 1072 px, so only the height tells a larger room. */
+@custom-variant tall (@media (min-height: 1000px));
+
 /* Default look = the La Serre brand guidelines (RGB palette, Work Sans). A
 config/branding/theme.json can still override any of these tokens. */
 @theme {

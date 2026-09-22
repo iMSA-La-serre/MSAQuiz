@@ -207,3 +207,38 @@ describe("isValidClientEvent, shortanswer text", () => {
     expect(performance.now() - start).toBeLessThan(100)
   })
 })
+
+describe("isValidClientEvent, wordcloud texts", () => {
+  const answer = (data: unknown) =>
+    isValidClientEvent(EVENTS.PLAYER.SELECTED_ANSWER, { gameId: "g", data })
+
+  it("accepts one to three texts", () => {
+    expect(answer({ texts: ["Écoute"] })).toBe(true)
+    expect(answer({ texts: ["Écoute", "Terrain", "Proximité"] })).toBe(true)
+  })
+
+  it("refuses more than three texts, or one over 200 characters", () => {
+    expect(answer({ texts: ["a", "b", "c", "d"] })).toBe(false)
+    expect(answer({ texts: ["a".repeat(200)] })).toBe(true)
+    expect(answer({ texts: ["Écoute", "a".repeat(201)] })).toBe(false)
+  })
+
+  it("refuses texts that are not a list of strings", () => {
+    expect(answer({ texts: "Écoute" })).toBe(false)
+    expect(answer({ texts: ["Écoute", 3] })).toBe(false)
+    expect(answer({ texts: null })).toBe(false)
+  })
+
+  it("takes texts alone, never with indices or a text", () => {
+    expect(answer({ texts: ["Écoute"], text: "Écoute" })).toBe(false)
+    expect(answer({ texts: ["Écoute"], answerKeys: [0] })).toBe(false)
+  })
+
+  it("refuses a huge list without reading it", () => {
+    const texts = Array.from({ length: 1_000_000 }, () => "a")
+    const start = performance.now()
+
+    expect(answer({ texts })).toBe(false)
+    expect(performance.now() - start).toBeLessThan(100)
+  })
+})
