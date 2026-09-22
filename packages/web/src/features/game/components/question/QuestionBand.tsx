@@ -195,7 +195,7 @@ const QuestionBand = ({
   }
 
   return (
-    <div className="flex items-center gap-8 rounded-2xl bg-black/25 px-6 py-4 text-white backdrop-blur-sm">
+    <div className="short:py-2 flex items-center gap-8 rounded-2xl bg-black/25 px-6 py-4 text-white backdrop-blur-sm">
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <span className={clsx(TYPE_CHIP, "px-4 py-1.5 text-sm md:text-base")}>

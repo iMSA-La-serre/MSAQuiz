@@ -44,7 +44,7 @@ const FULL_ROWS = 4
 export const isCompactList = (count: number) => count > FULL_ROWS
 
 const TEXT_SIZES = {
-  host: "text-lg leading-tight md:text-2xl xl:text-3xl",
+  host: "text-lg leading-tight md:text-2xl xl:text-3xl short:text-2xl",
   hostDense: "text-lg leading-tight md:text-xl xl:text-2xl",
   phone: "text-lg leading-snug",
   phoneLarge: "text-xl leading-snug",
@@ -94,7 +94,9 @@ const AnswerRow = ({
       size === "host"
         ? clsx(
             "gap-5 px-5 xl:px-6",
-            compact ? "min-h-14 py-1.5" : "min-h-20 py-3 xl:min-h-24",
+            compact
+              ? "min-h-14 py-1.5 short:min-h-12 short:py-1"
+              : "min-h-20 py-3 xl:min-h-24 short:min-h-16 short:py-2",
           )
         : "min-h-16 gap-3 px-3 py-2.5",
       {

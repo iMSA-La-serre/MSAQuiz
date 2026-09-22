@@ -95,7 +95,7 @@ const OrderingAnswers = ({
       <ol
         className={clsx("flex flex-col", {
           "gap-2": size === "phone" || compact,
-          "gap-3 xl:gap-4": size === "host" && !compact,
+          "short:gap-2 gap-3 xl:gap-4": size === "host" && !compact,
         })}
       >
         {answers.map((item, key) => {

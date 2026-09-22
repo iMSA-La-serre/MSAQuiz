@@ -13,7 +13,7 @@ type Size = "sm" | "md" | "lg"
 const SIZES: Record<Size, string> = {
   sm: "size-8 rounded-lg text-xl leading-none",
   md: "size-10 rounded-xl text-xl leading-none",
-  lg: "size-12 rounded-xl text-2xl leading-none xl:size-14 xl:text-3xl",
+  lg: "size-12 rounded-xl text-2xl leading-none xl:size-14 xl:text-3xl short:size-12 short:text-2xl",
 }
 
 interface ChipProps extends HTMLAttributes<HTMLSpanElement> {

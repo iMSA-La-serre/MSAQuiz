@@ -49,7 +49,7 @@ const HINTS: Partial<Record<QuestionType, { icon: LucideIcon; key: string }>> =
 
 const TITLE = "font-bold text-balance text-white drop-shadow-lg"
 
-const HOST_TITLE = "text-2xl md:text-4xl xl:text-5xl"
+const HOST_TITLE = "text-2xl md:text-4xl xl:text-5xl short:text-3xl"
 
 // Question, media and answers in the same boxes during reading and answering.
 // Question and Answers are different components, so the whole stage remounts
@@ -197,7 +197,7 @@ const QuestionStage = ({
       return (
         <div
           className={clsx(
-            "mx-auto grid w-full max-w-7xl flex-1 gap-8 px-6 py-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-12",
+            "short:py-4 mx-auto grid w-full max-w-7xl flex-1 gap-8 px-6 py-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-12",
             hostTopAligned ? "items-start" : "items-center",
           )}
         >
@@ -221,7 +221,7 @@ const QuestionStage = ({
     return (
       <div
         className={clsx(
-          "mx-auto flex w-full max-w-5xl flex-1 flex-col gap-10 px-6 py-8",
+          "short:gap-5 short:py-4 mx-auto flex w-full max-w-5xl flex-1 flex-col gap-10 px-6 py-8",
           hostTopAligned ? "justify-start" : "justify-center",
         )}
       >
@@ -247,7 +247,9 @@ const QuestionStage = ({
         animate="visible"
         className="flex flex-1 flex-col"
       >
-        <header className="mx-auto w-full max-w-7xl px-6 pt-6">{band}</header>
+        <header className="short:pt-4 mx-auto w-full max-w-7xl px-6 pt-6">
+          {band}
+        </header>
         {renderHostBody()}
       </motion.div>
     </MotionConfig>

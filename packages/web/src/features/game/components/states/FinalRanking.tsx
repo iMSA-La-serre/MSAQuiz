@@ -25,7 +25,7 @@ const FinalRanking = ({ data: { subject, top } }: Props) => {
 
   return (
     <MotionConfig reducedMotion="user">
-      <section className="relative mx-auto flex w-full max-w-4xl flex-1 flex-col justify-center gap-6 px-4 pb-10">
+      <section className="short:gap-4 short:pb-4 relative mx-auto flex w-full max-w-4xl flex-1 flex-col justify-center gap-6 px-4 pb-10">
         <motion.header
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}

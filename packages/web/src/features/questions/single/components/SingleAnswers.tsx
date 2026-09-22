@@ -35,7 +35,7 @@ const SingleAnswers = ({
     <ol
       className={clsx(
         "flex flex-col",
-        size === "host" ? "gap-3 xl:gap-4" : "gap-2",
+        size === "host" ? "short:gap-2 gap-3 xl:gap-4" : "gap-2",
       )}
     >
       {answers.map((answer, key) => (

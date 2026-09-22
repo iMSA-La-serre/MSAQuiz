@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* Projected screens are often short: 1280×720 or 1366×768, or less inside a
+browser window with its toolbar. Host layouts tighten below this height. */
+@custom-variant short (@media (max-height: 820px));
+
 /* Default look = the La Serre brand guidelines (RGB palette, Work Sans). A
 config/branding/theme.json can still override any of these tokens. */
 @theme {

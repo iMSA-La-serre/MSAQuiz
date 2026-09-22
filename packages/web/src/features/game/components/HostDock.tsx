@@ -103,7 +103,7 @@ const HostDock = ({ statusName, disabled, onNext }: Props) => {
   const Icon = action?.icon
 
   return (
-    <footer className="mx-auto flex min-h-22 w-full max-w-7xl items-end justify-end px-6 pb-6">
+    <footer className="short:min-h-16 short:pb-4 mx-auto flex min-h-22 w-full max-w-7xl items-end justify-end px-6 pb-6">
       {label && action && Icon && (
         <Button
           size="lg"

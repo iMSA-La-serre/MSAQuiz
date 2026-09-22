@@ -32,7 +32,7 @@ const HINTS: Partial<Record<QuestionType, { icon: LucideIcon; key: string }>> =
 
 const TITLE = "font-bold text-balance text-white drop-shadow-lg"
 
-const HOST_TITLE = "text-2xl md:text-4xl xl:text-5xl"
+const HOST_TITLE = "text-2xl md:text-4xl xl:text-5xl short:text-3xl"
 
 // Beyond this many characters in any answer, host rows use smaller text.
 const DENSE_LENGTH = 60
@@ -82,7 +82,7 @@ const Responses = ({ data }: Props) => {
   const unanswered = Math.max(0, totalPlayers - totalAnswered)
 
   const band = (
-    <header className="mx-auto w-full max-w-7xl px-6 pt-6">
+    <header className="short:pt-4 mx-auto w-full max-w-7xl px-6 pt-6">
       <QuestionBand
         variant="host"
         questionType={type}
@@ -159,7 +159,7 @@ const Responses = ({ data }: Props) => {
       return (
         <div
           className={clsx(
-            "mx-auto grid w-full max-w-7xl flex-1 gap-8 px-6 py-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-12",
+            "short:py-4 mx-auto grid w-full max-w-7xl flex-1 gap-8 px-6 py-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-12",
             hostTopAligned ? "items-start" : "items-center",
           )}
         >
@@ -175,7 +175,7 @@ const Responses = ({ data }: Props) => {
     return (
       <div
         className={clsx(
-          "mx-auto flex w-full max-w-5xl flex-1 flex-col gap-10 px-6 py-8",
+          "short:gap-5 short:py-4 mx-auto flex w-full max-w-5xl flex-1 flex-col gap-10 px-6 py-8",
           hostTopAligned ? "justify-start" : "justify-center",
         )}
       >

@@ -177,7 +177,7 @@ export const ResponseList = ({
           aria-label={label ?? t("game:responses.label")}
           className={clsx(
             "flex flex-col",
-            isCompactList(rows) ? "gap-2" : "gap-3 xl:gap-4",
+            isCompactList(rows) ? "gap-2" : "short:gap-2 gap-3 xl:gap-4",
           )}
         >
           {children}

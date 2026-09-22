@@ -19,7 +19,9 @@ const maxHeight = (variant: Props["variant"], slide = false) => {
     return "max-h-44"
   }
 
-  return slide ? "max-h-80 lg:max-h-[32rem]" : "max-h-80 lg:max-h-[26rem]"
+  return slide
+    ? "max-h-80 lg:max-h-[32rem] short:max-h-80"
+    : "max-h-80 lg:max-h-[26rem] short:max-h-56"
 }
 
 // Game-only media block. The editor keeps components/QuestionMedia.tsx.
