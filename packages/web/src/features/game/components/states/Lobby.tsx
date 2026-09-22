@@ -86,18 +86,21 @@ const Lobby = ({ data: { inviteCode = "" } }: Props) => {
     focusRowRef.current = null
   }
 
+  // Functional updates: several players often join within the same render
+  // (a room scanning the QR code at once), and a handler reading playerList
+  // would only see the list of the last render and drop the others.
   useEvent(EVENTS.MANAGER.NEW_PLAYER, (player) => {
-    setPlayerList([...playerList, player])
+    setPlayerList((list) => [...list, player])
   })
 
   useEvent(EVENTS.MANAGER.REMOVE_PLAYER, (playerId) => {
     moveFocusFromRow(playerId)
-    setPlayerList(playerList.filter((p) => p.id !== playerId))
+    setPlayerList((list) => list.filter((p) => p.id !== playerId))
   })
 
   useEvent(EVENTS.MANAGER.PLAYER_KICKED, (playerId) => {
     moveFocusFromRow(playerId)
-    setPlayerList(playerList.filter((p) => p.id !== playerId))
+    setPlayerList((list) => list.filter((p) => p.id !== playerId))
   })
 
   const handleKick = (playerId: string) => () => {
