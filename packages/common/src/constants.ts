@@ -123,6 +123,30 @@ export const ASSOCIATION_LIMITS = {
   TARGET_LENGTH: 24,
 } as const
 
+// Scale: levels from `scaleMin` to `scaleMax`, one row each in the
+// distribution.
+export const SCALE_LIMITS = {
+  // The scale starts at 0 or at 1, and ends at 8 at the latest.
+  MIN_START: 0,
+  MAX_START: 1,
+  MAX_END: 8,
+  // Levels a scale may hold: under three nothing is being graded, and past
+  // eight the distribution has more rows than a 1280×650 projector holds
+  // under a question on two lines, even at its thinnest (isTinyList).
+  MIN_LEVELS: 3,
+  MAX_LEVELS: 8,
+  // Characters of each end label, as counted by countInputChars: the two of
+  // them share a phone line under the levels.
+  LABEL_LENGTH: 24,
+  // Players who had to answer the scale — a level picked or « Je préfère ne
+  // pas répondre » — for the history to keep the counts: with fewer, who
+  // answered would tell who picked what. The room still sees them live.
+  MIN_ANSWERS: 3,
+} as const
+
+// The scale a new question starts from.
+export const SCALE_DEFAULTS = { START: 1, END: 5 } as const
+
 // The targets of a statements question, imposed.
 export const STATEMENT_TARGETS = ["Vrai", "Faux"] as const
 
@@ -139,6 +163,8 @@ export const QUESTION_TYPES = {
   HIGHLIGHT: "highlight",
   STATEMENTS: "statements",
   CATEGORIZE: "categorize",
+  RANKING: "ranking",
+  SCALE: "scale",
 } as const
 
 /**
@@ -297,6 +323,28 @@ export const QUESTION_TYPE_META: Record<
     partialOutcome: true,
     nominative: true,
   },
+  // Answers are the proposals, in the order the author wrote them; players
+  // rank them all, and nobody is right or wrong.
+  ranking: {
+    scored: false,
+    acceptsAnswers: true,
+    minAnswers: 3,
+    maxAnswers: 6,
+    speedBonus: false,
+    partialOutcome: false,
+    nominative: true,
+  },
+  // No public answers: the player picks one level of the scale set in the
+  // options, only counted at the question level.
+  scale: {
+    scored: false,
+    acceptsAnswers: true,
+    minAnswers: 0,
+    maxAnswers: 0,
+    speedBonus: false,
+    partialOutcome: false,
+    nominative: false,
+  },
 }
 
 export const SCORING_MODES = {
@@ -318,7 +366,8 @@ export const MATCH_SCORING = {
   EXACT: "exact",
 } as const
 
-// Longest ordering item, in characters as counted by countInputChars.
+// Longest ordering or ranking item, in characters as counted by
+// countInputChars.
 export const ORDERING_ITEM_MAX_LENGTH = 80
 
 export const SHORTANSWER_LIMITS = {

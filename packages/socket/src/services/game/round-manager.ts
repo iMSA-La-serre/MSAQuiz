@@ -6,6 +6,7 @@ import {
   NO_TIME_LIMIT,
   QUESTION_TYPE_META,
   QUESTION_TYPES,
+  SCALE_LIMITS,
   WORDCLOUD_LIMITS,
 } from "@razzia/common/constants"
 import type {
@@ -17,6 +18,7 @@ import type {
   QuestionResult,
   QuestionType,
   QuizzWithId,
+  ScaleCounts,
   WordCount,
 } from "@razzia/common/types/game"
 import type { Server, Socket } from "@razzia/common/types/game/socket"
@@ -40,6 +42,8 @@ import {
   buildBlocklist,
 } from "@razzia/common/utils/moderation"
 import { placedItems } from "@razzia/common/utils/ordering"
+import { rankPoints } from "@razzia/common/utils/ranking"
+import { countScale, scaleRangeOf } from "@razzia/common/utils/scale"
 import { countWords } from "@razzia/common/utils/wordcloud"
 import { CooldownTimer } from "@razzia/socket/services/game/cooldown-timer"
 import { PlayerManager } from "@razzia/socket/services/game/player-manager"
@@ -97,6 +101,8 @@ const TYPE_RESULT_MESSAGES: Partial<
   Record<QuestionType, Partial<Record<ResultOutcome, string>>>
 > = {
   wordcloud: { voted: "game:wordcloudAnswered", noVote: "game:noAnswer" },
+  ranking: { voted: "game:rankingAnswered", noVote: "game:noAnswer" },
+  scale: { voted: "game:scaleAnswered", noVote: "game:noAnswer" },
 }
 
 // Scored types that existed before partial credit: their outcome keeps
@@ -120,8 +126,8 @@ const roundOutcome = (
 ): ResultOutcome => {
   const { scored, partialOutcome } = QUESTION_TYPE_META[type]
 
-  // Unscored types (poll, wordcloud): confirm the vote, or flag the missing
-  // one, never claim a vote that was not cast.
+  // Unscored types (poll, wordcloud, ranking, scale): confirm the vote, or
+  // flag the missing one, never claim a vote that was not cast.
   if (!scored) {
     return answered ? "voted" : "noVote"
   }
@@ -139,6 +145,22 @@ const roundOutcome = (
   }
 
   return score > 0 ? "partial" : "wrong"
+}
+
+/**
+ * The answer ids a player's history keeps: the ones sent, or an empty list on
+ * a type that is not nominative, whose answer only counts at the question
+ * level. Null when the player did not answer.
+ */
+const recordedIds = (
+  answer: Answer | undefined,
+  nominative: boolean,
+): number[] | null => {
+  if (!answer) {
+    return null
+  }
+
+  return nominative ? answer.answerIds : []
 }
 
 // The targets of statements and categorize, which go along with their items:
@@ -493,6 +515,39 @@ export class RoundManager {
         ? { wordsWithheld: true }
         : { words })
 
+    // Ranking: the rank points of the proposals, which order the rows of the
+    // distribution. Every answer ranks them all.
+    const points =
+      question.type === QUESTION_TYPES.RANKING
+        ? rankPoints(
+            this.playersAnswers.map(({ answerIds }) => answerIds),
+            question.answers.length,
+          )
+        : undefined
+
+    // Scale: the levels picked, counted together, and those who preferred not
+    // to answer. They never reach a player's history.
+    const scale: ScaleCounts | undefined =
+      question.type === QUESTION_TYPES.SCALE
+        ? countScale(
+            this.playersAnswers.map(({ answerIds }) => answerIds),
+            scaleRangeOf(question.options),
+          )
+        : undefined
+    // Players who answered the scale, a level picked or not: with too few of
+    // them, the history keeps no count, or who answered would tell who picked
+    // what. Counting the levels alone would leave « Je préfère ne pas
+    // répondre » attributable when two players answered and both skipped.
+    const scaleAnswers =
+      scale === undefined
+        ? 0
+        : scale.counts.reduce((sum, count) => sum + count, scale.skipped)
+    const historyScale =
+      scale &&
+      (scaleAnswers > 0 && scaleAnswers < SCALE_LIMITS.MIN_ANSWERS
+        ? { scaleWithheld: true }
+        : { scale })
+
     // Estimate: the values sent, counted by range around the right value for
     // the manager's screen, which also gets the right value.
     const values =
@@ -519,6 +574,7 @@ export class RoundManager {
         ranges: estimateRanges(question, values),
         median: medianOf(values),
       }),
+      ...(points && { rankPoints: points }),
       ...(scored && {
         correctCount: answeredScores.filter((score) => score === 1).length,
         partialCount: answeredScores.filter((score) => score > 0 && score < 1)
@@ -534,7 +590,9 @@ export class RoundManager {
         ...question,
         playerAnswers: rounds.map(({ player, answer, score }) => ({
           playerName: player.username,
-          answerIds: answer?.answerIds ?? null,
+          // A type that is not nominative keeps no answer of its own: the
+          // level picked or the words typed would point back at the player.
+          answerIds: recordedIds(answer, nominative),
           ...(question.type === QUESTION_TYPES.SHORTANSWER && {
             text: answer?.text ?? null,
           }),
@@ -545,6 +603,7 @@ export class RoundManager {
           score,
         })),
         ...historyWords,
+        ...historyScale,
       })
     }
 

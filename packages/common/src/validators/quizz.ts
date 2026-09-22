@@ -10,6 +10,8 @@ import {
   ORDERING_ITEM_MAX_LENGTH,
   QUESTION_TYPE_META,
   QUESTION_TYPES,
+  SCALE_DEFAULTS,
+  SCALE_LIMITS,
   SCORING_MODES,
   SHORTANSWER_LIMITS,
   WORDCLOUD_LIMITS,
@@ -63,6 +65,12 @@ const optionsValidator = z.object({
   min: z.number().optional(),
   max: z.number().optional(),
   unit: z.string().optional(),
+  // Scale. Checked against each other below.
+  scaleMin: z.number().int("errors:quizz.scaleStart").optional(),
+  scaleMax: z.number().int("errors:quizz.scaleEnd").optional(),
+  scaleLow: z.string().optional(),
+  scaleHigh: z.string().optional(),
+  scaleSkip: z.boolean().optional(),
 })
 
 // Types added after quizzes were first stored: the stricter rules below only
@@ -75,6 +83,8 @@ const NEWER_TYPES = new Set<string>([
   QUESTION_TYPES.HIGHLIGHT,
   QUESTION_TYPES.STATEMENTS,
   QUESTION_TYPES.CATEGORIZE,
+  QUESTION_TYPES.RANKING,
+  QUESTION_TYPES.SCALE,
 ])
 
 const MIN_TIME = 5
@@ -250,6 +260,54 @@ const estimateOptions = (options: QuestionOptions): QuestionOptions => {
   return cleaned === "" ? rest : { ...rest, unit: cleaned }
 }
 
+// Scale: levels from 0 or 1 up to 8 at most (SCALE_LIMITS, whose note says
+// why eight), three of them at least, and end labels short enough to share a
+// phone line.
+const checkScale = (
+  { options = {} }: Pick<Question, "options">,
+  issue: IssueFn,
+) => {
+  const { scaleMin, scaleMax } = options
+
+  if (
+    scaleMin !== undefined &&
+    (scaleMin < SCALE_LIMITS.MIN_START || scaleMin > SCALE_LIMITS.MAX_START)
+  ) {
+    issue("errors:quizz.scaleStart", ["options", "scaleMin"])
+  }
+
+  if (scaleMax !== undefined && scaleMax > SCALE_LIMITS.MAX_END) {
+    issue("errors:quizz.scaleEnd", ["options", "scaleMax"])
+  }
+
+  const start = scaleMin ?? SCALE_DEFAULTS.START
+  const levels = scaleMax === undefined ? undefined : scaleMax - start + 1
+
+  if (
+    levels !== undefined &&
+    (levels < SCALE_LIMITS.MIN_LEVELS || levels > SCALE_LIMITS.MAX_LEVELS)
+  ) {
+    issue("errors:quizz.scaleLevels", ["options", "scaleMax"])
+  }
+
+  for (const end of ["scaleLow", "scaleHigh"] as const) {
+    const label = options[end]
+
+    if (label !== undefined && isTooLong(label, SCALE_LIMITS.LABEL_LENGTH)) {
+      issue("errors:quizz.scaleLabelTooLong", ["options", end])
+    }
+  }
+}
+
+// The end labels are stored cleaned, and dropped when empty.
+const scaleOptions = (options: QuestionOptions): QuestionOptions =>
+  (["scaleLow", "scaleHigh"] as const).reduce((current, end) => {
+    const { [end]: label, ...rest } = current
+    const cleaned = label === undefined ? "" : cleanInput(label)
+
+    return cleaned === "" ? rest : { ...rest, [end]: cleaned }
+  }, options)
+
 // Highlight: a short text with 2 to 5 passages, each told apart from the
 // others, and at least one of them to spot.
 const checkHighlight = (
@@ -405,6 +463,15 @@ const checkAssociation = (
   }
 }
 
+// The settings only a scale reads.
+const SCALE_OPTION_KEYS = [
+  "scaleMin",
+  "scaleMax",
+  "scaleLow",
+  "scaleHigh",
+  "scaleSkip",
+] satisfies Array<keyof QuestionOptions>
+
 // The settings only an estimate reads.
 const ESTIMATE_OPTION_KEYS = [
   "decimals",
@@ -430,6 +497,11 @@ const OWNED_FIELDS: Array<{
     types: new Set([QUESTION_TYPES.STATEMENTS, QUESTION_TYPES.CATEGORIZE]),
     fields: new Set(["targets", "expectedTargets"]),
     options: new Set(["matchScoring"] satisfies Array<keyof QuestionOptions>),
+  },
+  {
+    types: new Set([QUESTION_TYPES.SCALE]),
+    fields: new Set<string>(),
+    options: new Set(SCALE_OPTION_KEYS),
   },
 ]
 
@@ -594,8 +666,15 @@ const questionValidator = z.preprocess(
         issue("errors:quizz.noSolutions", ["solutions"])
       }
 
-      if (question.type === QUESTION_TYPES.ORDERING) {
+      if (
+        question.type === QUESTION_TYPES.ORDERING ||
+        question.type === QUESTION_TYPES.RANKING
+      ) {
         checkOrderingItems(question.answers, issue)
+      }
+
+      if (question.type === QUESTION_TYPES.SCALE) {
+        checkScale(question, issue)
       }
 
       if (question.type === QUESTION_TYPES.SHORTANSWER) {
@@ -671,6 +750,19 @@ const questionValidator = z.preprocess(
       // The items are stored in the correct order: no solutions to keep.
       if (question.type === QUESTION_TYPES.ORDERING) {
         return { ...question, solutions: [] }
+      }
+
+      // The levels of a scale are its settings, not answers; the end labels
+      // are stored as the screens show them.
+      if (question.type === QUESTION_TYPES.SCALE) {
+        return {
+          ...question,
+          options: question.options && scaleOptions(question.options),
+          answers: [],
+          solutions: [],
+          maxPoints: undefined,
+          penalty: undefined,
+        }
       }
 
       if (meta.scored) {

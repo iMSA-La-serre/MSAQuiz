@@ -20,11 +20,19 @@ import {
   toleranceOf,
   unitOf,
 } from "@razzia/common/utils/estimate"
+import { rankOrder, rankPoints } from "@razzia/common/utils/ranking"
+import {
+  scaleEndLabel,
+  scaleRangeOf,
+  scaleSummary,
+  scaleValues,
+} from "@razzia/common/utils/scale"
 import { isKnownType } from "@razzia/socket/services/scoring"
 import {
   hasAnswer,
   isCorrectRecord,
   recordScore,
+  storedScale,
   storedWords,
 } from "@razzia/socket/services/stats"
 import type Excel from "exceljs"
@@ -152,6 +160,65 @@ const addOrderingRows = (rows: QuestionRows) => {
   addMeanScoreRow(rows)
 }
 
+// Ranking: the proposals in the order the room put them, with the rank points
+// they scored and the players who put each one first.
+const addRankingRows = ({ sheet, question, answered }: QuestionRows) => {
+  const orders = answered.map(({ answerIds }) => answerIds)
+  const points = rankPoints(orders, question.answers.length)
+
+  sheet.addRow({
+    answer: "Propositions par priorité",
+    correct: "Points",
+    votes: "1ers choix",
+  }).font = { italic: true }
+
+  for (const [rank, item] of rankOrder(points).entries()) {
+    sheet.addRow({
+      answer: `${rank + 1}. ${question.answers[item]}`,
+      correct: points[item],
+      votes: orders.filter((order) => order.at(0) === item).length,
+    })
+  }
+}
+
+// Scale: the players of each level, then those who preferred not to answer,
+// then the mean and the median. No level is linked to a player; too few
+// answers and the counts were not kept.
+const addScaleRows = ({ sheet, question, answered }: QuestionRows) => {
+  const range = scaleRangeOf(question.options)
+  const { counts, skipped } = storedScale(question)
+  const low = scaleEndLabel(question.options, "low")
+  const high = scaleEndLabel(question.options, "high")
+  const { mean, median } = scaleSummary(counts, range.min)
+
+  sheet.addRow({ answer: "Niveaux", votes: "Réponses" }).font = {
+    italic: true,
+  }
+
+  // Withheld, the levels and « Sans avis » are left out rather than printed
+  // at zero, which would read as nobody having picked or skipped.
+  if (question.scaleWithheld === true) {
+    sheet.addRow({
+      answer: "Trop peu de réponses pour afficher la répartition",
+    })
+  } else {
+    for (const [index, value] of scaleValues(range).entries()) {
+      const end = (index === 0 && low) || (value === range.max && high) || ""
+
+      sheet.addRow({
+        answer: end === "" ? String(value) : `${value} — ${end}`,
+        votes: counts[index] ?? 0,
+      })
+    }
+
+    sheet.addRow({ answer: "Sans avis", votes: skipped })
+    sheet.addRow({ answer: "Moyenne", votes: mean })
+    sheet.addRow({ answer: "Médiane", votes: median })
+  }
+
+  sheet.addRow({ answer: "Ont répondu", votes: answered.length })
+}
+
 // Shortanswer: the accepted answers with the inputs each one recognized,
 // then how many inputs matched none (their text stays out of the report).
 const addShortAnswerRows = ({ sheet, question, answered }: QuestionRows) => {
@@ -253,8 +320,9 @@ const addWordCloudRows = ({ sheet, question, answered }: QuestionRows) => {
   sheet.addRow({ answer: "Ont répondu", votes: answered.length })
 }
 
-// The questions whose answers are not linked to a username (word clouds):
-// one column each, saying whether the player answered, and nothing more.
+// The questions whose answers are not linked to a username (word clouds,
+// scales): one column each, saying whether the player answered, and nothing
+// more.
 const addParticipationSheet = (
   workbook: Excel.Workbook,
   result: GameResult,
@@ -361,6 +429,10 @@ export const buildResultWorkbook = async (
       addShortAnswerRows(rows)
     } else if (question.type === QUESTION_TYPES.WORDCLOUD) {
       addWordCloudRows(rows)
+    } else if (question.type === QUESTION_TYPES.RANKING) {
+      addRankingRows(rows)
+    } else if (question.type === QUESTION_TYPES.SCALE) {
+      addScaleRows(rows)
     } else if (question.type === QUESTION_TYPES.ESTIMATE) {
       addEstimateRows(rows)
     } else if (question.type === QUESTION_TYPES.HIGHLIGHT) {

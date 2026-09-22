@@ -49,6 +49,16 @@ export interface QuestionOptions {
   max?: number
   // Estimate: shown after the numbers (km, €, %...).
   unit?: string
+  // Scale: the levels players pick from, `scaleMin` to `scaleMax`, both
+  // included (1 to 5 when absent, SCALE_DEFAULTS).
+  scaleMin?: number
+  scaleMax?: number
+  // Scale: what each end of the scale stands for, shown under the levels.
+  scaleLow?: string
+  scaleHigh?: string
+  // Scale: offer « Je préfère ne pas répondre » under the levels. Off when
+  // absent.
+  scaleSkip?: boolean
 }
 
 export interface Player {
@@ -68,10 +78,12 @@ export type PublicPlayer = Omit<Player, "clientId">
 // An answer as the server keeps it until the question closes.
 export interface Answer {
   playerId: string
-  // Choice types: picked answers (highlight: the passages tapped). Ordering:
-  // original indices, in the order the player chose. Shortanswer: index of the
-  // accepted answer recognized, or empty. Statements and categorize: the
-  // target picked for each item, in the order of the answers.
+  // Choice types: picked answers (highlight: the passages tapped). Ordering
+  // and ranking: original indices, in the order the player chose.
+  // Shortanswer: index of the accepted answer recognized, or empty.
+  // Statements and categorize: the target picked for each item, in the order
+  // of the answers. Scale: the level picked, or the index past the last level
+  // for « Je préfère ne pas répondre » (scaleSkipIndex).
   answerIds: number[]
   // Shortanswer: the input once cleaned (cleanInput).
   text?: string
@@ -154,9 +166,10 @@ export interface PlayerAnswerRecord {
   // Estimate only: the number sent, null when the player did not answer.
   // `answerIds` is then empty, or null without an answer.
   value?: number | null
-  // Types that are not nominative (wordcloud, QUESTION_TYPE_META): whether
-  // the player answered. `answerIds` is then empty, or null without an
-  // answer, and the answer itself only counts in QuestionResult.words.
+  // Types that are not nominative (wordcloud, scale, QUESTION_TYPE_META):
+  // whether the player answered. `answerIds` is then empty, or null without
+  // an answer, and the answer itself only counts at the question level
+  // (QuestionResult.words, QuestionResult.scale).
   answered?: boolean
   // Multiplier (0 to 1) applied when the question closed, 0 when the player
   // did not answer. Absent from results saved before it existed.
@@ -181,6 +194,15 @@ export interface WordCount {
   count: number
 }
 
+/**
+ * What a scale came to, whoever answered: the players who picked each level,
+ * from `scaleMin` up, and the players who preferred not to answer.
+ */
+export interface ScaleCounts {
+  counts: number[]
+  skipped: number
+}
+
 export type QuestionResult = Question & {
   playerAnswers: PlayerAnswerRecord[]
   // Wordcloud: every word kept, the most frequent first (countWords).
@@ -188,6 +210,11 @@ export type QuestionResult = Question & {
   // Wordcloud: the words were not kept, too few players typed any
   // (WORDCLOUD_LIMITS.MIN_AUTHORS). `words` is then absent.
   wordsWithheld?: boolean
+  // Scale: the levels picked, counted together.
+  scale?: ScaleCounts
+  // Scale: the counts were not kept, too few players picked a level
+  // (SCALE_LIMITS.MIN_ANSWERS). `scale` is then absent.
+  scaleWithheld?: boolean
 }
 
 export interface GameResultPlayer {
@@ -231,10 +258,12 @@ export interface QuestionStats {
   // Choice types: picks per answer; highlight lists every passage, in the
   // order of the text. Statements and categorize: every item, with the
   // players who matched it with its right target. Ordering: the items in the
-  // correct order, with the players who put each one at its place.
-  // Shortanswer: the accepted answers, with the inputs each one recognized.
-  // Wordcloud: the most frequent words across the games
-  // (WORDCLOUD_LIMITS.CLOUD_WORDS). Estimate: empty, see `estimate`.
+  // correct order, with the players who put each one at its place. Ranking:
+  // the proposals in the order the games ranked them, with the players who
+  // put each one first. Shortanswer: the accepted answers, with the inputs
+  // each one recognized. Wordcloud: the most frequent words across the games
+  // (WORDCLOUD_LIMITS.CLOUD_WORDS). Scale: the levels, from `scale.min` up,
+  // with the players who picked each. Estimate: empty, see `estimate`.
   answers: Array<{ label: string; count: number }>
   // Wording of the correct answers, taken from the most recent game: a quizz
   // can be edited between two games. Shortanswer: the accepted answers.
@@ -252,6 +281,20 @@ export interface QuestionStats {
   // Wordcloud: no word to list because no game kept its words, too few
   // players having typed any (WORDCLOUD_LIMITS.MIN_AUTHORS).
   wordsWithheld?: boolean
+  // Scale: the levels of the most recent game, the mean and the median of
+  // every level picked across the games, the players who preferred not to
+  // answer, and whether a game kept no count
+  // (SCALE_LIMITS.MIN_ANSWERS), `answers` listing the counts.
+  scale?: {
+    min: number
+    max: number
+    low?: string
+    high?: string
+    skipped: number
+    mean: number | null
+    median: number | null
+    withheld?: boolean
+  }
   // Estimate: the answers below, within and above the tolerance of their
   // game, the median of every value given (null if none), and the right
   // value with its setting from the most recent game.

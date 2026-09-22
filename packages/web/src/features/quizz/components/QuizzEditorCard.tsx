@@ -1,6 +1,7 @@
 import { MEDIA_TYPES, QUESTION_TYPES } from "@razzia/common/constants"
 import type { QuestionMedia } from "@razzia/common/types/game"
 import { isAssociationType } from "@razzia/common/utils/association"
+import { scaleRangeOf } from "@razzia/common/utils/scale"
 import { wordCountOf } from "@razzia/common/utils/wordcloud"
 import AlertDialog from "@razzia/web/components/AlertDialog"
 import { type QuestionWithId } from "@razzia/web/features/quizz/contexts/quizz-editor-context"
@@ -47,19 +48,25 @@ const QuizzEditorCard = ({
   const { t } = useTranslation()
   // One bar per answer row, green for a right answer. A short answer and an
   // estimate have one field and no public answers: one bar, green, as what
-  // they accept is right. A word cloud has one grey bar per field: nobody is
-  // right. Statements and categorize have one bar per item, green once its
-  // right target is picked.
+  // they accept is right. A word cloud has one grey bar per field, a scale one
+  // per level: nobody is right. Statements and categorize have one bar per
+  // item, green once its right target is picked.
   const isShortAnswer =
     question.type === QUESTION_TYPES.SHORTANSWER ||
     question.type === QUESTION_TYPES.ESTIMATE
   const isWordCloud = question.type === QUESTION_TYPES.WORDCLOUD
+  const isScale = question.type === QUESTION_TYPES.SCALE
   let bars = question.answers
 
   if (isShortAnswer) {
     bars = [""]
   } else if (isWordCloud) {
     bars = Array.from({ length: wordCountOf(question.options) }, () => "")
+  } else if (isScale) {
+    bars = Array.from(
+      { length: scaleRangeOf(question.options).count },
+      () => "",
+    )
   }
 
   // Past four bars (an ordering), thinner ones in the height of four, so the

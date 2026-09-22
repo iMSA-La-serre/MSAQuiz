@@ -23,6 +23,7 @@
     "exactValue": "Valeur exacte",
     "expected": "Bonne réponse",
     "export": "Exporter en Excel",
+    "firstChoiceCount": "{{count}} premier(s) choix",
     "gap": "Écart : {{gap}}",
     "matched": "Reconnue comme « {{answer}} »",
     "matchedCount": "{{count}} juste(s)",
@@ -37,6 +38,9 @@
     "placed": "Bien placé",
     "placedCount": "{{count}} bien placé(s)",
     "playerCount": "{{count}} joueur(s)",
+    "scaleMean": "Moyenne",
+    "scaleSkipped": "Sans avis",
+    "scaleWithheld": "Trop peu de réponses pour afficher la répartition",
     "stats": {
       "correctAnswers": "Bonnes réponses",
       "playersAnswered": "Joueurs ayant répondu"
@@ -90,6 +94,11 @@
     "noWord": "Aucun mot",
     "placedByItem": "Bien placés par élément",
     "playerCount": "{{count}} participation(s)",
+    "rankingOrder": "Priorités du groupe, premiers choix",
+    "scaleEmpty": "Aucun niveau choisi",
+    "scaleSkipped": "{{count}} sans avis",
+    "scaleSummary": "Moyenne {{mean}} · médiane {{median}}",
+    "scaleWithheld": "Trop peu de réponses pour afficher la répartition",
     "unrecognized": "Non reconnues",
     "unscored": "Non noté",
     "wordsWithheld": "Trop peu de réponses pour afficher les mots"

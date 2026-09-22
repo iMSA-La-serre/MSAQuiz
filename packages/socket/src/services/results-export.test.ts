@@ -682,3 +682,87 @@ describe("buildResultWorkbook, statements and categorize", () => {
     ])
   })
 })
+
+describe("buildResultWorkbook, ranking", () => {
+  const RANKING = question({
+    type: QUESTION_TYPES.RANKING,
+    question: "Classez ces chantiers",
+    answers: ["Accueil", "Délais", "Numérique"],
+    solutions: [],
+    playerAnswers: answers(
+      ["Alex", [1, 0, 2]],
+      ["Bea", [1, 2, 0]],
+      ["Cyd", null],
+    ),
+  })
+
+  it("reports the proposals by priority, with their points and first choices", async () => {
+    const [, questions] = await readWorkbook(result([RANKING]))
+
+    expect(questions.rows.slice(2, 7)).toEqual([
+      [null, "Propositions par priorité", "Points", "1ers choix"],
+      [null, "1. Délais", 4, 2],
+      [null, "2. Accueil", 1, 0],
+      [null, "3. Numérique", 1, 0],
+      [null, "Sans réponse", null, 1],
+    ])
+  })
+})
+
+describe("buildResultWorkbook, scale", () => {
+  const SCALE = question({
+    type: QUESTION_TYPES.SCALE,
+    question: "Cette journée répond-elle à vos attentes ?",
+    answers: [],
+    solutions: [],
+    options: {
+      scaleMin: 1,
+      scaleMax: 3,
+      scaleLow: "Pas du tout",
+      scaleHigh: "Tout à fait",
+      scaleSkip: true,
+    },
+    playerAnswers: [
+      { playerName: "Alex", answerIds: [], answered: true, score: 0 },
+      { playerName: "Bea", answerIds: [], answered: true, score: 0 },
+      { playerName: "Cyd", answerIds: [], answered: true, score: 0 },
+    ],
+    scale: { counts: [0, 1, 1], skipped: 1 },
+  })
+
+  it("reports the levels and who answered, never who picked what", async () => {
+    const sheets = await readWorkbook(result([SCALE]))
+
+    expect(sheets[1]?.rows.slice(2, 10)).toEqual([
+      [null, "Niveaux", null, "Réponses"],
+      [null, "1 — Pas du tout", null, 0],
+      [null, "2", null, 1],
+      [null, "3 — Tout à fait", null, 1],
+      [null, "Sans avis", null, 1],
+      [null, "Moyenne", null, 2.5],
+      [null, "Médiane", null, 2.5],
+      [null, "Ont répondu", null, 3],
+    ])
+    expect(sheets[2]?.rows).toEqual([
+      ["Joueur", "Q1"],
+      ["Alex", "Oui"],
+      ["Bea", "Oui"],
+      ["Cyd", "Oui"],
+    ])
+  })
+
+  it("says when the counts were not kept, and prints none of them", async () => {
+    const [, questions] = await readWorkbook(
+      result([{ ...SCALE, scale: undefined, scaleWithheld: true }]),
+    )
+
+    // No level and no « Sans avis » at zero under the warning: they would
+    // read as nobody having picked a level or preferred not to answer.
+    expect(questions.rows.slice(2)).toEqual([
+      [null, "Niveaux", null, "Réponses"],
+      [null, "Trop peu de réponses pour afficher la répartition", null, null],
+      [null, "Ont répondu", null, 3],
+      [null, "Sans réponse", null, 0],
+    ])
+  })
+})

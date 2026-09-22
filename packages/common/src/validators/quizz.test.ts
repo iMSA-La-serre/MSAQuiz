@@ -1061,3 +1061,141 @@ describe("categorize", () => {
     ])
   })
 })
+
+describe("ranking", () => {
+  const RANKING = {
+    type: QUESTION_TYPES.RANKING,
+    question: "Classez ces chantiers par priorité",
+    answers: ["Accueil", "Délais", "Numérique"],
+    cooldown: 5,
+    time: 30,
+  }
+
+  it("keeps its proposals and nothing to score", () => {
+    const ranking = parse({
+      ...RANKING,
+      solutions: [0],
+      maxPoints: 2000,
+      penalty: 100,
+    })
+
+    expect(ranking.answers).toEqual(["Accueil", "Délais", "Numérique"])
+    expect(ranking.solutions).toEqual([])
+    expect(ranking.maxPoints).toBeUndefined()
+    expect(ranking.penalty).toBeUndefined()
+  })
+
+  it("takes 3 to 6 proposals", () => {
+    expect(issuesOf({ ...RANKING, answers: ["A", "B"] })).toEqual([
+      "errors:quizz.tooFewAnswers",
+    ])
+    expect(
+      issuesOf({ ...RANKING, answers: ["A", "B", "C", "D", "E", "F", "G"] }),
+    ).toEqual(["errors:quizz.tooManyAnswers"])
+  })
+
+  it("refuses two proposals a player could not tell apart", () => {
+    expect(
+      issuesOf({ ...RANKING, answers: ["Accueil", "ACCUEIL !", "Délais"] }),
+    ).toEqual(["errors:quizz.orderItemDuplicate"])
+  })
+
+  it("refuses a proposal longer than an ordering item", () => {
+    expect(
+      issuesOf({ ...RANKING, answers: ["A".repeat(81), "B", "C"] }),
+    ).toEqual(["errors:quizz.orderItemTooLong"])
+  })
+
+  it("needs 5 seconds at least, or no limit", () => {
+    expect(issuesOf({ ...RANKING, time: 3 })).toEqual([
+      "errors:quizz.timeTooShort",
+    ])
+    expect(isValid({ ...RANKING, time: -1 })).toBe(true)
+  })
+})
+
+describe("scale", () => {
+  const SCALE = {
+    type: QUESTION_TYPES.SCALE,
+    question: "Cette formation répond-elle à vos attentes ?",
+    options: { scaleMin: 1, scaleMax: 5, scaleSkip: true },
+    cooldown: 5,
+    time: 20,
+  }
+
+  it("keeps its levels and nothing to score", () => {
+    const scale = parse({
+      ...SCALE,
+      answers: ["1", "2"],
+      solutions: [0],
+      maxPoints: 2000,
+      penalty: 100,
+    })
+
+    expect(scale.options?.scaleMin).toBe(1)
+    expect(scale.options?.scaleMax).toBe(5)
+    expect(scale.options?.scaleSkip).toBe(true)
+    expect(scale.answers).toEqual([])
+    expect(scale.solutions).toEqual([])
+    expect(scale.maxPoints).toBeUndefined()
+    expect(scale.penalty).toBeUndefined()
+  })
+
+  it("stores the end labels cleaned, and drops the empty ones", () => {
+    const scale = parse({
+      ...SCALE,
+      options: {
+        ...SCALE.options,
+        scaleLow: "  Pas   du tout ",
+        scaleHigh: " ",
+      },
+    })
+
+    expect(scale.options?.scaleLow).toBe("Pas du tout")
+    expect(scale.options).not.toHaveProperty("scaleHigh")
+  })
+
+  it("starts at 0 or at 1 and ends at 8 at the latest", () => {
+    expect(isValid({ ...SCALE, options: { scaleMin: 0, scaleMax: 7 } })).toBe(
+      true,
+    )
+    expect(
+      issuesOf({ ...SCALE, options: { scaleMin: 2, scaleMax: 6 } }),
+    ).toEqual(["errors:quizz.scaleStart"])
+    // Past the last level, the count of levels is over too.
+    expect(
+      issuesOf({ ...SCALE, options: { scaleMin: 1, scaleMax: 9 } }),
+    ).toEqual(["errors:quizz.scaleEnd", "errors:quizz.scaleLevels"])
+  })
+
+  it("counts 3 to 8 levels", () => {
+    expect(
+      issuesOf({ ...SCALE, options: { scaleMin: 1, scaleMax: 2 } }),
+    ).toEqual(["errors:quizz.scaleLevels"])
+    expect(isValid({ ...SCALE, options: { scaleMin: 1, scaleMax: 3 } })).toBe(
+      true,
+    )
+  })
+
+  it("refuses an end label longer than a category", () => {
+    expect(
+      issuesOf({
+        ...SCALE,
+        options: { ...SCALE.options, scaleLow: "A".repeat(25) },
+      }),
+    ).toEqual(["errors:quizz.scaleLabelTooLong"])
+  })
+
+  it("drops the levels of the other types", () => {
+    const single = parse({ ...SINGLE_QUESTION, options: { scaleMax: 7 } })
+
+    expect(single.options).not.toHaveProperty("scaleMax")
+  })
+
+  it("needs 5 seconds at least, or no limit", () => {
+    expect(issuesOf({ ...SCALE, time: 3 })).toEqual([
+      "errors:quizz.timeTooShort",
+    ])
+    expect(isValid({ ...SCALE, time: -1 })).toBe(true)
+  })
+})

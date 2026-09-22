@@ -869,3 +869,164 @@ describe("aggregateQuestions, estimate", () => {
     ])
   })
 })
+
+describe("aggregateQuestions, ranking", () => {
+  const ranking = (over: Partial<QuestionResult>): QuestionResult =>
+    question({
+      type: QUESTION_TYPES.RANKING,
+      question: "Classez ces chantiers",
+      answers: ["Accueil", "Délais", "Numérique"],
+      solutions: [],
+      ...over,
+    })
+
+  it("lists the proposals in the order of the rank points of every game", () => {
+    const [stats] = aggregateQuestions([
+      game(
+        [
+          ranking({
+            playerAnswers: answers(
+              ["Alex", [1, 0, 2]],
+              ["Bea", [1, 2, 0]],
+              ["Cyd", null],
+            ),
+          }),
+        ],
+        "2026-09-02",
+      ),
+      game([ranking({ playerAnswers: answers(["Dan", [0, 1, 2]]) })]),
+    ])
+
+    expect(stats).toMatchObject({
+      type: QUESTION_TYPES.RANKING,
+      scored: false,
+      gameCount: 2,
+      answerCount: 3,
+      missingCount: 1,
+      successRate: null,
+      // Délais: 4 + 1 points, Accueil: 1 + 2, Numérique: 1 + 0.
+      answers: [
+        { label: "Délais", count: 2 },
+        { label: "Accueil", count: 1 },
+        { label: "Numérique", count: 0 },
+      ],
+    })
+  })
+
+  it("keeps the author's order when nobody ranked the proposals", () => {
+    const [stats] = aggregateQuestions([
+      game([ranking({ playerAnswers: answers(["Alex", null]) })]),
+    ])
+
+    expect(stats.answers.map(({ label }) => label)).toEqual([
+      "Accueil",
+      "Délais",
+      "Numérique",
+    ])
+  })
+})
+
+describe("aggregateQuestions, scale", () => {
+  const scale = (over: Partial<QuestionResult>): QuestionResult =>
+    question({
+      type: QUESTION_TYPES.SCALE,
+      question: "Cette journée répond-elle à vos attentes ?",
+      answers: [],
+      solutions: [],
+      options: { scaleMin: 1, scaleMax: 5, scaleLow: "Pas du tout" },
+      ...over,
+    })
+
+  const record = (playerName: string, answered: boolean): PlayerAnswerRecord =>
+    answered
+      ? { playerName, answerIds: [], answered: true, score: 0 }
+      : { playerName, answerIds: null, answered: false, score: 0 }
+
+  it("counts the levels of every game, never per player", () => {
+    const [stats] = aggregateQuestions([
+      game(
+        [
+          scale({
+            playerAnswers: [
+              record("Alex", true),
+              record("Bea", true),
+              record("Cyd", false),
+            ],
+            scale: { counts: [0, 0, 0, 1, 1], skipped: 0 },
+          }),
+        ],
+        "2026-09-02",
+      ),
+      game([
+        scale({
+          playerAnswers: [record("Dan", true), record("Eve", true)],
+          scale: { counts: [1, 0, 0, 0, 0], skipped: 1 },
+        }),
+      ]),
+    ])
+
+    expect(stats).toMatchObject({
+      type: QUESTION_TYPES.SCALE,
+      scored: false,
+      gameCount: 2,
+      answerCount: 4,
+      missingCount: 1,
+      successRate: null,
+      answers: [
+        { label: "1", count: 1 },
+        { label: "2", count: 0 },
+        { label: "3", count: 0 },
+        { label: "4", count: 1 },
+        { label: "5", count: 1 },
+      ],
+      scale: {
+        min: 1,
+        max: 5,
+        low: "Pas du tout",
+        skipped: 1,
+        mean: 10 / 3,
+        median: 4,
+      },
+    })
+  })
+
+  it("widens the list when a game was played on another scale", () => {
+    const [stats] = aggregateQuestions([
+      game(
+        [
+          scale({
+            options: { scaleMin: 1, scaleMax: 3 },
+            playerAnswers: [record("Alex", true)],
+            scale: { counts: [0, 0, 1], skipped: 0 },
+          }),
+        ],
+        "2026-09-02",
+      ),
+      game([
+        scale({
+          options: { scaleMin: 0, scaleMax: 7 },
+          playerAnswers: [record("Bea", true)],
+          scale: { counts: [0, 0, 0, 0, 0, 0, 0, 1], skipped: 0 },
+        }),
+      ]),
+    ])
+
+    expect(stats.answers).toHaveLength(8)
+    expect(stats.scale).toMatchObject({ min: 0, max: 7, median: 5 })
+  })
+
+  it("says so when no game kept its counts", () => {
+    const [stats] = aggregateQuestions([
+      game([
+        scale({
+          playerAnswers: [record("Alex", true), record("Bea", true)],
+          scaleWithheld: true,
+        }),
+      ]),
+    ])
+
+    expect(stats.scale?.withheld).toBe(true)
+    expect(stats.answers.every(({ count }) => count === 0)).toBe(true)
+    expect(stats.answerCount).toBe(2)
+  })
+})

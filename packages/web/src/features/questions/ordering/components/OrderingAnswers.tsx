@@ -10,6 +10,10 @@ import {
   positionOf,
   toggleItem,
 } from "@razzia/web/features/questions/ordering/utils/sequence"
+import {
+  ANSWER_WORDING,
+  type ListAnswerWords,
+} from "@razzia/web/features/questions/ordering/utils/wording"
 import type { AnswerComponentProps } from "@razzia/web/features/questions/types"
 import clsx from "clsx"
 import { useReducedMotion } from "motion/react"
@@ -23,13 +27,20 @@ const DENSE_LENGTH = 60
 // next position and a second tap takes it back. No dragging: taps work alike
 // with a thumb, a keyboard or a screen reader. The items come in the order the
 // server shuffled them, lettered like choices.
+interface Props extends AnswerComponentProps {
+  // What the screen reader hears: a ranking numbers proposals by priority,
+  // not items by position.
+  words?: ListAnswerWords
+}
+
 const OrderingAnswers = ({
   answers,
   onSubmit,
   readOnly,
   locked = false,
   size,
-}: AnswerComponentProps) => {
+  words = ANSWER_WORDING.ordering,
+}: Props) => {
   const { t } = useTranslation()
   const reduceMotion = useReducedMotion()
   const [sequence, setSequence] = useState<number[]>([])
@@ -67,16 +78,16 @@ const OrderingAnswers = ({
     setSequence(next)
 
     if (position === null) {
-      setAnnouncement(t("game:ordering.removed", { item }))
+      setAnnouncement(t(words.removed, { item }))
 
       return
     }
 
-    const placed = t("game:ordering.placed", { item, position })
+    const placed = t(words.placed, { item, position })
 
     setAnnouncement(
       isComplete(next, answers.length)
-        ? `${placed}. ${t("game:ordering.complete")}`
+        ? `${placed}. ${t(words.complete)}`
         : placed,
     )
   }
@@ -124,7 +135,7 @@ const OrderingAnswers = ({
                   aria-label={
                     position === null
                       ? undefined
-                      : t("game:ordering.itemLabel", {
+                      : t(words.itemLabel, {
                           letter: answerLetter(key),
                           item,
                           position,
@@ -162,7 +173,7 @@ const OrderingAnswers = ({
             onClick={handleSubmit}
             count={sequence.length}
             countPending={!complete}
-            help={!locked && !complete ? t("game:answer.orderingEmpty") : ""}
+            help={!locked && !complete ? t(words.empty) : ""}
           />
         </>
       )}

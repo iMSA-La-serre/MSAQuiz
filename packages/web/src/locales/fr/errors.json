@@ -36,8 +36,8 @@
     "notFound": "Quiz introuvable",
     "questionEmpty": "La question ne peut pas être vide",
     "subjectEmpty": "Le sujet ne peut pas être vide",
-    "tooFewAnswers": "Une question doit avoir au moins 2 réponses (3 éléments pour une mise en ordre)",
-    "tooManyAnswers": "Une question ne peut pas avoir plus de 4 réponses (6 éléments pour une mise en ordre)",
+    "tooFewAnswers": "Une question doit avoir au moins 2 réponses (3 éléments pour une mise en ordre ou des priorités)",
+    "tooManyAnswers": "Une question ne peut pas avoir plus de 4 réponses (6 éléments pour une mise en ordre ou des priorités)",
     "fixedAnswers": "Ce type de question a un nombre de réponses imposé",
     "acceptedMissing": "Ajoutez au moins une réponse acceptée",
     "tooManyAccepted": "Une question ne peut pas avoir plus de 10 réponses acceptées",
@@ -79,7 +79,11 @@
     "categorizeTargetsCount": "Il faut de 2 à 4 catégories",
     "categorizeTargetEmpty": "Une catégorie ne peut pas être vide",
     "categorizeTargetTooLong": "Une catégorie ne peut pas dépasser 24 caractères",
-    "categorizeTargetDuplicate": "Deux catégories sont identiques une fois les majuscules, les accents et la ponctuation ignorés"
+    "categorizeTargetDuplicate": "Deux catégories sont identiques une fois les majuscules, les accents et la ponctuation ignorés",
+    "scaleStart": "Une échelle commence à 0 ou à 1",
+    "scaleEnd": "Une échelle se termine au plus à 8",
+    "scaleLevels": "Une échelle compte de 3 à 8 niveaux",
+    "scaleLabelTooLong": "Un libellé d'extrémité ne peut pas dépasser 24 caractères"
   },
   "route": {
     "back": "Retour à l'accueil",

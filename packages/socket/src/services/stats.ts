@@ -8,6 +8,7 @@ import type {
   PlayerAnswerRecord,
   QuestionResult,
   QuestionStats,
+  ScaleCounts,
   WordCount,
 } from "@razzia/common/types/game"
 import {
@@ -17,6 +18,12 @@ import {
 } from "@razzia/common/utils/association"
 import { medianOf, toleranceSide } from "@razzia/common/utils/estimate"
 import { placedItems } from "@razzia/common/utils/ordering"
+import { rankOrder, rankPoints } from "@razzia/common/utils/ranking"
+import {
+  scaleEndLabel,
+  scaleRangeOf,
+  scaleSummary,
+} from "@razzia/common/utils/scale"
 import { countWords } from "@razzia/common/utils/wordcloud"
 import { isKnownType, QUESTION_SCORING } from "@razzia/socket/services/scoring"
 
@@ -25,8 +32,8 @@ type AnsweredRecord = PlayerAnswerRecord & { answerIds: number[] }
 /**
  * Whether a record holds an answer. A shortanswer text that matched no
  * accepted answer is one too, with no answer id, so is an estimate value, and
- * so is the answer of a type that is not nominative (wordcloud), which only
- * says it was given.
+ * so is the answer of a type that is not nominative (wordcloud, scale), which
+ * only says it was given.
  */
 export const hasAnswer = (
   record: PlayerAnswerRecord,
@@ -111,11 +118,19 @@ const itemLabels = (question: QuestionResult, flags: boolean[]): string[] =>
 
 // Labels a recorded answer counts for. Ordering: the items put at their
 // place. Statements and categorize: the items matched with their right
-// target. Shortanswer: the accepted answer recognized.
+// target. Ranking: the proposal put first. Shortanswer: the accepted answer
+// recognized.
 const answerLabels = (
   question: QuestionResult,
   answerIds: number[],
 ): string[] => {
+  if (question.type === QUESTION_TYPES.RANKING) {
+    const first = answerIds.at(0)
+    const label = first === undefined ? undefined : question.answers.at(first)
+
+    return label === undefined ? [] : [label]
+  }
+
   if (question.type === QUESTION_TYPES.ORDERING) {
     return itemLabels(question, placedItems(answerIds, question.answers.length))
   }
@@ -149,12 +164,14 @@ const AVERAGE_SCORE_TYPES = new Set<string>([
 ])
 
 // Types that list every answer, picked or not: all the items of an ordering,
-// of statements or of categorize, all the passages of a highlight.
+// of statements, of categorize or of a ranking, all the passages of a
+// highlight.
 const LIST_ALL_TYPES = new Set<string>([
   QUESTION_TYPES.ORDERING,
   QUESTION_TYPES.HIGHLIGHT,
   QUESTION_TYPES.STATEMENTS,
   QUESTION_TYPES.CATEGORIZE,
+  QUESTION_TYPES.RANKING,
 ])
 
 interface Tally {
@@ -168,6 +185,12 @@ interface Tally {
   withheld: boolean
   // Estimate: every value given, for the median.
   values: number[]
+  // Ranking: the rank points of each proposal, by label, across the games.
+  points: Map<string, number>
+  // Scale: the players of each level, by value, across the games, and those
+  // who preferred not to answer.
+  levels: Map<number, number>
+  skipped: number
 }
 
 // Types whose answer ids are not picked choices, and the highlight, whose
@@ -182,6 +205,8 @@ const OWN_ROW_TYPES = new Set<string>([
   QUESTION_TYPES.HIGHLIGHT,
   QUESTION_TYPES.STATEMENTS,
   QUESTION_TYPES.CATEGORIZE,
+  QUESTION_TYPES.RANKING,
+  QUESTION_TYPES.SCALE,
 ])
 
 const groupKey = (question: QuestionResult, label: string): string =>
@@ -214,6 +239,9 @@ const newTally = (question: QuestionResult, label: string): Tally => {
       ...(question.type === QUESTION_TYPES.SHORTANSWER && {
         unrecognizedCount: 0,
       }),
+      ...(question.type === QUESTION_TYPES.SCALE && {
+        scale: scaleLevels(question),
+      }),
       ...(question.type === QUESTION_TYPES.ESTIMATE && {
         estimate: {
           below: 0,
@@ -229,6 +257,46 @@ const newTally = (question: QuestionResult, label: string): Tally => {
     words: [],
     withheld: false,
     values: [],
+    points: new Map<string, number>(),
+    levels: new Map<number, number>(),
+    skipped: 0,
+  }
+}
+
+// The scale of a question, as its most recent game had it: a later game may
+// have been played on another one, whose answers still count.
+const scaleLevels = (question: QuestionResult) => {
+  const { min, max } = scaleRangeOf(question.options)
+  const low = scaleEndLabel(question.options, "low")
+  const high = scaleEndLabel(question.options, "high")
+
+  return {
+    min,
+    max,
+    ...(low !== "" && { low }),
+    ...(high !== "" && { high }),
+    skipped: 0,
+    mean: null,
+    median: null,
+  }
+}
+
+/**
+ * The counts of a stored scale, skipping an entry edited into something else
+ * by hand.
+ */
+export const storedScale = ({ scale }: QuestionResult): ScaleCounts => {
+  const counts: unknown = scale?.counts
+  const skipped: unknown = scale?.skipped
+
+  return {
+    counts: Array.isArray(counts)
+      ? (counts as unknown[]).map((count) =>
+          typeof count === "number" && Number.isFinite(count) ? count : 0,
+        )
+      : [],
+    skipped:
+      typeof skipped === "number" && Number.isFinite(skipped) ? skipped : 0,
   }
 }
 
@@ -306,6 +374,42 @@ const countRecord = (
 }
 
 /**
+ * The levels of a scale across the games: every value played, listed from the
+ * lowest, with their mean and their median. A game played on another scale
+ * widens the list rather than losing its answers.
+ */
+const scaleAggregate = (
+  scale: NonNullable<QuestionStats["scale"]>,
+  { levels, skipped, withheld }: Pick<Tally, "levels" | "skipped" | "withheld">,
+): Pick<QuestionStats, "answers" | "scale"> => {
+  const played = [...levels.keys()]
+  const min = Math.min(scale.min, ...played)
+  const max = Math.max(scale.max, ...played)
+  const counts = Array.from(
+    { length: Math.max(0, max - min + 1) },
+    (_, index) => levels.get(min + index) ?? 0,
+  )
+  const { mean, median } = scaleSummary(counts, min)
+
+  return {
+    answers: counts.map((count, index) => ({
+      label: String(min + index),
+      count,
+    })),
+    scale: {
+      ...scale,
+      min,
+      max,
+      skipped,
+      mean,
+      median,
+      ...(withheld &&
+        counts.every((count) => count === 0) && { withheld: true }),
+    },
+  }
+}
+
+/**
  * Aggregates the questions of several games of the same quizz.
  *
  * Questions are grouped by their text rather than by their position: a quizz
@@ -314,7 +418,8 @@ const countRecord = (
  * types only merges with the same type, so the same wording can show
  * up once more under another type. A word cloud counts its words across the
  * games that kept them, never per player. Info slides never reach the history, so they never show
- * up here either, and a type this version does not know is left out.
+ * up here either, and a type this version does not know is left out. A scale
+ * counts its levels the same way, never per player.
  *
  * `successRate` counts correct answers over answers actually given: players
  * who let the timer run out are reported separately in `missingCount`, so a
@@ -344,32 +449,77 @@ export const aggregateQuestions = (games: GameResult[]): QuestionStats[] => {
         tally.withheld ||= question.wordsWithheld === true
       }
 
+      if (question.type === QUESTION_TYPES.RANKING) {
+        const orders = question.playerAnswers.flatMap(({ answerIds }) =>
+          answerIds === null ? [] : [answerIds],
+        )
+
+        rankPoints(orders, question.answers.length).forEach((value, index) => {
+          const item = question.answers[index]
+
+          tally.points.set(item, (tally.points.get(item) ?? 0) + value)
+        })
+      }
+
+      if (question.type === QUESTION_TYPES.SCALE) {
+        const { min } = scaleRangeOf(question.options)
+        const { counts, skipped } = storedScale(question)
+
+        counts.forEach((count, index) => {
+          const value = min + index
+
+          tally.levels.set(value, (tally.levels.get(value) ?? 0) + count)
+        })
+        tally.skipped += skipped
+        tally.withheld ||= question.scaleWithheld === true
+      }
+
       byQuestion.set(key, tally)
     }
   }
 
   return [...byQuestion.values()]
-    .map(({ stats, scoreSum, words, withheld, values }) => ({
-      ...stats,
-      ...(stats.estimate && {
-        estimate: { ...stats.estimate, median: medianOf(values) },
+    .map(
+      ({
+        stats,
+        scoreSum,
+        words,
+        withheld,
+        values,
+        points,
+        levels,
+        skipped,
+      }) => ({
+        ...stats,
+        ...(stats.estimate && {
+          estimate: { ...stats.estimate, median: medianOf(values) },
+        }),
+        ...(stats.type === QUESTION_TYPES.RANKING && {
+          // The proposals in the order the games ranked them, as on the
+          // projector.
+          answers: rankOrder(
+            stats.answers.map(({ label }) => points.get(label) ?? 0),
+          ).map((index) => stats.answers[index]),
+        }),
+        ...(stats.scale &&
+          scaleAggregate(stats.scale, { levels, skipped, withheld })),
+        ...(stats.type === QUESTION_TYPES.WORDCLOUD && {
+          // Salted as in the game: words given as often keep its order.
+          answers: countWords(words, stats.question)
+            .slice(0, WORDCLOUD_LIMITS.CLOUD_WORDS)
+            .map(({ text, count }) => ({ label: text, count })),
+          ...(words.length === 0 && withheld && { wordsWithheld: true }),
+        }),
+        successRate:
+          stats.scored && stats.answerCount > 0
+            ? stats.correctCount / stats.answerCount
+            : null,
+        ...(stats.averageScore !== undefined && {
+          averageScore:
+            stats.answerCount > 0 ? scoreSum / stats.answerCount : null,
+        }),
       }),
-      ...(stats.type === QUESTION_TYPES.WORDCLOUD && {
-        // Salted as in the game: words given as often keep its order.
-        answers: countWords(words, stats.question)
-          .slice(0, WORDCLOUD_LIMITS.CLOUD_WORDS)
-          .map(({ text, count }) => ({ label: text, count })),
-        ...(words.length === 0 && withheld && { wordsWithheld: true }),
-      }),
-      successRate:
-        stats.scored && stats.answerCount > 0
-          ? stats.correctCount / stats.answerCount
-          : null,
-      ...(stats.averageScore !== undefined && {
-        averageScore:
-          stats.answerCount > 0 ? scoreSum / stats.answerCount : null,
-      }),
-    }))
+    )
     .sort((a, b) => {
       // Hardest questions first; the ones with no rate (polls, unanswered)
       // carry no lesson, so they close the list.

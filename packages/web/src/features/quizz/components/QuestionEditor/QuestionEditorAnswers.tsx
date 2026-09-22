@@ -28,6 +28,8 @@ const HINT_KEYS: Record<QuestionType, string> = {
   highlight: "quizz:answers.hint.highlight",
   statements: "quizz:answers.hint.statements",
   categorize: "quizz:answers.hint.categorize",
+  ranking: "quizz:answers.hint.ranking",
+  scale: "quizz:answers.hint.scale",
 }
 
 // Chip, field, correct-answer box, delete button. Below sm the rows use two

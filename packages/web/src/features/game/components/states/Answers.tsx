@@ -14,6 +14,7 @@ import { useQuestionStore } from "@razzia/web/features/game/stores/question"
 import { SFX } from "@razzia/web/features/game/utils/constants"
 import { QUESTION_REGISTRY } from "@razzia/web/features/questions"
 import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import useSound from "use-sound"
 
 interface Props {
@@ -33,6 +34,7 @@ const Answers = ({
     targets,
   },
 }: Props) => {
+  const { t } = useTranslation()
   const { socket } = useSocket()
   const { player, gameId } = usePlayerStore()
   const setLastAnswer = useQuestionStore((state) => state.setLastAnswer)
@@ -63,7 +65,7 @@ const Answers = ({
     setLastAnswer({
       questionType,
       answer,
-      display: QUESTION_REGISTRY[questionType].sentText?.(answer, options),
+      display: QUESTION_REGISTRY[questionType].sentText?.(t, answer, options),
       targets,
     })
     sfxPop()

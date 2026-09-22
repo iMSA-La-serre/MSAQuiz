@@ -1538,3 +1538,241 @@ describe("RoundManager, reconnection", () => {
     })
   })
 })
+
+const RANKING = question({
+  type: QUESTION_TYPES.RANKING,
+  question: "Classez ces chantiers par priorité",
+  answers: ["Accueil", "Délais", "Numérique"],
+  solutions: [],
+  penalty: 100,
+})
+
+const SCALE = question({
+  type: QUESTION_TYPES.SCALE,
+  question: "Cette journée répond-elle à vos attentes ?",
+  answers: [],
+  solutions: [],
+  options: { scaleMin: 1, scaleMax: 5, scaleSkip: true },
+})
+
+describe("RoundManager, ranking", () => {
+  it("shows the proposals as written and ranks them by rank points", async () => {
+    const game = setup(
+      [RANKING],
+      [player("camille", 300), player("yanis"), player("ines")],
+    )
+
+    await game.reachFirstQuestion()
+
+    // No shuffle: the proposals keep the author's order, as a poll's answers.
+    expect(game.lastBroadcast(STATUS.SHOW_QUESTION)?.answers).toEqual([
+      "Accueil",
+      "Délais",
+      "Numérique",
+    ])
+
+    await game.openAnswers(5)
+
+    game.round.selectAnswer(socketOf("camille"), { answerKeys: [1, 0, 2] })
+    game.round.selectAnswer(socketOf("yanis"), { answerKeys: [1, 2, 0] })
+
+    await game.closeAnswers()
+
+    // Nobody is right or wrong, and nobody loses points.
+    expect(game.lastSent("camille", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "voted",
+      correct: true,
+      message: "game:rankingAnswered",
+      points: 0,
+      myPoints: 300,
+    })
+    expect(game.lastSent("ines", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "noVote",
+      message: "game:noAnswer",
+      points: 0,
+    })
+
+    const responses = game.lastSent(MANAGER_ID, STATUS.SHOW_RESPONSES)
+
+    expect(responses?.rankPoints).toEqual([1, 4, 1])
+    // Keyed by proposal: the players who put each one first.
+    expect(responses?.responses).toEqual({ 1: 2 })
+    expect(responses).toMatchObject({ totalAnswered: 2, totalPlayers: 3 })
+    expect(responses).not.toHaveProperty("correctCount")
+
+    game.round.showLeaderboard(game.manager)
+
+    const [saved] = game.finished[0].questions
+
+    // Nominative, as a poll: each player's order is kept.
+    expect(saved.playerAnswers).toEqual([
+      { playerName: "camille", answerIds: [1, 0, 2], score: 0 },
+      { playerName: "yanis", answerIds: [1, 2, 0], score: 0 },
+      { playerName: "ines", answerIds: null, score: 0 },
+    ])
+  })
+
+  it("refuses an order that leaves a proposal out", async () => {
+    const game = setup([RANKING], [player("camille")])
+
+    await game.reachFirstQuestion()
+    await game.openAnswers(5)
+    game.round.selectAnswer(socketOf("camille"), { answerKeys: [1, 0] })
+    game.round.selectAnswer(socketOf("camille"), { answerKeys: [0, 0, 1] })
+    await game.closeAnswers()
+
+    expect(
+      game.lastSent(MANAGER_ID, STATUS.SHOW_RESPONSES)?.totalAnswered,
+    ).toBe(0)
+  })
+})
+
+describe("RoundManager, scale", () => {
+  it("counts the levels together and keeps only who answered", async () => {
+    const players = ["camille", "yanis", "ines", "lea", "noe"].map((id) =>
+      player(id),
+    )
+    const game = setup([SCALE], players)
+
+    await game.reachFirstQuestion()
+
+    expect(game.lastBroadcast(STATUS.SHOW_PREPARED)?.totalAnswers).toBe(0)
+    expect(game.lastBroadcast(STATUS.SHOW_QUESTION)).toMatchObject({
+      answers: [],
+      options: { scaleMin: 1, scaleMax: 5, scaleSkip: true },
+    })
+
+    await game.openAnswers(5)
+
+    game.round.selectAnswer(socketOf("camille"), { answerKeys: [4] })
+    game.round.selectAnswer(socketOf("yanis"), { answerKeys: [3] })
+    game.round.selectAnswer(socketOf("ines"), { answerKeys: [4] })
+    // « Je préfère ne pas répondre »: the index past the last level.
+    game.round.selectAnswer(socketOf("lea"), { answerKeys: [5] })
+
+    await game.closeAnswers()
+
+    expect(game.lastSent("camille", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "voted",
+      correct: true,
+      message: "game:scaleAnswered",
+      points: 0,
+    })
+    expect(game.lastSent("lea", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "voted",
+      message: "game:scaleAnswered",
+    })
+    expect(game.lastSent("noe", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "noVote",
+      message: "game:noAnswer",
+    })
+
+    const responses = game.lastSent(MANAGER_ID, STATUS.SHOW_RESPONSES)
+
+    expect(responses?.responses).toEqual({ 3: 1, 4: 2, 5: 1 })
+    expect(responses).toMatchObject({ totalAnswered: 4, totalPlayers: 5 })
+
+    game.round.showLeaderboard(game.manager)
+
+    const [saved] = game.finished[0].questions
+
+    expect(saved.playerAnswers).toEqual([
+      { playerName: "camille", answerIds: [], answered: true, score: 0 },
+      { playerName: "yanis", answerIds: [], answered: true, score: 0 },
+      { playerName: "ines", answerIds: [], answered: true, score: 0 },
+      { playerName: "lea", answerIds: [], answered: true, score: 0 },
+      { playerName: "noe", answerIds: null, answered: false, score: 0 },
+    ])
+    expect(saved.scale).toEqual({ counts: [0, 0, 0, 1, 2], skipped: 1 })
+    expect(saved).not.toHaveProperty("scaleWithheld")
+  })
+
+  it("keeps no count when too few players answered", async () => {
+    const game = setup(
+      [SCALE],
+      [player("camille"), player("yanis"), player("ines")],
+    )
+
+    await game.reachFirstQuestion()
+    await game.openAnswers(5)
+    game.round.selectAnswer(socketOf("camille"), { answerKeys: [0] })
+    game.round.selectAnswer(socketOf("yanis"), { answerKeys: [4] })
+    await game.closeAnswers()
+
+    // The room still sees them.
+    expect(game.lastSent(MANAGER_ID, STATUS.SHOW_RESPONSES)?.responses).toEqual(
+      { 0: 1, 4: 1 },
+    )
+
+    game.round.showLeaderboard(game.manager)
+
+    const [saved] = game.finished[0].questions
+
+    expect(saved.scaleWithheld).toBe(true)
+    expect(saved).not.toHaveProperty("scale")
+    expect(saved.playerAnswers.filter(({ answered }) => answered)).toHaveLength(
+      2,
+    )
+  })
+
+  it("keeps no count when the only answers preferred not to answer", async () => {
+    const game = setup(
+      [SCALE],
+      [player("camille"), player("yanis"), player("ines")],
+    )
+
+    await game.reachFirstQuestion()
+    await game.openAnswers(5)
+    // Without this, the two players who answered would be exactly the two
+    // « Je préfère ne pas répondre » the count reports.
+    game.round.selectAnswer(socketOf("camille"), { answerKeys: [5] })
+    game.round.selectAnswer(socketOf("yanis"), { answerKeys: [5] })
+    await game.closeAnswers()
+
+    game.round.showLeaderboard(game.manager)
+
+    const [saved] = game.finished[0].questions
+
+    expect(saved.scaleWithheld).toBe(true)
+    expect(saved).not.toHaveProperty("scale")
+  })
+
+  it("keeps the counts when a skip makes up the third answer", async () => {
+    const game = setup(
+      [SCALE],
+      [player("camille"), player("yanis"), player("ines")],
+    )
+
+    await game.reachFirstQuestion()
+    await game.openAnswers(5)
+    game.round.selectAnswer(socketOf("camille"), { answerKeys: [0] })
+    game.round.selectAnswer(socketOf("yanis"), { answerKeys: [4] })
+    game.round.selectAnswer(socketOf("ines"), { answerKeys: [5] })
+    await game.closeAnswers()
+
+    game.round.showLeaderboard(game.manager)
+
+    const [saved] = game.finished[0].questions
+
+    expect(saved.scale).toEqual({ counts: [1, 0, 0, 0, 1], skipped: 1 })
+    expect(saved).not.toHaveProperty("scaleWithheld")
+  })
+
+  it("refuses a level the scale has not, and a skip not offered", async () => {
+    const game = setup(
+      [{ ...SCALE, options: { scaleMin: 1, scaleMax: 5 } }],
+      [player("camille"), player("yanis"), player("ines")],
+    )
+
+    await game.reachFirstQuestion()
+    await game.openAnswers(5)
+    game.round.selectAnswer(socketOf("camille"), { answerKeys: [5] })
+    game.round.selectAnswer(socketOf("yanis"), { answerKeys: [0, 1] })
+    game.round.selectAnswer(socketOf("ines"), { text: "4" })
+    await game.closeAnswers()
+
+    expect(
+      game.lastSent(MANAGER_ID, STATUS.SHOW_RESPONSES)?.totalAnswered,
+    ).toBe(0)
+  })
+})

@@ -12,6 +12,8 @@ import * as highlight from "@razzia/web/features/questions/highlight"
 import * as multi from "@razzia/web/features/questions/multi"
 import * as ordering from "@razzia/web/features/questions/ordering"
 import * as poll from "@razzia/web/features/questions/poll"
+import * as ranking from "@razzia/web/features/questions/ranking"
+import * as scale from "@razzia/web/features/questions/scale"
 import * as shortanswer from "@razzia/web/features/questions/shortanswer"
 import * as single from "@razzia/web/features/questions/single"
 import * as slide from "@razzia/web/features/questions/slide"
@@ -88,8 +90,10 @@ interface QuestionRegistryEntry {
     _context: { targets?: string[]; size: "host" | "phone" },
   ) => string
   // The waiting screen: the answer sent, as it should read (an estimate's
-  // number with its unit), in place of the text typed.
+  // number with its unit, the level of a scale), in place of the text typed
+  // or the letters picked.
   sentText?: (
+    _t: TFunction,
     _answer: AnswerPayload,
     _options: QuestionOptions | undefined,
   ) => string | undefined
@@ -110,6 +114,8 @@ export const QUESTION_REGISTRY: Record<QuestionType, QuestionRegistryEntry> = {
   highlight,
   statements,
   categorize,
+  ranking,
+  scale,
 }
 
 export const QUESTION_TYPE_LIST = Object.keys(

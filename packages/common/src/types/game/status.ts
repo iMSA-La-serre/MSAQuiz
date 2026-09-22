@@ -24,9 +24,10 @@ export const STATUS = {
 export type Status = (typeof STATUS)[keyof typeof STATUS]
 
 // How a round ended for one player: scored questions give correct, wrong or
-// noAnswer, polls and word clouds give voted or noVote. Partial only comes
-// from the types with QUESTION_TYPE_META.partialOutcome (ordering,
-// highlight, statements, categorize): some credit, not all of it.
+// noAnswer, the unscored ones (poll, word cloud, ranking, scale) give voted
+// or noVote. Partial only comes from the types with
+// QUESTION_TYPE_META.partialOutcome (ordering, highlight, statements,
+// categorize): some credit, not all of it.
 export type ResultOutcome =
   "correct" | "partial" | "wrong" | "noAnswer" | "voted" | "noVote"
 
@@ -57,7 +58,8 @@ export interface CommonStatusDataMap {
     time: number
     totalPlayer: number
     // Public, as in SELECT_ANSWER: the answer area is laid out as it will be
-    // (the fields of a word cloud, the unit and bounds of an estimate).
+    // (the fields of a word cloud, the unit and bounds of an estimate, the
+    // levels of a scale).
     options?: QuestionOptions
     // Highlight: the text, as in SELECT_ANSWER.
     text?: string
@@ -84,8 +86,8 @@ export interface CommonStatusDataMap {
     // Whether the answer earned credit: true for a partial outcome too. On a
     // poll, whether the vote was recorded.
     correct: boolean
-    // I18n key of the heading, one per outcome; a word cloud has its own for
-    // voted and noVote.
+    // I18n key of the heading, one per outcome; a word cloud, a ranking and
+    // a scale have their own for voted and noVote.
     message: string
     // Change actually applied to myPoints this round (a penalty after the
     // floor at 0).
@@ -120,7 +122,9 @@ interface ManagerExtraStatus {
     // put item i (original index, `answers` being in the correct order) at
     // its place. Shortanswer: inputs recognized per accepted answer.
     // Statements and categorize: players who matched item i with its right
-    // target.
+    // target. Ranking: players who put item i first. Scale: players who
+    // picked each level, plus the players who preferred not to answer at the
+    // index past the last level (scaleSkipIndex).
     responses: Record<number, number>
     solutions: number[]
     // The question's own list: the correct order for an ordering.
@@ -145,6 +149,9 @@ interface ManagerExtraStatus {
     // all. `responses` is empty.
     words?: WordCount[]
     distinctWords?: number
+    // Ranking: the rank points of each item (rankPoints), which order the
+    // rows of the distribution. `responses` holds the first choices.
+    rankPoints?: number[]
     // Ordering: the list players were shown, as indices into `answers`
     // (publicOrder[publicIndex] = index in answers), so the host can letter
     // each item as the phones did.

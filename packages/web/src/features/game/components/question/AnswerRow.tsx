@@ -23,6 +23,13 @@ interface AnswerRowProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   // Host only: a shorter row with a smaller chip and text, for lists longer
   // than a choice's (see isCompactList).
   compact?: boolean
+  // Host only: a shorter row still, with a smaller chip and text, for lists
+  // longer than a choice's five rows (a scale of up to eight levels). Takes
+  // over from `compact`. It is as small as a projected row ever gets, and as
+  // small as it has to be: eight of them leave about fifteen pixels above the
+  // controls at 1280×650, which is why eight is also the most levels a scale
+  // may hold (SCALE_LIMITS.MAX_LEVELS).
+  tiny?: boolean
   // A button when true, a plain div otherwise (host display).
   interactive?: boolean
   // Checkbox (multi) or count and percentage (distribution).
@@ -46,9 +53,17 @@ const FULL_ROWS = 4
 
 export const isCompactList = (count: number) => count > FULL_ROWS
 
+// Past this many rows, even compact ones no longer fit a 1280×650 projector
+// under a question on two lines: a scale of six levels or more uses the tiny
+// ones.
+const COMPACT_ROWS = 5
+
+export const isTinyList = (count: number) => count > COMPACT_ROWS
+
 const TEXT_SIZES = {
   host: "text-lg leading-tight md:text-2xl xl:text-3xl short:text-2xl",
   hostDense: "text-lg leading-tight md:text-xl xl:text-2xl",
+  hostTiny: "text-base leading-tight md:text-lg xl:text-xl",
   phone: "text-lg leading-snug",
   phoneLarge: "text-xl leading-snug",
 }
@@ -57,9 +72,14 @@ const textSize = ({
   size,
   dense,
   compact,
+  tiny,
   large,
-}: Pick<AnswerRowProps, "size" | "dense" | "compact" | "large">) => {
+}: Pick<AnswerRowProps, "size" | "dense" | "compact" | "tiny" | "large">) => {
   if (size === "host") {
+    if (tiny) {
+      return TEXT_SIZES.hostTiny
+    }
+
     return dense || compact ? TEXT_SIZES.hostDense : TEXT_SIZES.host
   }
 
@@ -70,7 +90,14 @@ const textSize = ({
 export const rowChipSize = (
   size: AnswerRowProps["size"],
   compact = false,
-): "md" | "lg" => (size === "host" && !compact ? "lg" : "md")
+  tiny = false,
+): "xs" | "sm" | "md" | "lg" => {
+  if (tiny) {
+    return "xs"
+  }
+
+  return size === "host" && !compact ? "lg" : "md"
+}
 
 // One row shell for the host list, the phone list and the distribution. The
 // colour lives in the letter chip only; the row itself stays white.
@@ -82,6 +109,7 @@ const AnswerRow = ({
   outlined = false,
   dense = false,
   compact = false,
+  tiny = false,
   interactive = false,
   trailing,
   footer,
@@ -97,10 +125,12 @@ const AnswerRow = ({
       "text-secondary relative flex w-full items-center rounded-2xl text-left transition-[background-color,box-shadow,opacity] duration-300 ease-out-quart motion-reduce:transition-none",
       size === "host"
         ? clsx(
-            "gap-5 px-5 xl:px-6",
-            compact
-              ? "min-h-14 py-1.5 short:min-h-12 short:py-1"
-              : "min-h-20 py-3 xl:min-h-24 short:min-h-16 short:py-2",
+            tiny ? "gap-4 px-4 xl:px-5" : "gap-5 px-5 xl:px-6",
+            tiny && "min-h-11 py-1 short:min-h-7 short:py-0",
+            !tiny &&
+              (compact
+                ? "min-h-14 py-1.5 short:min-h-12 short:py-1"
+                : "min-h-20 py-3 xl:min-h-24 short:min-h-16 short:py-2"),
           )
         : "min-h-16 gap-3 px-3 py-2.5",
       {
@@ -119,12 +149,14 @@ const AnswerRow = ({
   // Spans with display block: a button may only hold phrasing content.
   const content = (
     <>
-      {marker ?? <AnswerChip index={index} size={rowChipSize(size, compact)} />}
+      {marker ?? (
+        <AnswerChip index={index} size={rowChipSize(size, compact, tiny)} />
+      )}
       <span className="block min-w-0 flex-1">
         <span
           className={clsx(
             "block font-semibold break-words",
-            textSize({ size, dense, compact, large }),
+            textSize({ size, dense, compact, tiny, large }),
           )}
         >
           {text}

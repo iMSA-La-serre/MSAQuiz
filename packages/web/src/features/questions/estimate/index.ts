@@ -55,6 +55,7 @@ export const answerHint = estimateHint
 
 // The number sent, as the phone read it, with the unit.
 export const sentText = (
+  _t: TFunction,
   answer: AnswerPayload,
   options: QuestionOptions | undefined,
 ): string | undefined => {

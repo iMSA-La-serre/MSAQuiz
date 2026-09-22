@@ -6,6 +6,8 @@ import * as highlight from "./highlight"
 import * as multi from "./multi"
 import * as ordering from "./ordering"
 import * as poll from "./poll"
+import * as ranking from "./ranking"
+import * as scale from "./scale"
 import * as shortanswer from "./shortanswer"
 import * as single from "./single"
 import * as slide from "./slide"
@@ -37,6 +39,8 @@ export const QUESTION_SCORING: Record<QuestionType, ScoringFn> = {
   [highlight.type]: highlight.scoring,
   [statements.type]: statements.scoring,
   [categorize.type]: categorize.scoring,
+  [ranking.type]: ranking.scoring,
+  [scale.type]: scale.scoring,
 }
 
 // Stored results may hold a type this version does not know (a later one, or

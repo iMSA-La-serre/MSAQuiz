@@ -12,6 +12,7 @@ import { enter } from "@razzia/web/features/game/utils/motion"
 import { QUESTION_REGISTRY } from "@razzia/web/features/questions"
 import clsx from "clsx"
 import {
+  ArrowDownWideNarrow,
   EqualApproximately,
   Highlighter,
   Keyboard,
@@ -61,6 +62,9 @@ const HINTS: Partial<Record<QuestionType, { icon: LucideIcon; key: string }>> =
     statements: { icon: Scale, key: "game:answer.statementsHint" },
     // Names the categories on the projector, see answerHint.
     categorize: { icon: Tags, key: "game:answer.categorizeHintAny" },
+    ranking: { icon: ArrowDownWideNarrow, key: "game:answer.rankingHint" },
+    // Not linked to the username, as a word cloud.
+    scale: { icon: Link2Off, key: "game:answer.scaleHint" },
   }
 
 const TITLE = "font-bold text-balance text-white drop-shadow-lg"

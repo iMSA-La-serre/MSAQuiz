@@ -38,6 +38,8 @@ interface ResponseRowProps {
   // bar and smaller figures. No « Bonne réponse » label: it would cover the
   // row above.
   compact?: boolean
+  // Thinner rows still, for a list longer than an ordering's (isTinyList).
+  tiny?: boolean
   // A compact row that keeps its « Bonne réponse » label: the right rows of
   // a long list (estimate, highlight). The label gets room above the row,
   // and the row's content moves down under it, clear of the figures.
@@ -63,6 +65,7 @@ const ResponseRow = ({
   revealed,
   dense = false,
   compact = false,
+  tiny = false,
   labelled = false,
   stacked = false,
   marker,
@@ -102,7 +105,8 @@ const ResponseRow = ({
       aria-hidden
       className={clsx(
         "bg-secondary/10 block overflow-hidden rounded-full",
-        compact ? "mt-1 h-2.5" : "mt-2 h-3 xl:h-4",
+        tiny && "mt-0.5 h-2",
+        !tiny && (compact ? "mt-1 h-2.5" : "mt-2 h-3 xl:h-4"),
       )}
     >
       <motion.span
@@ -118,20 +122,25 @@ const ResponseRow = ({
   const numbers = (
     <motion.span
       {...fadeIn(delay, reduceMotion)}
-      className="flex min-w-40 shrink-0 items-baseline justify-end gap-3 tabular-nums xl:min-w-48"
+      className={clsx(
+        "flex shrink-0 items-baseline justify-end gap-3 tabular-nums",
+        tiny ? "min-w-28 xl:min-w-32" : "min-w-40 xl:min-w-48",
+      )}
     >
       <span
         className={clsx(
-          "text-3xl font-bold",
-          compact ? "leading-none" : "xl:text-4xl",
+          "font-bold",
+          tiny && "text-2xl leading-none",
+          !tiny && clsx("text-3xl", compact ? "leading-none" : "xl:text-4xl"),
         )}
       >
         {new Intl.NumberFormat(i18n.language).format(count)}
       </span>
       <span
         className={clsx(
-          "text-secondary/75 text-xl font-semibold",
-          !compact && "xl:text-2xl",
+          "text-secondary/75 font-semibold",
+          tiny ? "text-base" : "text-xl",
+          !compact && !tiny && "xl:text-2xl",
         )}
       >
         {percent}
@@ -155,6 +164,7 @@ const ResponseRow = ({
         size="host"
         dense={dense}
         compact={compact}
+        tiny={tiny}
         // The label's depth into the row; `short:` as the row's own padding.
         className={
           labelledRow
@@ -231,12 +241,18 @@ export const ResponseFrame = ({
 
 interface ResponseListProps {
   hint?: { icon: LucideIcon; text: string }
+  // Noted under the list, at the other end from the missing answers.
+  aside?: ReactNode
   // Players of the game with no answer, noted under the list.
   unanswered: number
   // Name of the list, « Répartition des réponses » by default.
   label?: string
   // Rows in the list: past four, they are compact and closer together.
   rows: number
+  // Rows given `tiny`: they are closer together still. Decided by the caller,
+  // as the rows themselves are, so a longer list of ordinary rows keeps the
+  // spacing of every other type.
+  tiny?: boolean
   children: ReactNode
 }
 
@@ -244,20 +260,24 @@ interface ResponseListProps {
 // put its hint and rows.
 export const ResponseList = ({
   hint,
+  aside,
   unanswered,
   label,
   rows,
+  tiny = false,
   children,
 }: ResponseListProps) => {
   const { t } = useTranslation()
 
   return (
-    <ResponseFrame hint={hint} unanswered={unanswered}>
+    <ResponseFrame hint={hint} aside={aside} unanswered={unanswered}>
       <ol
         aria-label={label ?? t("game:responses.label")}
         className={clsx(
           "flex flex-col",
-          isCompactList(rows) ? "gap-2" : "short:gap-2 gap-3 xl:gap-4",
+          tiny && "short:gap-1 gap-1.5",
+          !tiny &&
+            (isCompactList(rows) ? "gap-2" : "short:gap-2 gap-3 xl:gap-4"),
         )}
       >
         {children}

@@ -54,7 +54,11 @@
       "matchScoring.share": "Réponses justes",
       "matchScoring.exact": "Tout ou rien",
       "matchScoringHint.share": "Points en proportion des réponses justes",
-      "matchScoringHint.exact": "Points seulement si toutes les réponses sont justes"
+      "matchScoringHint.exact": "Points seulement si toutes les réponses sont justes",
+      "scaleRange": "Niveaux",
+      "scaleRangeHint": "Valeurs proposées sur le téléphone",
+      "scaleSkip": "Je préfère ne pas répondre",
+      "scaleSkipHint": "Ajoute une option pour répondre sans choisir de niveau"
     },
     "deleteQuestion": "Supprimer la question",
     "deleteQuestionConfirm": "Êtes-vous sûr de vouloir supprimer cette question ?",
@@ -80,7 +84,9 @@
     "estimate": "Estimation",
     "highlight": "Repérage",
     "statements": "Affirmations",
-    "categorize": "Catégories"
+    "categorize": "Catégories",
+    "ranking": "Priorités",
+    "scale": "Échelle"
   },
   "titleQuizzPlaceholder": "Titre du quiz...",
   "slideNoAnswers": "Une diapo info n'attend pas de réponses — elle affiche simplement la question et son média.",
@@ -103,7 +109,9 @@
       "estimate": "Juste dans la marge de tolérance",
       "highlight": "Cochez les passages à repérer",
       "statements": "Indiquez si chacune est vraie ou fausse",
-      "categorize": "Choisissez la bonne catégorie de chacun"
+      "categorize": "Choisissez la bonne catégorie de chacun",
+      "ranking": "Sans bonne réponse : chacun les classe",
+      "scale": "Réponses non associées au pseudo"
     },
     "placeholder": "Réponse {{letter}}",
     "remove": "Supprimer la réponse {{letter}}",
@@ -113,7 +121,7 @@
     "add": "Ajouter un élément",
     "columnItem": "Élément",
     "columnPosition": "Position",
-    "moved": "{{item}} déplacé en position {{position}}",
+    "moved": "{{item}} déplacé en position {{number}}",
     "moveDown": "Descendre l'élément {{number}}",
     "moveUp": "Monter l'élément {{number}}",
     "placeholder": "Élément {{number}}",
@@ -215,5 +223,28 @@
     "remove": "Supprimer l'élément {{letter}}",
     "removeCategory": "Supprimer la catégorie {{number}}",
     "title": "Éléments à classer"
+  },
+  "ranking": {
+    "add": "Ajouter une proposition",
+    "columnItem": "Proposition",
+    "columnOrder": "Affichage",
+    "moved": "{{item}} déplacée en position {{number}}",
+    "moveDown": "Descendre la proposition {{letter}}",
+    "moveUp": "Monter la proposition {{letter}}",
+    "placeholder": "Proposition {{letter}}",
+    "remove": "Supprimer la proposition {{letter}}",
+    "title": "Propositions à classer"
+  },
+  "scale": {
+    "columnLabel": "Libellé",
+    "highLabel": "Libellé du niveau {{value}}",
+    "highPlaceholder": "Tout à fait d'accord",
+    "lowLabel": "Libellé du niveau {{value}}",
+    "lowPlaceholder": "Pas du tout d'accord",
+    "range": "{{min}} à {{max}}",
+    "skipOff": "L'option « Je préfère ne pas répondre » n'est pas proposée.",
+    "skipOn": "L'option « Je préfère ne pas répondre » est proposée sous les niveaux.",
+    "title": "Échelle",
+    "unlinked": "Les réponses ne sont pas associées au pseudo : les résultats gardent seulement qui a répondu, et combien de participants ont choisi chaque niveau."
   }
 }

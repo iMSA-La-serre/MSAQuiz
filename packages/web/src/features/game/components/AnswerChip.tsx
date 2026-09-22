@@ -6,11 +6,16 @@ import clsx from "clsx"
 import type { HTMLAttributes, ReactNode } from "react"
 import { twMerge } from "tailwind-merge"
 
-type Size = "sm" | "md" | "lg"
+type Size = "xs" | "sm" | "md" | "lg"
 
 // Every size keeps the letter at 20 px bold or more: navy on the green and
-// blue chips is 3.6:1, which only passes AA as large text.
+// blue chips is 3.6:1, which only passes AA as large text. The smallest box
+// holds it with no room to spare, which is why it is never coloured.
 const SIZES: Record<Size, string> = {
+  // The rows of a long list (isTinyList), where a coloured letter would leave
+  // too little of its tint to read: only the neutral chips of a scale use it,
+  // and they hold one digit.
+  xs: "size-7 rounded-lg text-xl leading-none",
   sm: "size-8 rounded-lg text-xl leading-none",
   md: "size-10 rounded-xl text-xl leading-none",
   lg: "size-12 rounded-xl text-2xl leading-none xl:size-14 xl:text-3xl short:size-12 short:text-2xl",

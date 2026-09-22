@@ -441,3 +441,72 @@ describe("parseAnswer, statements and categorize", () => {
     ).toEqual({ 0: 2 })
   })
 })
+
+describe("parseAnswer, ranking", () => {
+  const ranking = question(QUESTION_TYPES.RANKING, ["Un", "Deux", "Trois"])
+  // No shuffle: the proposals are shown as written.
+  const publicOrder = [0, 1, 2]
+  const parse = (payload: unknown) => parseAnswer(ranking, payload, publicOrder)
+
+  it("keeps the order the player built", () => {
+    expect(parse({ answerKeys: [1, 2, 0] })).toEqual({ answerIds: [1, 2, 0] })
+  })
+
+  it("refuses anything but a full order", () => {
+    expect(parse({ answerKeys: [0, 1] })).toBeNull()
+    expect(parse({ answerKeys: [0, 0, 1] })).toBeNull()
+    expect(parse({ answerKeys: [0, 1, 3] })).toBeNull()
+    expect(parse({ text: "Un" })).toBeNull()
+  })
+})
+
+describe("parseAnswer, scale", () => {
+  const scale = (scaleSkip?: boolean): Question => ({
+    ...question(QUESTION_TYPES.SCALE, []),
+    options: { scaleMin: 1, scaleMax: 5, ...(scaleSkip && { scaleSkip }) },
+  })
+  const parse = (payload: unknown, scaleSkip?: boolean) =>
+    parseAnswer(scale(scaleSkip), payload, [])
+
+  it("keeps the level picked", () => {
+    expect(parse({ answerKeys: [0] })).toEqual({ answerIds: [0] })
+    expect(parse({ answerKeys: [4] })).toEqual({ answerIds: [4] })
+  })
+
+  it("keeps « Je préfère ne pas répondre » only when it is offered", () => {
+    expect(parse({ answerKeys: [5] }, true)).toEqual({ answerIds: [5] })
+    expect(parse({ answerKeys: [5] })).toBeNull()
+  })
+
+  it("refuses a level the scale has not, or several", () => {
+    expect(parse({ answerKeys: [6] }, true)).toBeNull()
+    expect(parse({ answerKeys: [-1] })).toBeNull()
+    expect(parse({ answerKeys: [1.5] })).toBeNull()
+    expect(parse({ answerKeys: [0, 1] })).toBeNull()
+    expect(parse({ answerKeys: [] })).toBeNull()
+    expect(parse({ text: "4" })).toBeNull()
+    expect(parse(null)).toBeNull()
+  })
+})
+
+describe("countResponses, ranking and scale", () => {
+  it("counts the players who put each proposal first", () => {
+    expect(
+      countResponses(question(QUESTION_TYPES.RANKING, ["Un", "Deux"]), [
+        { answerIds: [1, 0] },
+        { answerIds: [1, 0] },
+        { answerIds: [0, 1] },
+      ]),
+    ).toEqual({ 0: 1, 1: 2 })
+  })
+
+  it("counts the players of each level, and those without an opinion", () => {
+    expect(
+      countResponses(question(QUESTION_TYPES.SCALE, []), [
+        { answerIds: [4] },
+        { answerIds: [4] },
+        { answerIds: [5] },
+      ]),
+    ).toEqual({ 4: 2, 5: 1 })
+  })
+})

@@ -17,6 +17,11 @@ import {
 } from "@razzia/common/utils/moderation"
 import { placedItems } from "@razzia/common/utils/ordering"
 import {
+  scaleRangeOf,
+  scaleSkipAllowed,
+  scaleSkipIndex,
+} from "@razzia/common/utils/scale"
+import {
   answerKey,
   cleanInput,
   countInputChars,
@@ -63,10 +68,10 @@ export const parseAnswerIds = (
   return ids as number[]
 }
 
-// Ordering: indices into the public list, in the order the player chose. Only
-// an exact permutation of that list is kept, remapped to the original
-// indices; a repeated index is refused rather than dropped, it would place one
-// item twice.
+// Ordering and ranking: indices into the public list, in the order the player
+// chose. Only an exact permutation of that list is kept, remapped to the
+// original indices; a repeated index is refused rather than dropped, it would
+// place one item twice.
 const parseOrder = (
   answerKeys: unknown,
   publicOrder: readonly number[],
@@ -189,6 +194,34 @@ const parseWords = (
   return { answerIds: [], texts: kept }
 }
 
+// Scale: the level picked, or the index just past the last level when the
+// question offers « Je préfère ne pas répondre ». Anything else is refused.
+const parseScale = (
+  question: Question,
+  answerKeys: unknown,
+): number[] | null => {
+  if (!Array.isArray(answerKeys) || answerKeys.length !== 1) {
+    return null
+  }
+
+  const [index] = answerKeys as unknown[]
+  const range = scaleRangeOf(question.options)
+
+  if (!Number.isInteger(index)) {
+    return null
+  }
+
+  const level = index as number
+
+  if (level >= 0 && level < range.count) {
+    return [level]
+  }
+
+  return scaleSkipAllowed(question.options) && level === scaleSkipIndex(range)
+    ? [level]
+    : null
+}
+
 // Estimate: the number typed, read as the phone reads it (checkEstimate). A
 // text that is no number, has too many decimals or is out of the bounds is
 // refused.
@@ -237,16 +270,24 @@ export const answerParser =
 
     const answerKeys = payloadField(payload, "answerKeys")
 
+    if (question.type === QUESTION_TYPES.SCALE) {
+      const answerIds = parseScale(question, answerKeys)
+
+      return answerIds && { answerIds }
+    }
+
     if (isAssociationType(question.type)) {
       const answerIds = parseMatches(question, answerKeys)
 
       return answerIds && { answerIds }
     }
 
-    const answerIds =
-      question.type === QUESTION_TYPES.ORDERING
-        ? parseOrder(answerKeys, publicOrder)
-        : parseAnswerIds(question, answerKeys)
+    const ordered =
+      question.type === QUESTION_TYPES.ORDERING ||
+      question.type === QUESTION_TYPES.RANKING
+    const answerIds = ordered
+      ? parseOrder(answerKeys, publicOrder)
+      : parseAnswerIds(question, answerKeys)
 
     return answerIds && { answerIds }
   }
@@ -269,9 +310,11 @@ const rightItems = (flags: boolean[]): number[] =>
  * Tally shown with SHOW_RESPONSES, keyed by index. Choice types: votes per
  * answer. Ordering: players who put item i (original index) at its place.
  * Statements and categorize: players who matched item i with its right
- * target. Shortanswer: inputs recognized per accepted answer. Wordcloud and
- * estimate: nothing, their words and values are counted apart (countWords,
- * estimateRanges).
+ * target. Ranking: players who put item i first. Scale: players who picked
+ * each level, and those who preferred not to answer at the index past the
+ * last level. Shortanswer: inputs recognized per accepted answer. Wordcloud
+ * and estimate: nothing, their words and values are counted apart
+ * (countWords, estimateRanges).
  */
 export const countResponses = (
   question: Question,
@@ -284,6 +327,12 @@ export const countResponses = (
 
     if (isAssociationType(question.type)) {
       return rightItems(matchedItems(answerIds, question.expectedTargets ?? []))
+    }
+
+    if (question.type === QUESTION_TYPES.RANKING) {
+      const first = answerIds.at(0)
+
+      return first === undefined ? [] : [first]
     }
 
     return answerIds

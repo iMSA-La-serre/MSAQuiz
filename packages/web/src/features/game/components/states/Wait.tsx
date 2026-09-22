@@ -17,17 +17,31 @@ interface Props {
 // A white tray: the deep green C chip would vanish on the navy background.
 const TRAY = "rounded-2xl bg-white p-2 shadow-lg shadow-black/15"
 
-// The letters of the answers picked, or the text typed. An ordering keeps
-// its letters in the order chosen, in smaller chips: six must fit a 320 px
-// phone. Every tray is as tall as the tray of one large letter chip, so the
-// screen keeps its layout from one type to the next; a long text wraps. Word
-// cloud words share the line of a typed text, apart from each other.
+// The letters of the answers picked, or the text typed. An ordering and a
+// ranking keep their letters in the order chosen, which is the answer itself,
+// in smaller chips: six must fit a 320 px phone. Every tray is as tall as the
+// tray of one large letter chip, so the screen keeps its layout from one type
+// to the next; a long text wraps. Word cloud words share the line of a typed
+// text, apart from each other.
 // Statements and categorize pair each item's letter with the target picked,
 // across the line as word cloud words do, in chips smaller still: they wrap
 // once at most, where one item to a line would push the title down the
-// screen.
+// screen. A scale reads as the level picked, as a text does.
 const SentAnswerTray = ({ sent }: { sent: SentAnswer }) => {
   const { answer, questionType, display, targets } = sent
+
+  if (questionType === QUESTION_TYPES.SCALE) {
+    return (
+      <p
+        className={clsx(
+          TRAY,
+          "text-secondary max-w-full px-5 py-4.5 text-xl leading-7 font-bold break-words",
+        )}
+      >
+        {display}
+      </p>
+    )
+  }
 
   if (isAssociationType(questionType) && "answerKeys" in answer) {
     return (
@@ -84,7 +98,10 @@ const SentAnswerTray = ({ sent }: { sent: SentAnswer }) => {
     )
   }
 
-  if (questionType === QUESTION_TYPES.ORDERING) {
+  if (
+    questionType === QUESTION_TYPES.ORDERING ||
+    questionType === QUESTION_TYPES.RANKING
+  ) {
     return (
       <div className={clsx(TRAY, "flex gap-1.5 py-3")}>
         {answer.answerKeys.map((key) => (
