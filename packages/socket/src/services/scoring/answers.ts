@@ -20,11 +20,17 @@ import {
 import { wordCountOf } from "@razzia/common/utils/wordcloud"
 import type { ScoredAnswer } from "@razzia/socket/services/scoring"
 
+// Types whose players may pick several answers at once.
+const SEVERAL_PICKS = new Set<string>([
+  QUESTION_TYPES.MULTI,
+  QUESTION_TYPES.HIGHLIGHT,
+])
+
 // Answer ids as sent by a player, checked against the question before they
 // are stored. The scoring counts matching ids, so a repeated id would be
 // credited once per copy: duplicates are dropped, and anything a regular
 // client cannot send (unknown answer, several picks on a single choice) is
-// refused with null.
+// refused with null. A highlight's answers are its passages.
 export const parseAnswerIds = (
   question: Question,
   answerIds: unknown,
@@ -45,7 +51,7 @@ export const parseAnswerIds = (
     return null
   }
 
-  if (question.type !== QUESTION_TYPES.MULTI && ids.length > 1) {
+  if (!SEVERAL_PICKS.has(question.type) && ids.length > 1) {
     return null
   }
 

@@ -21,8 +21,9 @@ export interface MultiQuestionOptions {
 
 // Public: sent to players along with the question.
 export interface QuestionOptions {
-  // Multi. The validator fills it in (balanced) whenever options are given,
-  // whatever the type.
+  // Multi and highlight, which has no lenient mode (stored as balanced). The
+  // validator fills it in (balanced) whenever options are given, whatever
+  // the type.
   scoringMode?: ScoringMode
   // Ordering, position when absent.
   orderScoring?: OrderScoring
@@ -62,9 +63,9 @@ export type PublicPlayer = Omit<Player, "clientId">
 // An answer as the server keeps it until the question closes.
 export interface Answer {
   playerId: string
-  // Choice types: picked answers. Ordering: original indices, in the order
-  // the player chose. Shortanswer: index of the accepted answer recognized,
-  // or empty.
+  // Choice types: picked answers (highlight: the passages tapped). Ordering:
+  // original indices, in the order the player chose. Shortanswer: index of the
+  // accepted answer recognized, or empty.
   answerIds: number[]
   // Shortanswer: the input once cleaned (cleanInput).
   text?: string
@@ -105,6 +106,10 @@ export interface Question {
   accepted?: string[]
   // Estimate: the right value. Secret, never sent to a player.
   expected?: number
+  // Highlight: the text players read, its passages between [brackets]
+  // (parseHighlight). Public: the passages are the answers, the ones to spot
+  // are the solutions.
+  text?: string
   // Per-question switch, QUESTION_TYPE_META default when absent.
   speedBonus?: boolean
 }
@@ -210,7 +215,8 @@ export interface QuestionStats {
   missingCount: number
   correctCount: number
   successRate: number | null
-  // Choice types: picks per answer. Ordering: the items in the correct order,
+  // Choice types: picks per answer; highlight lists every passage, in the
+  // order of the text. Ordering: the items in the correct order,
   // with the players who put each one at its place. Shortanswer: the
   // accepted answers, with the inputs each one recognized. Wordcloud: the
   // most frequent words across the games (WORDCLOUD_LIMITS.CLOUD_WORDS).
@@ -220,8 +226,9 @@ export interface QuestionStats {
   // can be edited between two games. Shortanswer: the accepted answers.
   // Ordering and estimate: empty, see `estimate` for the latter.
   solutionLabels: string[]
-  // Ordering: mean multiplier over the answers given, null if none.
-  // `correctCount` counts the exact orders.
+  // Ordering and highlight: mean multiplier over the answers given, null if
+  // none. `correctCount` counts the exact orders, the answers with every
+  // passage to spot and no other.
   averageScore?: number | null
   // Shortanswer: inputs that matched no accepted answer.
   unrecognizedCount?: number

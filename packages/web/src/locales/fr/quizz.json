@@ -72,7 +72,8 @@
     "ordering": "Mise en ordre",
     "shortanswer": "Réponse courte",
     "wordcloud": "Nuage de mots",
-    "estimate": "Estimation"
+    "estimate": "Estimation",
+    "highlight": "Repérage"
   },
   "titleQuizzPlaceholder": "Titre du quiz...",
   "slideNoAnswers": "Une diapo info n'attend pas de réponses — elle affiche simplement la question et son média.",
@@ -92,7 +93,8 @@
       "ordering": "Saisissez-les dans le bon ordre",
       "shortanswer": "Majuscules et accents ignorés",
       "wordcloud": "Réponses non associées au pseudo",
-      "estimate": "Juste dans la marge de tolérance"
+      "estimate": "Juste dans la marge de tolérance",
+      "highlight": "Cochez les passages à repérer"
     },
     "placeholder": "Réponse {{letter}}",
     "remove": "Supprimer la réponse {{letter}}",
@@ -168,5 +170,16 @@
     "tooLarge": "12 chiffres au plus avant la virgule",
     "window": "Juste de {{from}} à {{to}}",
     "windowExact": "Juste seulement pour {{value}}"
+  },
+  "highlight": {
+    "columnPassage": "Passage",
+    "columnText": "Texte",
+    "correctToggle": "Marquer le passage {{letter}} « {{passage}} » comme à repérer",
+    "counter": "{{count}}/{{max}} caractères, crochets non compris",
+    "empty": "Aucun passage pour l'instant : sélectionnez des mots du texte puis « Entourer la sélection », ou tapez vous-même les [crochets].",
+    "placeholder": "Ex. : Déclarez l'accident [sous 48 heures] à [votre caisse MSA].",
+    "title": "Texte et passages",
+    "unwrap": "Retirer les crochets du passage {{letter}} « {{passage}} »",
+    "wrap": "Entourer la sélection de [crochets]"
   }
 }

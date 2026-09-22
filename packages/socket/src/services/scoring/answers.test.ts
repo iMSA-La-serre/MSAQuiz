@@ -191,6 +191,31 @@ describe("parseAnswer, shortanswer", () => {
   })
 })
 
+describe("parseAnswer, highlight", () => {
+  const highlight: Question = {
+    ...question(QUESTION_TYPES.HIGHLIGHT, ["sous 48 heures", "par courrier"]),
+    text: "Prévenez [sous 48 heures], [par courrier].",
+  }
+
+  it("keeps the passages tapped, several at once", () => {
+    expect(parseAnswer(highlight, { answerKeys: [1, 0, 1] }, [0, 1])).toEqual({
+      answerIds: [1, 0],
+    })
+  })
+
+  it("refuses an empty pick, an unknown passage, or a text", () => {
+    expect(parseAnswer(highlight, { answerKeys: [] }, [0, 1])).toBeNull()
+    expect(parseAnswer(highlight, { answerKeys: [2] }, [0, 1])).toBeNull()
+    expect(parseAnswer(highlight, { text: "courrier" }, [0, 1])).toBeNull()
+  })
+
+  it("counts the players who tapped each passage", () => {
+    expect(
+      countResponses(highlight, [{ answerIds: [0, 1] }, { answerIds: [1] }]),
+    ).toEqual({ 0: 1, 1: 2 })
+  })
+})
+
 describe("parseAnswer, estimate", () => {
   const estimate: Question = {
     ...question(QUESTION_TYPES.ESTIMATE, []),

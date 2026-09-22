@@ -1,5 +1,6 @@
 import {
   EXAMPLE_QUIZZ,
+  HIGHLIGHT_LIMITS,
   ORDER_SCORING,
   QUESTION_TYPES,
   SCORING_MODES,
@@ -286,6 +287,16 @@ describe("new optional fields on the existing types", () => {
         options: { min: 3 },
       }).options,
     ).toEqual({ scoringMode: SCORING_MODES.BALANCED })
+  })
+
+  it("drops the text of a highlight, unchecked", () => {
+    expect(
+      parse({ ...SINGLE_QUESTION, text: "Un [passage] et [un autre]" }),
+    ).not.toHaveProperty("text")
+    expect(parse({ ...SINGLE_QUESTION, text: 42 })).not.toHaveProperty("text")
+    expect(
+      parse({ ...LEGACY_QUESTION, text: "[".repeat(5000) }),
+    ).not.toHaveProperty("text")
   })
 
   it("keeps the old minimum time", () => {
@@ -647,5 +658,166 @@ describe("estimate", () => {
       "errors:quizz.timeTooShort",
     ])
     expect(isValid({ ...ESTIMATE, time: -1 })).toBe(true)
+  })
+})
+
+describe("highlight", () => {
+  const HIGHLIGHT = {
+    type: QUESTION_TYPES.HIGHLIGHT,
+    question: "Repérez les deux délais à respecter",
+    text: "Prévenez votre employeur [sous 48 heures] et envoyez l'arrêt à la MSA [sous 48 heures aussi], [par courrier] ou [en ligne].",
+    solutions: [0, 1],
+    cooldown: 5,
+    time: 45,
+  }
+
+  it("reads its answers from the passages of the text", () => {
+    const highlight = parse({
+      ...HIGHLIGHT,
+      answers: ["Autre", "Chose"],
+      accepted: ["sous 48 heures"],
+      expected: 48,
+    })
+
+    expect(highlight.answers).toEqual([
+      "sous 48 heures",
+      "sous 48 heures aussi",
+      "par courrier",
+      "en ligne",
+    ])
+    expect(highlight.solutions).toEqual([0, 1])
+    expect(highlight).not.toHaveProperty("accepted")
+    expect(highlight).not.toHaveProperty("expected")
+  })
+
+  it("stores the text cleaned, and each passage to spot once", () => {
+    const highlight = parse({
+      ...HIGHLIGHT,
+      text: "  Un [ premier ]\n passage et [un second ]. ",
+      solutions: [1, 0, 1],
+    })
+
+    expect(highlight.text).toBe("Un [premier] passage et [un second].")
+    expect(highlight.solutions).toEqual([0, 1])
+  })
+
+  it("keeps the multi scoring modes and points tuning", () => {
+    const highlight = parse({
+      ...HIGHLIGHT,
+      options: { scoringMode: SCORING_MODES.STRICT },
+      maxPoints: 2000,
+      penalty: 100,
+      speedBonus: true,
+    })
+
+    expect(highlight.options).toEqual({ scoringMode: SCORING_MODES.STRICT })
+    expect(highlight).toMatchObject({
+      maxPoints: 2000,
+      penalty: 100,
+      speedBonus: true,
+    })
+  })
+
+  it("stores the lenient mode as balanced, where a multi keeps it", () => {
+    const lenient = { scoringMode: SCORING_MODES.LENIENT }
+
+    expect(parse({ ...HIGHLIGHT, options: lenient }).options).toEqual({
+      scoringMode: SCORING_MODES.BALANCED,
+    })
+    expect(
+      parse({
+        ...HIGHLIGHT,
+        answers: ["a", "b"],
+        type: QUESTION_TYPES.MULTI,
+        options: lenient,
+      }).options,
+    ).toEqual(lenient)
+    expect(parse(HIGHLIGHT)).not.toHaveProperty("options")
+  })
+
+  it("needs a text", () => {
+    expect(issuesOf({ ...HIGHLIGHT, text: undefined })).toEqual([
+      "errors:quizz.highlightTextMissing",
+    ])
+    expect(issuesOf({ ...HIGHLIGHT, text: " " })).toEqual([
+      "errors:quizz.highlightTextMissing",
+    ])
+    expect(isValid({ ...HIGHLIGHT, text: 42 })).toBe(false)
+  })
+
+  it("needs 2 to 5 passages", () => {
+    expect(
+      issuesOf({ ...HIGHLIGHT, text: "Un seul [passage].", solutions: [0] }),
+    ).toEqual(["errors:quizz.highlightTooFewPassages"])
+
+    const passages = (count: number) =>
+      Array.from({ length: count }, (_, index) => `[mot ${index}]`).join(" ")
+
+    expect(isValid({ ...HIGHLIGHT, text: passages(5) })).toBe(true)
+    expect(issuesOf({ ...HIGHLIGHT, text: passages(6) })).toEqual([
+      "errors:quizz.highlightTooManyPassages",
+    ])
+  })
+
+  it("refuses brackets that do not pair and empty passages", () => {
+    expect(
+      issuesOf({ ...HIGHLIGHT, text: `${HIGHLIGHT.text} [en trop` }),
+    ).toEqual(["errors:quizz.highlightBrackets"])
+    expect(
+      issuesOf({ ...HIGHLIGHT, text: `${HIGHLIGHT.text} en trop]` }),
+    ).toEqual(["errors:quizz.highlightBrackets"])
+    expect(issuesOf({ ...HIGHLIGHT, text: `${HIGHLIGHT.text} [ ]` })).toEqual([
+      "errors:quizz.highlightPassageEmpty",
+    ])
+  })
+
+  it("keeps the text and each passage short", () => {
+    const filler = "a".repeat(HIGHLIGHT_LIMITS.TEXT_LENGTH)
+
+    expect(
+      issuesOf({ ...HIGHLIGHT, text: `${HIGHLIGHT.text} ${filler}` }),
+    ).toEqual(["errors:quizz.highlightTextTooLong"])
+    // Short once cleaned, but longer than a text is read raw.
+    expect(
+      issuesOf({
+        ...HIGHLIGHT,
+        text: `[a] [b]${" ".repeat(HIGHLIGHT_LIMITS.RAW_LENGTH)}`,
+      }),
+    ).toEqual(["errors:quizz.highlightTextTooLong"])
+    expect(
+      issuesOf({
+        ...HIGHLIGHT,
+        text: `[${"a".repeat(HIGHLIGHT_LIMITS.PASSAGE_LENGTH + 1)}] [b]`,
+      }),
+    ).toEqual(["errors:quizz.highlightPassageTooLong"])
+    expect(
+      isValid({
+        ...HIGHLIGHT,
+        text: `[${"a".repeat(HIGHLIGHT_LIMITS.PASSAGE_LENGTH)}] [b]`,
+      }),
+    ).toBe(true)
+  })
+
+  it("refuses two passages written the same, not two that differ", () => {
+    expect(
+      issuesOf({ ...HIGHLIGHT, text: "[la] maison et [la] voiture" }),
+    ).toEqual(["errors:quizz.highlightPassageDuplicate"])
+    expect(isValid({ ...HIGHLIGHT, text: "Il [a] mangé [à] midi" })).toBe(true)
+  })
+
+  it("needs a passage to spot, among the passages", () => {
+    expect(issuesOf({ ...HIGHLIGHT, solutions: [] })).toEqual([
+      "errors:quizz.highlightNoSolution",
+    ])
+    expect(issuesOf({ ...HIGHLIGHT, solutions: [0, 4] })).toEqual([
+      "errors:quizz.highlightSolutionRange",
+    ])
+  })
+
+  it("needs 5 seconds at least, or no limit", () => {
+    expect(issuesOf({ ...HIGHLIGHT, time: 3 })).toEqual([
+      "errors:quizz.timeTooShort",
+    ])
+    expect(isValid({ ...HIGHLIGHT, time: -1 })).toBe(true)
   })
 })

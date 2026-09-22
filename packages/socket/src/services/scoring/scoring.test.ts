@@ -250,3 +250,56 @@ describe("estimate", () => {
     expect(QUESTION_SCORING.estimate(estimate, { answerIds: [] })).toBe(0)
   })
 })
+
+describe("highlight", () => {
+  // Five passages, the most a highlight has: E, the last, is at index 4.
+  const score = (
+    scoringMode: ScoringMode,
+    solutions: number[],
+    answerIds: number[],
+  ) =>
+    QUESTION_SCORING.highlight(
+      question({
+        type: QUESTION_TYPES.HIGHLIGHT,
+        answers: ["un", "deux", "trois", "quatre", "cinq"],
+        text: "[un] [deux] [trois] [quatre] [cinq]",
+        solutions,
+        options: { scoringMode },
+      }),
+      { answerIds },
+    )
+
+  it("scores the passages tapped as the answers of a multi", () => {
+    for (const mode of [SCORING_MODES.STRICT, SCORING_MODES.BALANCED]) {
+      for (const answerIds of [
+        [0, 4],
+        [0],
+        [0, 1, 4],
+        [2, 3],
+        [0, 1, 2, 3, 4],
+      ]) {
+        expect(score(mode, [0, 4], answerIds)).toBe(
+          scoreMulti(mode, [0, 4], answerIds),
+        )
+      }
+    }
+  })
+
+  it("gives partial credit in the balanced mode, up to the fifth passage", () => {
+    expect(score(SCORING_MODES.BALANCED, [2, 4], [2, 4])).toBe(1)
+    expect(score(SCORING_MODES.BALANCED, [2, 4], [2, 3, 4])).toBe(0.5)
+    expect(score(SCORING_MODES.BALANCED, [2, 4], [4])).toBe(0.5)
+    expect(score(SCORING_MODES.STRICT, [2, 4], [2, 4])).toBe(1)
+    expect(score(SCORING_MODES.STRICT, [2, 4], [2, 3, 4])).toBe(0)
+  })
+
+  it("scores the lenient mode as balanced: tapping every passage is not full credit", () => {
+    for (const answerIds of [[0, 4], [0], [0, 1, 4], [0, 1, 2, 3, 4]]) {
+      expect(score(SCORING_MODES.LENIENT, [0, 4], answerIds)).toBe(
+        score(SCORING_MODES.BALANCED, [0, 4], answerIds),
+      )
+    }
+
+    expect(score(SCORING_MODES.LENIENT, [0, 1], [0, 1, 2, 3, 4])).toBe(0)
+  })
+})

@@ -7,6 +7,7 @@ import type {
   ScoringMode,
 } from "@razzia/common/types/game"
 import * as estimate from "@razzia/web/features/questions/estimate"
+import * as highlight from "@razzia/web/features/questions/highlight"
 import * as multi from "@razzia/web/features/questions/multi"
 import * as ordering from "@razzia/web/features/questions/ordering"
 import * as poll from "@razzia/web/features/questions/poll"
@@ -96,6 +97,7 @@ export const QUESTION_REGISTRY: Record<QuestionType, QuestionRegistryEntry> = {
   shortanswer,
   wordcloud,
   estimate,
+  highlight,
 }
 
 export const QUESTION_TYPE_LIST = Object.keys(

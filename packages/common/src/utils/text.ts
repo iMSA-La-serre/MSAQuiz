@@ -46,17 +46,23 @@ const TWO_TYPOS_FROM = 12
 const codePoints = (text: string): string[] => Array.from(text)
 
 /**
- * What a player typed, as stored and shown: raw length bounded first, then
- * NFKC, invisible characters removed, spaces collapsed and trimmed.
+ * A text as stored and shown: NFKC, invisible characters removed, spaces
+ * collapsed and trimmed. The caller bounds its length first.
  */
-export const cleanInput = (raw: string): string =>
+export const cleanText = (raw: string): string =>
   raw
-    .slice(0, SHORTANSWER_LIMITS.RAW_LENGTH)
     .normalize("NFKC")
     .replace(CONTROL_SPACES, " ")
     .replace(INVISIBLES, "")
     .replace(SPACES, " ")
     .trim()
+
+/**
+ * What a player typed, as stored and shown: raw length bounded first, then
+ * cleaned as any text (cleanText).
+ */
+export const cleanInput = (raw: string): string =>
+  cleanText(raw.slice(0, SHORTANSWER_LIMITS.RAW_LENGTH))
 
 /** Length of an input as the phone counter and the server count it. */
 export const countInputChars = (raw: string): number =>

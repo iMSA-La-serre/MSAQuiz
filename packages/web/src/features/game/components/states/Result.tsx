@@ -70,7 +70,16 @@ const TOTAL_DELAY = 0.3
 const BAND_SYNC_MS = 900
 
 const Result = ({
-  data: { outcome, message, points, myPoints, rank, totalPlayers, placed },
+  data: {
+    outcome,
+    message,
+    points,
+    myPoints,
+    rank,
+    totalPlayers,
+    placed,
+    found,
+  },
 }: Props) => {
   const updatePoints = usePlayerStore((state) => state.updatePoints)
   const { t, i18n } = useTranslation()
@@ -186,6 +195,16 @@ const Result = ({
                 count: placed.count,
                 total: placed.total,
               })}
+            </p>
+          )}
+          {found && (
+            <p className="mt-2 text-lg leading-snug font-semibold text-balance">
+              {t("game:result.found", {
+                count: found.count,
+                total: found.total,
+              })}
+              {found.extra > 0 &&
+                ` · ${t("game:result.extra", { count: found.extra })}`}
             </p>
           )}
         </motion.div>

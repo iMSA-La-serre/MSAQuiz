@@ -1,6 +1,7 @@
 import {
   ESTIMATE_LIMITS,
   ESTIMATE_TOLERANCE,
+  HIGHLIGHT_LIMITS,
   MEDIA_TYPES,
   NO_TIME_LIMIT,
   ORDER_SCORING,
@@ -13,6 +14,12 @@ import {
 } from "@razzia/common/constants"
 import type { Question, QuestionOptions } from "@razzia/common/types/game"
 import { decimalsOf, fitsDecimals } from "@razzia/common/utils/estimate"
+import {
+  formatHighlight,
+  highlightLength,
+  highlightScoringMode,
+  parseHighlight,
+} from "@razzia/common/utils/highlight"
 import {
   answerKey,
   cleanInput,
@@ -60,6 +67,7 @@ const NEWER_TYPES = new Set<string>([
   QUESTION_TYPES.SHORTANSWER,
   QUESTION_TYPES.WORDCLOUD,
   QUESTION_TYPES.ESTIMATE,
+  QUESTION_TYPES.HIGHLIGHT,
 ])
 
 const MIN_TIME = 5
@@ -235,6 +243,64 @@ const estimateOptions = (options: QuestionOptions): QuestionOptions => {
   return cleaned === "" ? rest : { ...rest, unit: cleaned }
 }
 
+// Highlight: a short text with 2 to 5 passages, each told apart from the
+// others, and at least one of them to spot.
+const checkHighlight = (
+  { text, solutions }: Pick<Question, "text" | "solutions">,
+  issue: IssueFn,
+) => {
+  if (text === undefined || text.trim() === "") {
+    issue("errors:quizz.highlightTextMissing", ["text"])
+
+    return
+  }
+
+  const parsed = parseHighlight(text)
+  const { passages } = parsed
+
+  if (
+    text.length > HIGHLIGHT_LIMITS.RAW_LENGTH ||
+    highlightLength(parsed) > HIGHLIGHT_LIMITS.TEXT_LENGTH
+  ) {
+    issue("errors:quizz.highlightTextTooLong", ["text"])
+  }
+
+  if (parsed.issue === "brackets") {
+    issue("errors:quizz.highlightBrackets", ["text"])
+  } else if (parsed.issue === "emptyPassage") {
+    issue("errors:quizz.highlightPassageEmpty", ["text"])
+  }
+
+  if (passages.length < HIGHLIGHT_LIMITS.MIN_PASSAGES) {
+    issue("errors:quizz.highlightTooFewPassages", ["text"])
+  } else if (passages.length > HIGHLIGHT_LIMITS.MAX_PASSAGES) {
+    issue("errors:quizz.highlightTooManyPassages", ["text"])
+  }
+
+  const tooLong = passages.findIndex(
+    (passage) => countInputChars(passage) > HIGHLIGHT_LIMITS.PASSAGE_LENGTH,
+  )
+
+  if (tooLong !== -1) {
+    issue("errors:quizz.highlightPassageTooLong", ["answers", tooLong])
+  }
+
+  // Told apart as written: « a » and « à » may well be the point.
+  const duplicate = passages.findIndex(
+    (passage, index) => passages.indexOf(passage) !== index,
+  )
+
+  if (duplicate !== -1) {
+    issue("errors:quizz.highlightPassageDuplicate", ["answers", duplicate])
+  }
+
+  if (solutions.length === 0) {
+    issue("errors:quizz.highlightNoSolution", ["solutions"])
+  } else if (solutions.some((solution) => solution >= passages.length)) {
+    issue("errors:quizz.highlightSolutionRange", ["solutions"])
+  }
+}
+
 // The settings only an estimate reads.
 const ESTIMATE_OPTION_KEYS = new Set<string>([
   "decimals",
@@ -272,6 +338,22 @@ const withoutEstimateFields = (question: Record<string, unknown>) => {
   }
 }
 
+// A highlight's answers are the passages of its text, whatever was sent
+// along: the text is the one source. The other types have the text dropped
+// before any check, as the settings of an estimate.
+const withHighlightFields = (question: Record<string, unknown>) => {
+  const { text, ...rest } = question
+
+  if (question.type !== QUESTION_TYPES.HIGHLIGHT) {
+    return rest
+  }
+
+  return {
+    ...question,
+    answers: typeof text === "string" ? parseHighlight(text).passages : [],
+  }
+}
+
 // Backward compat: questions saved before type existed get one inferred.
 // Several solutions = a real multi-select; one solution = single.
 const questionValidator = z.preprocess(
@@ -283,16 +365,18 @@ const questionValidator = z.preprocess(
     const question = data as Record<string, unknown>
 
     if ("type" in question) {
-      return withoutEstimateFields(question)
+      return withHighlightFields(withoutEstimateFields(question))
     }
 
     const isMulti =
       Array.isArray(question.solutions) && question.solutions.length > 1
 
-    return withoutEstimateFields({
-      ...question,
-      type: isMulti ? QUESTION_TYPES.MULTI : QUESTION_TYPES.SINGLE,
-    })
+    return withHighlightFields(
+      withoutEstimateFields({
+        ...question,
+        type: isMulti ? QUESTION_TYPES.MULTI : QUESTION_TYPES.SINGLE,
+      }),
+    )
   },
   z
     .object({
@@ -322,6 +406,8 @@ const questionValidator = z.preprocess(
       accepted: z.array(z.string()).optional(),
       // Estimate only, dropped from the other types.
       expected: z.number().optional(),
+      // Highlight only, dropped from the other types.
+      text: z.string().optional(),
       speedBonus: z.boolean().optional(),
     })
     .superRefine((question, ctx) => {
@@ -333,8 +419,11 @@ const questionValidator = z.preprocess(
 
       // Fixed answers (true/false) are reported as such rather than as too
       // many; a type without answers (slide, shortanswer, wordcloud) has them
-      // dropped.
-      if (meta.answersCount !== undefined) {
+      // dropped; a highlight counts the passages of its text, see
+      // checkHighlight.
+      if (question.type === QUESTION_TYPES.HIGHLIGHT) {
+        checkHighlight(question, issue)
+      } else if (meta.answersCount !== undefined) {
         if (count < meta.minAnswers) {
           issue("errors:quizz.tooFewAnswers", ["answers"])
         }
@@ -352,8 +441,9 @@ const questionValidator = z.preprocess(
         }
       }
 
-      // Ordering and shortanswer do not score against `solutions`; the newer
-      // unscored types do not score at all.
+      // Ordering and shortanswer do not score against `solutions`, a
+      // highlight checks its own; the newer unscored types do not score at
+      // all.
       if (
         meta.scored &&
         !NEWER_TYPES.has(question.type) &&
@@ -390,6 +480,25 @@ const questionValidator = z.preprocess(
       // public.
       if (question.type === QUESTION_TYPES.SHORTANSWER) {
         return { ...question, accepted, answers: [], solutions: [] }
+      }
+
+      // The text is stored as the screens read it; the answers are its
+      // passages, and each passage to spot is listed once, in order. The
+      // scoring mode is stored as it applies: no lenient mode.
+      if (question.type === QUESTION_TYPES.HIGHLIGHT) {
+        const { options } = question
+
+        return {
+          ...question,
+          text: question.text && formatHighlight(parseHighlight(question.text)),
+          solutions: [...new Set(question.solutions)].sort((a, b) => a - b),
+          ...(options && {
+            options: {
+              ...options,
+              scoringMode: highlightScoringMode(options.scoringMode),
+            },
+          }),
+        }
       }
 
       // The right value of an estimate has its own field, kept secret.

@@ -1,19 +1,10 @@
 import { MEDIA_TYPES, NO_TIME_LIMIT } from "@razzia/common/constants"
 import type { QuestionMedia } from "@razzia/common/types/game"
-import AnswerChip from "@razzia/web/features/game/components/AnswerChip"
+import ChoiceSummary from "@razzia/web/features/manager/components/ResultModal/ChoiceSummary"
 import { useResultModal } from "@razzia/web/features/manager/contexts/result-modal-context"
 import { QUESTION_REGISTRY } from "@razzia/web/features/questions"
-import clsx from "clsx"
-import { Check, Clock, ImageOff, Music, Video, X } from "lucide-react"
+import { Clock, ImageOff, Music, Video } from "lucide-react"
 import { useTranslation } from "react-i18next"
-
-interface AnswerRow {
-  label: string
-  count: number
-  isCorrect: boolean
-  // Answer position, null for the "no answer" row.
-  index: number | null
-}
 
 const MediaPreview = ({ media }: { media?: QuestionMedia }) => {
   if (media?.type === MEDIA_TYPES.IMAGE) {
@@ -68,23 +59,6 @@ const ResultModalAnswers = () => {
     ? optionsLabel(t, options)
     : optionsKey && t(optionsKey)
 
-  const rows: AnswerRow[] = [
-    ...questionResult.answers.map((label, ai) => ({
-      label,
-      count: questionResult.playerAnswers.filter((pa) =>
-        pa.answerIds?.includes(ai),
-      ).length,
-      isCorrect: questionResult.solutions.includes(ai),
-      index: ai,
-    })),
-    {
-      label: t("manager:result.noAnswer"),
-      count: noAnswerCount,
-      isCorrect: false,
-      index: null,
-    },
-  ]
-
   return (
     <div className="border-accent flex flex-col border-b-2 md:flex-row">
       <div className="border-accent bg-muted/30 flex shrink-0 flex-row items-center gap-4 border-b-2 p-4 md:w-66 md:flex-col md:justify-center md:border-r-2 md:border-b-0">
@@ -115,44 +89,10 @@ const ResultModalAnswers = () => {
             noAnswerCount={noAnswerCount}
           />
         ) : (
-          <div className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-x-3 gap-y-1.5 md:gap-y-2">
-            {rows.map((row, i) => (
-              <div key={i} className="contents">
-                {row.index !== null ? (
-                  <AnswerChip index={row.index} size="sm" />
-                ) : (
-                  <div className="border-accent flex size-6 shrink-0 items-center justify-center rounded-md border-2 bg-white">
-                    <X className="text-muted-foreground size-3 stroke-4" />
-                  </div>
-                )}
-
-                <span
-                  className={clsx("min-w-0 truncate text-sm font-medium", {
-                    "text-muted-foreground": row.index === null,
-                  })}
-                >
-                  {row.label}
-                </span>
-
-                <div className="shrink-0">
-                  {row.isCorrect ? (
-                    <Check className="text-success size-5 stroke-4" />
-                  ) : (
-                    <X
-                      className={clsx(
-                        "size-5 stroke-4",
-                        row.index === null ? "text-danger-soft" : "text-danger",
-                      )}
-                    />
-                  )}
-                </div>
-
-                <span className="text-accent-foreground text-center text-sm font-semibold">
-                  {row.count}
-                </span>
-              </div>
-            ))}
-          </div>
+          <ChoiceSummary
+            question={questionResult}
+            noAnswerCount={noAnswerCount}
+          />
         )}
       </div>
     </div>

@@ -24,8 +24,9 @@ export const STATUS = {
 export type Status = (typeof STATUS)[keyof typeof STATUS]
 
 // How a round ended for one player: scored questions give correct, wrong or
-// noAnswer, polls and word clouds give voted or noVote. Partial only comes from the types with
-// QUESTION_TYPE_META.partialOutcome (ordering): some credit, not all of it.
+// noAnswer, polls and word clouds give voted or noVote. Partial only comes
+// from the types with QUESTION_TYPE_META.partialOutcome (ordering,
+// highlight): some credit, not all of it.
 export type ResultOutcome =
   "correct" | "partial" | "wrong" | "noAnswer" | "voted" | "noVote"
 
@@ -36,7 +37,7 @@ export interface CommonStatusDataMap {
   SHOW_START: { time: number; subject: string }
   SHOW_PREPARED: {
     // Length of the public answer list (0 for a shortanswer, a word cloud or
-    // an estimate).
+    // an estimate; the passages of a highlight).
     totalAnswers: number
     questionNumber: number
     questionType: QuestionType
@@ -58,6 +59,8 @@ export interface CommonStatusDataMap {
     // Public, as in SELECT_ANSWER: the answer area is laid out as it will be
     // (the fields of a word cloud, the unit and bounds of an estimate).
     options?: QuestionOptions
+    // Highlight: the text, as in SELECT_ANSWER.
+    text?: string
   }
   SELECT_ANSWER: {
     question: string
@@ -68,6 +71,8 @@ export interface CommonStatusDataMap {
     totalPlayer: number
     questionType: QuestionType
     options?: QuestionOptions
+    // Highlight: the text, its passages between [brackets] being `answers`.
+    text?: string
   }
   SHOW_RESULT: {
     outcome: ResultOutcome
@@ -86,6 +91,9 @@ export interface CommonStatusDataMap {
     // Ordering, partial outcome only: how many items the player put at their
     // place, which explains the partial points.
     placed?: { count: number; total: number }
+    // Highlight, partial outcome only: the passages to spot the player found,
+    // out of how many, and the other passages tapped.
+    found?: { count: number; total: number; extra: number }
   }
   WAIT: { text: string }
   FINISHED: {

@@ -260,6 +260,87 @@ describe("aggregateQuestions, ordering", () => {
   })
 })
 
+describe("aggregateQuestions, highlight", () => {
+  const highlight = (withScore: boolean) =>
+    question({
+      type: QUESTION_TYPES.HIGHLIGHT,
+      question: "Repérez les délais",
+      text: "[Un] [Deux] [Trois] [Quatre] [Cinq]",
+      answers: ["Un", "Deux", "Trois", "Quatre", "Cinq"],
+      solutions: [0, 4],
+      options: { scoringMode: SCORING_MODES.BALANCED },
+      playerAnswers: [
+        { playerName: "Alex", answerIds: [0, 4], score: 1 },
+        { playerName: "Bea", answerIds: [4], score: 0.5 },
+        { playerName: "Cyd", answerIds: [1], score: 0 },
+        { playerName: "Dan", answerIds: null, score: 0 },
+      ].map(({ score, ...record }) =>
+        withScore ? { ...record, score } : record,
+      ),
+    })
+
+  it("lists every passage, counts full credit only and the mean score", () => {
+    const [stats] = aggregateQuestions([game([highlight(true)])])
+
+    expect(stats).toMatchObject({
+      type: QUESTION_TYPES.HIGHLIGHT,
+      scored: true,
+      answerCount: 3,
+      missingCount: 1,
+      correctCount: 1,
+      solutionLabels: ["Un", "Cinq"],
+      answers: [
+        { label: "Un", count: 1 },
+        { label: "Deux", count: 1 },
+        { label: "Trois", count: 0 },
+        { label: "Quatre", count: 0 },
+        { label: "Cinq", count: 2 },
+      ],
+    })
+    expect(stats.successRate).toBeCloseTo(1 / 3)
+    expect(stats.averageScore).toBeCloseTo(0.5)
+  })
+
+  it("scores the passages again when no multiplier was saved", () => {
+    expect(aggregateQuestions([game([highlight(false)])])).toEqual(
+      aggregateQuestions([game([highlight(true)])]),
+    )
+  })
+
+  it("scores a lenient highlight as balanced: every passage is not flawless", () => {
+    const [stats] = aggregateQuestions([
+      game([
+        question({
+          ...highlight(false),
+          options: { scoringMode: SCORING_MODES.LENIENT },
+          playerAnswers: answers(["Alex", [0, 1, 2, 3, 4]], ["Bea", [0, 4]]),
+        }),
+      ]),
+    ])
+
+    expect(stats).toMatchObject({ answerCount: 2, correctCount: 1 })
+    expect(stats.averageScore).toBeCloseTo(0.5)
+  })
+
+  it("keeps a highlight apart from a multi of the same wording", () => {
+    const multi = question({
+      type: QUESTION_TYPES.MULTI,
+      question: "Repérez les délais",
+      answers: ["Un", "Deux"],
+      solutions: [0],
+      playerAnswers: answers(["Alex", [0]]),
+    })
+
+    expect(
+      aggregateQuestions([game([highlight(true), multi])]).map(
+        ({ type }) => type,
+      ),
+    ).toEqual(
+      expect.arrayContaining([QUESTION_TYPES.HIGHLIGHT, QUESTION_TYPES.MULTI]),
+    )
+  })
+})
+
 describe("aggregateQuestions, shortanswer", () => {
   it("counts the inputs per accepted answer and the unrecognized ones", () => {
     const [stats] = aggregateQuestions([

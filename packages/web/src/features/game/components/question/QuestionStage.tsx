@@ -13,6 +13,7 @@ import { QUESTION_REGISTRY } from "@razzia/web/features/questions"
 import clsx from "clsx"
 import {
   EqualApproximately,
+  Highlighter,
   Keyboard,
   Link2Off,
   ListChecks,
@@ -37,6 +38,8 @@ interface Props {
   answered: number
   remaining: number | null
   options?: QuestionOptions
+  // Highlight: the text holding the passages.
+  text?: string
   onSubmit: (_answer: AnswerPayload) => void
   isHost: boolean
 }
@@ -50,6 +53,7 @@ const HINTS: Partial<Record<QuestionType, { icon: LucideIcon; key: string }>> =
     wordcloud: { icon: Link2Off, key: "game:answer.wordcloudHint" },
     // Worded from the bounds and the tolerance, see answerHint.
     estimate: { icon: EqualApproximately, key: "game:estimate.hintAny" },
+    highlight: { icon: Highlighter, key: "game:answer.highlightHint" },
   }
 
 const TITLE = "font-bold text-balance text-white drop-shadow-lg"
@@ -72,6 +76,7 @@ const QuestionStage = ({
   answered,
   remaining,
   options,
+  text,
   onSubmit,
   isHost,
 }: Props) => {
@@ -152,6 +157,7 @@ const QuestionStage = ({
     <AnswerComponent
       answers={answers}
       options={options}
+      text={text}
       onSubmit={onSubmit}
       readOnly={isHost}
       locked={isReading || !opened}

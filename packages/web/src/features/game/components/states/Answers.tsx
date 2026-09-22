@@ -21,7 +21,16 @@ interface Props {
 }
 
 const Answers = ({
-  data: { question, answers, media, time, totalPlayer, questionType, options },
+  data: {
+    question,
+    answers,
+    media,
+    time,
+    totalPlayer,
+    questionType,
+    options,
+    text,
+  },
 }: Props) => {
   const { socket } = useSocket()
   const { player, gameId } = usePlayerStore()
@@ -99,6 +108,7 @@ const Answers = ({
       answered={answered}
       remaining={time === NO_TIME_LIMIT ? null : remaining}
       options={options}
+      text={text}
       onSubmit={handleSubmit}
       isHost={!player}
     />

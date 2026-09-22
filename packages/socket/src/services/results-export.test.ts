@@ -567,3 +567,34 @@ describe("buildResultWorkbook, estimate", () => {
     ])
   })
 })
+
+describe("buildResultWorkbook, highlight", () => {
+  const HIGHLIGHT = question({
+    type: QUESTION_TYPES.HIGHLIGHT,
+    question: "Repérez les deux délais",
+    text: "Prévenez [sous 48 heures], envoyez [sous 3 jours], [par courrier].",
+    answers: ["sous 48 heures", "sous 3 jours", "par courrier"],
+    solutions: [0, 1],
+    options: { scoringMode: SCORING_MODES.BALANCED },
+    playerAnswers: [
+      { playerName: "Alex", answerIds: [0, 1], score: 1 },
+      { playerName: "Bea", answerIds: [0, 2], score: 0 },
+      { playerName: "Cyd", answerIds: null, score: 0 },
+    ],
+  })
+
+  it("reports the text, the passages tapped and the mean score", async () => {
+    const [, questions] = await readWorkbook(result([HIGHLIGHT]))
+
+    expect(questions.rows.slice(1)).toEqual([
+      ["Q1 — Repérez les deux délais", null, null, null],
+      [null, `Texte : ${HIGHLIGHT.text}`, null, null],
+      [null, "sous 48 heures", "✓", 2],
+      [null, "sous 3 jours", "✓", 1],
+      [null, "par courrier", "", 1],
+      [null, "Réponses sans faute", null, 1],
+      [null, "Score moyen", null, 0.5],
+      [null, "Sans réponse", null, 1],
+    ])
+  })
+})

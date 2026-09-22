@@ -26,9 +26,9 @@ const QuestionEditorConfig = () => {
     const meta = QUESTION_TYPE_META[nextType]
     const next = QUESTION_REGISTRY[nextType]
     const { defaultOptions, defaultAnswerKeys, initialAnswers } = next
-    // A type with its own answers editor (ordering, shortanswer, estimate)
-    // shares nothing with the others: moving to or from one starts from a
-    // blank question of the new type.
+    // A type with its own answers editor (ordering, shortanswer, estimate,
+    // highlight) shares nothing with the others: moving to or from one starts
+    // from a blank question of the new type.
     const isReset = Boolean(
       next.AnswersEditor ?? QUESTION_REGISTRY[questionType].AnswersEditor,
     )
@@ -42,6 +42,7 @@ const QuestionEditorConfig = () => {
     if (isReset) {
       updates.accepted = next.initialAccepted && [...next.initialAccepted]
       updates.expected = undefined
+      updates.text = undefined
       updates.speedBonus = undefined
     }
 

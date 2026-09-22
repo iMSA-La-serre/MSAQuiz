@@ -10,6 +10,8 @@ import type { ManagerStatusDataMap } from "@razzia/common/types/game/status"
 export interface AnswerComponentProps {
   answers: string[]
   options?: QuestionOptions
+  // Highlight: the text, its passages between [brackets] being `answers`.
+  text?: string
   onSubmit: (_answer: AnswerPayload) => void
   // Host display: the rows are shown, never answered.
   readOnly?: boolean

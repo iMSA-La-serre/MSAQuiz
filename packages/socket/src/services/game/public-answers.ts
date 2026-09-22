@@ -46,8 +46,9 @@ export const drawPublicOrder = (length: number): number[] => {
 
 /**
  * Drawn once per question: every screen, and every reconnection, gets this
- * same list. An ordering is shuffled; a shortanswer, a word cloud and an
- * estimate show no answers at all.
+ * same list. An ordering is shuffled; a highlight keeps its passages in the
+ * order of its text; a shortanswer, a word cloud and an estimate show no
+ * answers at all.
  */
 export const toPublicAnswers = (question: Question): PublicAnswers => {
   if (

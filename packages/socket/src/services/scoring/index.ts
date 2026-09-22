@@ -1,6 +1,7 @@
 import { QUESTION_TYPE_META } from "@razzia/common/constants"
 import type { Question, QuestionType } from "@razzia/common/types/game"
 import * as estimate from "./estimate"
+import * as highlight from "./highlight"
 import * as multi from "./multi"
 import * as ordering from "./ordering"
 import * as poll from "./poll"
@@ -31,6 +32,7 @@ export const QUESTION_SCORING: Record<QuestionType, ScoringFn> = {
   [shortanswer.type]: shortanswer.scoring,
   [wordcloud.type]: wordcloud.scoring,
   [estimate.type]: estimate.scoring,
+  [highlight.type]: highlight.scoring,
 }
 
 // Stored results may hold a type this version does not know (a later one, or

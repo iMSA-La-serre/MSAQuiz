@@ -85,6 +85,24 @@ export const INVITE_CODE_LENGTH = 5
 
 export const INVITE_CODE_ALPHABET = "ABCDFGHJKMNPQRSTUVWXYZ23456789"
 
+// Highlight: a short text whose passages between [brackets] are the answers
+// players tap.
+export const HIGHLIGHT_LIMITS = {
+  MIN_PASSAGES: 2,
+  // The distribution has a row per passage: five compact rows fit a 1280×650
+  // projector under a question on two lines, as the ranges of an estimate;
+  // six no longer do.
+  MAX_PASSAGES: 5,
+  // Characters of the text once cleaned, brackets left out, counted by code
+  // point (highlightLength): two or three sentences, which a phone shows
+  // without a long scroll.
+  TEXT_LENGTH: 300,
+  // Characters of each passage, as counted by countInputChars.
+  PASSAGE_LENGTH: 80,
+  // Raw UTF-16 length of the text, bounded before it is parsed.
+  RAW_LENGTH: 2000,
+} as const
+
 export const QUESTION_TYPES = {
   SINGLE: "single",
   MULTI: "multi",
@@ -95,6 +113,7 @@ export const QUESTION_TYPES = {
   SHORTANSWER: "shortanswer",
   WORDCLOUD: "wordcloud",
   ESTIMATE: "estimate",
+  HIGHLIGHT: "highlight",
 } as const
 
 /**
@@ -218,6 +237,17 @@ export const QUESTION_TYPE_META: Record<
     maxAnswers: 0,
     speedBonus: false,
     partialOutcome: false,
+    nominative: true,
+  },
+  // Answers are the passages of `text`, set between [brackets], in the order
+  // they come; the ones to spot are `solutions`, scored as a multi.
+  highlight: {
+    scored: true,
+    acceptsAnswers: true,
+    minAnswers: HIGHLIGHT_LIMITS.MIN_PASSAGES,
+    maxAnswers: HIGHLIGHT_LIMITS.MAX_PASSAGES,
+    speedBonus: false,
+    partialOutcome: true,
     nominative: true,
   },
 }

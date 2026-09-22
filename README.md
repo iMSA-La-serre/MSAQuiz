@@ -164,7 +164,7 @@ Quizzes can be created three ways, all from the manager dashboard:
 
 > **Trademark note**: Kahoot! is a trademark of its owner, which is not affiliated with MSAQuiz and does not endorse or sponsor it. The name is only used to say which spreadsheet files the importer can read.
 
-The JSON format, the nine question types (`single`, `multi`, `truefalse`, `poll`, `slide`, `ordering`, `shortanswer`, `wordcloud`, `estimate`), the scoring modes and the spreadsheet import rules are documented in **[docs/quiz.md](docs/quiz.md)**.
+The JSON format, the ten question types (`single`, `multi`, `truefalse`, `poll`, `slide`, `ordering`, `shortanswer`, `wordcloud`, `estimate`, `highlight`), the scoring modes and the spreadsheet import rules are documented in **[docs/quiz.md](docs/quiz.md)**.
 
 ### 4. Game results
 

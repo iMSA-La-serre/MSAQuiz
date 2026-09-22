@@ -84,6 +84,22 @@ describe("toPublicAnswers", () => {
     ).toEqual({ answers: [], order: [] })
   })
 
+  it("keeps the passages of a highlight in the order of the text", () => {
+    expect(
+      toPublicAnswers(
+        question({
+          type: QUESTION_TYPES.HIGHLIGHT,
+          answers: ["un", "deux", "trois", "quatre", "cinq"],
+          text: "[un] [deux] [trois] [quatre] [cinq]",
+          solutions: [1],
+        }),
+      ),
+    ).toEqual({
+      answers: ["un", "deux", "trois", "quatre", "cinq"],
+      order: [0, 1, 2, 3, 4],
+    })
+  })
+
   it("shows no answers for an estimate", () => {
     expect(
       toPublicAnswers(

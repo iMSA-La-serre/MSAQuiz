@@ -48,6 +48,7 @@
       "points": "Points"
     },
     "timeLimitSuffix": "s limite",
+    "toSpot": "À repérer",
     "tolerance": "À {{tolerance}} près",
     "typed": "« {{text}} »",
     "unlinked": "Réponse non associée au pseudo",
@@ -78,6 +79,7 @@
     "estimateSummary": "Bonne réponse : {{expected}} · médiane {{median}}",
     "estimateWithin": "Dans la tolérance",
     "exactOrders": "{{count}} ordre(s) exact(s)",
+    "flawless": "{{count}} réponse(s) sans faute",
     "gameCount": "{{count}} partie(s)",
     "missing": "{{count}} sans réponse",
     "none": "Aucune statistique pour l'instant, terminez une partie pour la voir ici",

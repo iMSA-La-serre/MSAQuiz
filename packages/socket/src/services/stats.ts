@@ -113,9 +113,23 @@ const answerLabels = (
   })
 }
 
+// Types whose statistics give the mean multiplier: a partial answer is not
+// counted correct, the mean tells how close the answers came.
+const AVERAGE_SCORE_TYPES = new Set<string>([
+  QUESTION_TYPES.ORDERING,
+  QUESTION_TYPES.HIGHLIGHT,
+])
+
+// Types that list every answer, picked or not: all the items of an ordering,
+// all the passages of a highlight.
+const LIST_ALL_TYPES = new Set<string>([
+  QUESTION_TYPES.ORDERING,
+  QUESTION_TYPES.HIGHLIGHT,
+])
+
 interface Tally {
   stats: QuestionStats
-  // Ordering: sum of the multipliers, for the mean.
+  // Ordering and highlight: sum of the multipliers, for the mean.
   scoreSum: number
   // Wordcloud: the words of every game, counted together at the end, and
   // whether a game kept none (too few authors).
@@ -125,14 +139,16 @@ interface Tally {
   values: number[]
 }
 
-// Types whose answer ids are not picked choices: they never share a row with
-// another type, even under the same wording. The choice types still merge,
-// as they always did.
+// Types whose answer ids are not picked choices, and the highlight, whose
+// passages come from its text: they never share a row with another type,
+// even under the same wording. The choice types still merge, as they always
+// did.
 const OWN_ROW_TYPES = new Set<string>([
   QUESTION_TYPES.ORDERING,
   QUESTION_TYPES.SHORTANSWER,
   QUESTION_TYPES.WORDCLOUD,
   QUESTION_TYPES.ESTIMATE,
+  QUESTION_TYPES.HIGHLIGHT,
 ])
 
 const groupKey = (question: QuestionResult, label: string): string =>
@@ -141,11 +157,11 @@ const groupKey = (question: QuestionResult, label: string): string =>
 const newTally = (question: QuestionResult, label: string): Tally => {
   const solutionLabels = solutionLabelsOf(question)
   // Listed even when nobody picks them: seeing the expected answer next to
-  // the chosen ones is the whole point. Ordering lists every item.
-  const listed =
-    question.type === QUESTION_TYPES.ORDERING
-      ? question.answers
-      : solutionLabels
+  // the chosen ones is the whole point. Ordering lists every item, highlight
+  // every passage.
+  const listed = LIST_ALL_TYPES.has(question.type)
+    ? question.answers
+    : solutionLabels
 
   return {
     stats: {
@@ -161,7 +177,7 @@ const newTally = (question: QuestionResult, label: string): Tally => {
       // Games come most recent first, so the first one seen carries the
       // wording to show.
       solutionLabels,
-      ...(question.type === QUESTION_TYPES.ORDERING && { averageScore: null }),
+      ...(AVERAGE_SCORE_TYPES.has(question.type) && { averageScore: null }),
       ...(question.type === QUESTION_TYPES.SHORTANSWER && {
         unrecognizedCount: 0,
       }),
@@ -222,7 +238,7 @@ const countRecord = (
     stats.correctCount += 1
   }
 
-  if (question.type === QUESTION_TYPES.ORDERING) {
+  if (AVERAGE_SCORE_TYPES.has(question.type)) {
     tally.scoreSum += recordScore(question, record)
   }
 
@@ -261,8 +277,8 @@ const countRecord = (
  *
  * Questions are grouped by their text rather than by their position: a quizz
  * can be edited or reordered between two games, and merging "the same
- * question" is what makes the numbers readable. An ordering, a shortanswer or
- * a word cloud only merges with the same type, so the same wording can show
+ * question" is what makes the numbers readable. A type newer than the choice
+ * types only merges with the same type, so the same wording can show
  * up once more under another type. A word cloud counts its words across the
  * games that kept them, never per player. Info slides never reach the history, so they never show
  * up here either, and a type this version does not know is left out.

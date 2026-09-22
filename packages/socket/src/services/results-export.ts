@@ -43,9 +43,46 @@ const addChoiceRows = ({ sheet, question, answered }: QuestionRows) => {
   })
 }
 
+// The mean multiplier of the answers given, as a percentage.
+const addMeanScoreRow = ({ sheet, question, answered }: QuestionRows) => {
+  const scoreSum = answered.reduce(
+    (sum, record) => sum + recordScore(question, record),
+    0,
+  )
+  const meanRow = sheet.addRow({
+    answer: "Score moyen",
+    votes: answered.length > 0 ? scoreSum / answered.length : null,
+  })
+
+  meanRow.getCell("votes").numFmt = "0%"
+}
+
+// Highlight: the text, its passages between brackets, then one row per
+// passage as a choice, the ones to spot ticked, then the answers with every
+// passage to spot and no other, and the mean score.
+const addHighlightRows = (rows: QuestionRows) => {
+  const { sheet, question, answered } = rows
+
+  sheet.addRow({ answer: `Texte : ${question.text ?? ""}` }).font = {
+    italic: true,
+  }
+
+  addChoiceRows(rows)
+
+  sheet.addRow({
+    answer: "Réponses sans faute",
+    votes: answered.filter((record) => isCorrectRecord(question, record))
+      .length,
+  })
+
+  addMeanScoreRow(rows)
+}
+
 // Ordering: the items in the correct order, with the players who put each
 // one at its place, then the exact orders and the mean score.
-const addOrderingRows = ({ sheet, question, answered }: QuestionRows) => {
+const addOrderingRows = (rows: QuestionRows) => {
+  const { sheet, question, answered } = rows
+
   sheet.addRow({
     answer: "Éléments dans l'ordre correct",
     votes: "Bien placés",
@@ -66,16 +103,7 @@ const addOrderingRows = ({ sheet, question, answered }: QuestionRows) => {
       .length,
   })
 
-  const scoreSum = answered.reduce(
-    (sum, record) => sum + recordScore(question, record),
-    0,
-  )
-  const meanRow = sheet.addRow({
-    answer: "Score moyen",
-    votes: answered.length > 0 ? scoreSum / answered.length : null,
-  })
-
-  meanRow.getCell("votes").numFmt = "0%"
+  addMeanScoreRow(rows)
 }
 
 // Shortanswer: the accepted answers with the inputs each one recognized,
@@ -289,6 +317,8 @@ export const buildResultWorkbook = async (
       addWordCloudRows(rows)
     } else if (question.type === QUESTION_TYPES.ESTIMATE) {
       addEstimateRows(rows)
+    } else if (question.type === QUESTION_TYPES.HIGHLIGHT) {
+      addHighlightRows(rows)
     } else {
       addChoiceRows(rows)
     }

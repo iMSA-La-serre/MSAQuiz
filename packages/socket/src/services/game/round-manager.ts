@@ -28,6 +28,7 @@ import {
   type StatusDataMap,
 } from "@razzia/common/types/game/status"
 import { estimateRanges, medianOf } from "@razzia/common/utils/estimate"
+import { foundPassages } from "@razzia/common/utils/highlight"
 import {
   BUILTIN_BLOCKLIST,
   type Blocklist,
@@ -256,6 +257,10 @@ export class RoundManager {
         ? question.media.type
         : undefined
 
+    // A highlight's text goes along with its passages, which are its answers.
+    const highlightText =
+      question.type === QUESTION_TYPES.HIGHLIGHT ? { text: question.text } : {}
+
     // The answers are shown during the reading time, but never the solutions
     // (nor the accepted answers, nor the correct order): those only go to the
     // manager with SHOW_RESPONSES.
@@ -269,6 +274,7 @@ export class RoundManager {
       time: question.time,
       totalPlayer: this.opts.players.count(),
       options: question.options,
+      ...highlightText,
     })
 
     await sleep(question.cooldown)
@@ -288,6 +294,7 @@ export class RoundManager {
       totalPlayer: this.opts.players.count(),
       questionType: question.type,
       options: question.options,
+      ...highlightText,
     })
 
     await this.opts.cooldown.start(question.time)
@@ -323,6 +330,23 @@ export class RoundManager {
 
     const outcomes = new Map(
       rounds.map(({ player, outcome }) => [player.id, outcome]),
+    )
+
+    // Highlight, partial outcome only: the passages found and the others
+    // tapped, shown on the player's result card to explain the partial points.
+    const foundCounts = new Map(
+      question.type === QUESTION_TYPES.HIGHLIGHT
+        ? rounds.flatMap(({ player, answer, outcome }) =>
+            answer && outcome === "partial"
+              ? [
+                  [
+                    player.id,
+                    foundPassages(answer.answerIds, question.solutions),
+                  ] as const,
+                ]
+              : [],
+          )
+        : [],
     )
 
     // Ordering, partial outcome only: the items put at their place, shown on
@@ -384,6 +408,7 @@ export class RoundManager {
       sortedPlayers.forEach((player, index) => {
         const outcome = outcomes.get(player.id) ?? "noAnswer"
         const placed = placedCounts.get(player.id)
+        const found = foundCounts.get(player.id)
 
         this.opts.send(player.id, STATUS.SHOW_RESULT, {
           outcome,
@@ -398,6 +423,7 @@ export class RoundManager {
           ...(placed !== undefined && {
             placed: { count: placed, total: question.answers.length },
           }),
+          ...(found && { found }),
         })
       })
     }

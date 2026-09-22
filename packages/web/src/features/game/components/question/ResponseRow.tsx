@@ -34,10 +34,15 @@ interface ResponseRowProps {
   // bar and smaller figures. No « Bonne réponse » label: it would cover the
   // row above.
   compact?: boolean
-  // A compact row that keeps its « Bonne réponse » label: the one right row
-  // of a long list (estimate). The label gets room above the row, and the
-  // row's content moves down under it, clear of the figures.
+  // A compact row that keeps its « Bonne réponse » label: the right rows of
+  // a long list (estimate, highlight). The label gets room above the row,
+  // and the row's content moves down under it, clear of the figures.
   labelled?: boolean
+  // With `labelled`, for lists where several right rows may follow one
+  // another (highlight): on a short screen, where five rows take all the
+  // height, the label takes no room but straddles the gap to the row above
+  // at its smaller size, as on a choice's rows.
+  stacked?: boolean
   marker?: ReactNode
 }
 
@@ -54,6 +59,7 @@ const ResponseRow = ({
   dense = false,
   compact = false,
   labelled = false,
+  stacked = false,
   marker,
 }: ResponseRowProps) => {
   const { t, i18n } = useTranslation()
@@ -72,7 +78,13 @@ const ResponseRow = ({
   const correctLabel = correct && (!compact || labelled) && (
     <motion.span
       {...fadeIn(REVEAL_DELAY, reduceMotion)}
-      className="bg-serre-deep pointer-events-none absolute -top-2.5 right-5 rounded-full px-3 py-0.5 text-sm leading-4 font-bold tracking-[0.15em] whitespace-nowrap text-white uppercase xl:-top-3.5 xl:right-6 xl:py-1 xl:text-base xl:leading-5"
+      className={clsx(
+        "bg-serre-deep pointer-events-none absolute -top-2.5 right-5 rounded-full px-3 py-0.5 text-sm leading-4 font-bold tracking-[0.15em] whitespace-nowrap text-white uppercase xl:-top-3.5 xl:right-6 xl:py-1 xl:text-base xl:leading-5",
+        // Clear of the figures of a compact row without moving them.
+        labelledRow &&
+          stacked &&
+          "short:-top-2.5 short:right-5 short:py-0.5 short:text-sm short:leading-4",
+      )}
     >
       {t("game:responses.correct")}
     </motion.span>
@@ -127,7 +139,9 @@ const ResponseRow = ({
         correct ? `${rowLabel}, ${t("game:responses.correct")}` : rowLabel
       }
       // As much room below as above, where the label hangs.
-      className={labelledRow ? "my-1 xl:my-2" : undefined}
+      className={
+        labelledRow ? clsx("my-1 xl:my-2", stacked && "short:my-0") : undefined
+      }
     >
       <AnswerRow
         index={index}
@@ -136,7 +150,11 @@ const ResponseRow = ({
         dense={dense}
         compact={compact}
         // The label's depth into the row; `short:` as the row's own padding.
-        className={labelledRow ? "short:pt-3 pt-3" : undefined}
+        className={
+          labelledRow
+            ? clsx("pt-3", stacked ? "short:pt-1" : "short:pt-3")
+            : undefined
+        }
         outlined={correct && revealed}
         marker={marker}
         footer={bar}

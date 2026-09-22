@@ -1074,6 +1074,148 @@ describe("RoundManager, estimate", () => {
   })
 })
 
+const HIGHLIGHT = question({
+  type: QUESTION_TYPES.HIGHLIGHT,
+  question: "Repérez les deux délais à respecter",
+  text: "Prévenez votre employeur [sous 48 heures], envoyez l'arrêt [sous 48 heures aussi] et [gardez une copie].",
+  answers: ["sous 48 heures", "sous 48 heures aussi", "gardez une copie"],
+  solutions: [0, 1],
+  options: { scoringMode: "balanced" },
+  penalty: 100,
+})
+
+describe("RoundManager, highlight", () => {
+  it("sends the text with its passages, in their order", async () => {
+    const game = setup([HIGHLIGHT], [player("camille")])
+
+    await game.reachFirstQuestion()
+
+    expect(game.lastBroadcast(STATUS.SHOW_PREPARED)?.totalAnswers).toBe(3)
+    expect(game.lastBroadcast(STATUS.SHOW_QUESTION)).toMatchObject({
+      text: HIGHLIGHT.text,
+      answers: HIGHLIGHT.answers,
+    })
+
+    await game.openAnswers(5)
+
+    expect(game.lastBroadcast(STATUS.SELECT_ANSWER)).toMatchObject({
+      text: HIGHLIGHT.text,
+      answers: HIGHLIGHT.answers,
+    })
+  })
+
+  it("scores the passages tapped as a multi, with a partial outcome", async () => {
+    const game = setup(
+      [HIGHLIGHT],
+      [
+        player("camille"),
+        player("samir"),
+        player("yanis", 300),
+        player("ines"),
+        player("lea"),
+      ],
+    )
+
+    await game.reachFirstQuestion()
+    await game.openAnswers(5)
+    game.round.selectAnswer(socketOf("camille"), { answerKeys: [1, 0] })
+    game.round.selectAnswer(socketOf("samir"), { answerKeys: [0] })
+    // Both found, one tapped too many: (2 - 1) / 2 in the balanced mode.
+    game.round.selectAnswer(socketOf("lea"), { answerKeys: [0, 1, 2] })
+    game.round.selectAnswer(socketOf("yanis"), { answerKeys: [2] })
+    await game.closeAnswers()
+
+    // No speed bonus by default: the base is the full 1000 points.
+    expect(game.lastSent("camille", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "correct",
+      message: "game:correct",
+      points: 1000,
+    })
+    expect(game.lastSent("samir", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "partial",
+      correct: true,
+      message: "game:partial",
+      points: 500,
+      found: { count: 1, total: 2, extra: 0 },
+    })
+    expect(game.lastSent("lea", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "partial",
+      points: 500,
+      found: { count: 2, total: 2, extra: 1 },
+    })
+    expect(game.lastSent("yanis", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "wrong",
+      points: -100,
+      myPoints: 200,
+    })
+
+    // Only a partial result explains itself with the passages found.
+    for (const name of ["camille", "yanis", "ines"]) {
+      expect(game.lastSent(name, STATUS.SHOW_RESULT)).not.toHaveProperty(
+        "found",
+      )
+    }
+
+    expect(game.lastSent(MANAGER_ID, STATUS.SHOW_RESPONSES)).toMatchObject({
+      answers: HIGHLIGHT.answers,
+      solutions: [0, 1],
+      responses: { 0: 3, 1: 2, 2: 2 },
+      totalAnswered: 4,
+      correctCount: 1,
+      partialCount: 2,
+    })
+
+    game.round.showLeaderboard(game.manager)
+
+    expect(game.finished[0]?.questions[0]?.playerAnswers).toEqual([
+      { playerName: "camille", answerIds: [1, 0], score: 1 },
+      { playerName: "samir", answerIds: [0], score: 0.5 },
+      { playerName: "yanis", answerIds: [2], score: 0 },
+      { playerName: "ines", answerIds: null, score: 0 },
+      { playerName: "lea", answerIds: [0, 1, 2], score: 0.5 },
+    ])
+  })
+
+  it("scores a lenient highlight as balanced: every passage is not flawless", async () => {
+    const game = setup(
+      [{ ...HIGHLIGHT, options: { scoringMode: "lenient" } }],
+      [player("camille"), player("samir")],
+    )
+
+    await game.reachFirstQuestion()
+    await game.openAnswers(5)
+    game.round.selectAnswer(socketOf("camille"), { answerKeys: [0, 1, 2] })
+    game.round.selectAnswer(socketOf("samir"), { answerKeys: [0, 1] })
+    await game.closeAnswers()
+
+    expect(game.lastSent("camille", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "partial",
+      points: 500,
+      found: { count: 2, total: 2, extra: 1 },
+    })
+    expect(game.lastSent("samir", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "correct",
+      points: 1000,
+    })
+    expect(game.lastSent(MANAGER_ID, STATUS.SHOW_RESPONSES)).toMatchObject({
+      correctCount: 1,
+      partialCount: 1,
+    })
+  })
+
+  it("refuses an unknown passage or a text", async () => {
+    const game = setup([HIGHLIGHT], [player("camille"), player("yanis")])
+
+    await game.reachFirstQuestion()
+    await game.openAnswers(5)
+    game.round.selectAnswer(socketOf("camille"), { answerKeys: [3] })
+    game.round.selectAnswer(socketOf("yanis"), { text: "sous 48 heures" })
+
+    expect(game.lastSent("camille", STATUS.WAIT)).toBeUndefined()
+    expect(game.lastSent("yanis", STATUS.WAIT)).toBeUndefined()
+  })
+})
+
 describe("RoundManager, what players receive", () => {
   // Every key a player may receive, per status. Anything else (accepted
   // answers, solutions, the correct order, a clientId) must stay server side.
@@ -1087,6 +1229,7 @@ describe("RoundManager, what players receive", () => {
       "options",
       "question",
       "questionType",
+      "text",
       "time",
       "totalPlayer",
       "upcomingMedia",
@@ -1097,12 +1240,14 @@ describe("RoundManager, what players receive", () => {
       "options",
       "question",
       "questionType",
+      "text",
       "time",
       "totalPlayer",
     ],
     WAIT: ["text"],
     SHOW_RESULT: [
       "correct",
+      "found",
       "message",
       "myPoints",
       "outcome",
@@ -1119,6 +1264,7 @@ describe("RoundManager, what players receive", () => {
         ORDERING,
         { ...SHORTANSWER, options: { typoTolerance: true } },
         ESTIMATE,
+        HIGHLIGHT,
         question(),
       ],
       [player("camille"), player("yanis")],
@@ -1140,6 +1286,10 @@ describe("RoundManager, what players receive", () => {
     await game.reachNextQuestion()
     await game.openAnswers(5)
     game.round.selectAnswer(socketOf("camille"), { text: "4200" })
+    await game.closeAnswers()
+    await game.reachNextQuestion()
+    await game.openAnswers(5)
+    game.round.selectAnswer(socketOf("camille"), { answerKeys: [0] })
     await game.closeAnswers()
     await game.reachNextQuestion()
     await game.openAnswers(5)
