@@ -5,6 +5,12 @@ import type {
   QuestionResult,
 } from "@razzia/common/types/game"
 import {
+  isAssociationType,
+  matchedItems,
+  rightTargetOf,
+  targetsOf,
+} from "@razzia/common/utils/association"
+import {
   estimateRanges,
   formatEstimate,
   formatTolerance,
@@ -68,6 +74,46 @@ const addHighlightRows = (rows: QuestionRows) => {
   }
 
   addChoiceRows(rows)
+
+  sheet.addRow({
+    answer: "Réponses sans faute",
+    votes: answered.filter((record) => isCorrectRecord(question, record))
+      .length,
+  })
+
+  addMeanScoreRow(rows)
+}
+
+// Statements and categorize: the categories, then one row per item with its
+// right target and the players who matched it, then the answers with every
+// item matched, and the mean score.
+const addAssociationRows = (rows: QuestionRows) => {
+  const { sheet, question, answered } = rows
+  const targets = targetsOf(question)
+  const expected = question.expectedTargets ?? []
+
+  if (question.type === QUESTION_TYPES.CATEGORIZE) {
+    sheet.addRow({ answer: `Catégories : ${targets.join(", ")}` }).font = {
+      italic: true,
+    }
+  }
+
+  sheet.addRow({
+    answer:
+      question.type === QUESTION_TYPES.STATEMENTS ? "Affirmations" : "Éléments",
+    correct: "Réponse",
+    votes: "Justes",
+  }).font = { italic: true }
+
+  question.answers.forEach((label, itemIndex) => {
+    sheet.addRow({
+      answer: label,
+      correct: rightTargetOf(question, itemIndex) ?? "",
+      votes: answered.filter(
+        (record) => matchedItems(record.answerIds, expected)[itemIndex],
+      ).length,
+    })
+  })
 
   sheet.addRow({
     answer: "Réponses sans faute",
@@ -319,6 +365,8 @@ export const buildResultWorkbook = async (
       addEstimateRows(rows)
     } else if (question.type === QUESTION_TYPES.HIGHLIGHT) {
       addHighlightRows(rows)
+    } else if (isAssociationType(question.type)) {
+      addAssociationRows(rows)
     } else {
       addChoiceRows(rows)
     }

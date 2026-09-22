@@ -30,6 +30,7 @@ const Answers = ({
     questionType,
     options,
     text,
+    targets,
   },
 }: Props) => {
   const { socket } = useSocket()
@@ -63,6 +64,7 @@ const Answers = ({
       questionType,
       answer,
       display: QUESTION_REGISTRY[questionType].sentText?.(answer, options),
+      targets,
     })
     sfxPop()
   }
@@ -109,6 +111,7 @@ const Answers = ({
       remaining={time === NO_TIME_LIMIT ? null : remaining}
       options={options}
       text={text}
+      targets={targets}
       onSubmit={handleSubmit}
       isHost={!player}
     />

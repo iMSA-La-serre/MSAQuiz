@@ -26,7 +26,7 @@ export type Status = (typeof STATUS)[keyof typeof STATUS]
 // How a round ended for one player: scored questions give correct, wrong or
 // noAnswer, polls and word clouds give voted or noVote. Partial only comes
 // from the types with QUESTION_TYPE_META.partialOutcome (ordering,
-// highlight): some credit, not all of it.
+// highlight, statements, categorize): some credit, not all of it.
 export type ResultOutcome =
   "correct" | "partial" | "wrong" | "noAnswer" | "voted" | "noVote"
 
@@ -61,6 +61,8 @@ export interface CommonStatusDataMap {
     options?: QuestionOptions
     // Highlight: the text, as in SELECT_ANSWER.
     text?: string
+    // Statements and categorize: the targets, as in SELECT_ANSWER.
+    targets?: string[]
   }
   SELECT_ANSWER: {
     question: string
@@ -73,6 +75,9 @@ export interface CommonStatusDataMap {
     options?: QuestionOptions
     // Highlight: the text, its passages between [brackets] being `answers`.
     text?: string
+    // Statements and categorize: what each item of `answers` is matched
+    // with. Answer with the index of a target per item.
+    targets?: string[]
   }
   SHOW_RESULT: {
     outcome: ResultOutcome
@@ -94,6 +99,9 @@ export interface CommonStatusDataMap {
     // Highlight, partial outcome only: the passages to spot the player found,
     // out of how many, and the other passages tapped.
     found?: { count: number; total: number; extra: number }
+    // Statements and categorize, partial outcome only: the items the player
+    // matched with their right target, out of how many.
+    matched?: { count: number; total: number }
   }
   WAIT: { text: string }
   FINISHED: {
@@ -111,12 +119,18 @@ interface ManagerExtraStatus {
     // Keyed by index. Choice types: votes per answer. Ordering: players who
     // put item i (original index, `answers` being in the correct order) at
     // its place. Shortanswer: inputs recognized per accepted answer.
+    // Statements and categorize: players who matched item i with its right
+    // target.
     responses: Record<number, number>
     solutions: number[]
     // The question's own list: the correct order for an ordering.
     answers: string[]
     // Shortanswer: the accepted answers, only ever sent to the manager.
     accepted?: string[]
+    // Statements and categorize: the targets, and the right one of each item,
+    // only ever sent to the manager.
+    targets?: string[]
+    expectedTargets?: number[]
     // Estimate: the right value, only ever sent to the manager, and the
     // question's settings (unit, decimals, bounds, tolerance).
     expected?: number

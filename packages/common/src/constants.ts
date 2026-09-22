@@ -103,6 +103,29 @@ export const HIGHLIGHT_LIMITS = {
   RAW_LENGTH: 2000,
 } as const
 
+// Statements and categorize: items, each matched with one of the targets
+// (Vrai or Faux, or one of the categories).
+export const ASSOCIATION_LIMITS = {
+  MIN_ITEMS: 2,
+  // The distribution has a row per item, each labelled with its right
+  // target: five compact rows fit a 1280×650 projector, as the passages of
+  // a highlight.
+  MAX_ITEMS: 5,
+  // Characters of each item, as counted by countInputChars: one line on the
+  // distribution rows, next to the figures, up to a 1366 px wide projector.
+  // Five rows of two lines would not fit a 1280×650 one.
+  ITEM_LENGTH: 50,
+  // Categories of a categorize question.
+  MIN_TARGETS: 2,
+  MAX_TARGETS: 4,
+  // Characters of each category, as counted by countInputChars: four of them
+  // share a phone row.
+  TARGET_LENGTH: 24,
+} as const
+
+// The targets of a statements question, imposed.
+export const STATEMENT_TARGETS = ["Vrai", "Faux"] as const
+
 export const QUESTION_TYPES = {
   SINGLE: "single",
   MULTI: "multi",
@@ -114,6 +137,8 @@ export const QUESTION_TYPES = {
   WORDCLOUD: "wordcloud",
   ESTIMATE: "estimate",
   HIGHLIGHT: "highlight",
+  STATEMENTS: "statements",
+  CATEGORIZE: "categorize",
 } as const
 
 /**
@@ -250,6 +275,28 @@ export const QUESTION_TYPE_META: Record<
     partialOutcome: true,
     nominative: true,
   },
+  // Answers are the statements, each true or false (STATEMENT_TARGETS); the
+  // right one of each is in `expectedTargets`, which stays secret.
+  statements: {
+    scored: true,
+    acceptsAnswers: true,
+    minAnswers: ASSOCIATION_LIMITS.MIN_ITEMS,
+    maxAnswers: ASSOCIATION_LIMITS.MAX_ITEMS,
+    speedBonus: false,
+    partialOutcome: true,
+    nominative: true,
+  },
+  // Answers are the items to sort into `targets`, the categories; the right
+  // category of each is in `expectedTargets`, which stays secret.
+  categorize: {
+    scored: true,
+    acceptsAnswers: true,
+    minAnswers: ASSOCIATION_LIMITS.MIN_ITEMS,
+    maxAnswers: ASSOCIATION_LIMITS.MAX_ITEMS,
+    speedBonus: false,
+    partialOutcome: true,
+    nominative: true,
+  },
 }
 
 export const SCORING_MODES = {
@@ -261,6 +308,13 @@ export const SCORING_MODES = {
 // Ordering: share of items at their place, or all or nothing.
 export const ORDER_SCORING = {
   POSITION: "position",
+  EXACT: "exact",
+} as const
+
+// Statements and categorize: share of items matched with their right target,
+// or all or nothing.
+export const MATCH_SCORING = {
+  SHARE: "share",
   EXACT: "exact",
 } as const
 

@@ -4,6 +4,11 @@ import {
   WORDCLOUD_LIMITS,
 } from "@razzia/common/constants"
 import type { Question } from "@razzia/common/types/game"
+import {
+  isAssociationType,
+  matchedItems,
+  targetsOf,
+} from "@razzia/common/utils/association"
 import { checkEstimate } from "@razzia/common/utils/estimate"
 import {
   BUILTIN_BLOCKLIST,
@@ -87,6 +92,32 @@ const parseOrder = (
   }
 
   return (keys as number[]).map((key) => publicOrder[key])
+}
+
+// Statements and categorize: the index of a target for each item, in the
+// order of the answers. Only a full answer is kept, as sent: an item left
+// out, or a target that does not exist, and the whole answer is refused.
+const parseMatches = (
+  question: Question,
+  answerKeys: unknown,
+): number[] | null => {
+  if (!Array.isArray(answerKeys)) {
+    return null
+  }
+
+  const keys: unknown[] = answerKeys
+  const targets = targetsOf(question).length
+  const isComplete =
+    keys.length === question.answers.length &&
+    keys.length > 0 &&
+    keys.every(
+      (key) =>
+        Number.isInteger(key) &&
+        (key as number) >= 0 &&
+        (key as number) < targets,
+    )
+
+  return isComplete ? (keys as number[]) : null
 }
 
 // Shortanswer: the text is cleaned and matched right away, only the cleaned
@@ -205,6 +236,13 @@ export const answerParser =
     }
 
     const answerKeys = payloadField(payload, "answerKeys")
+
+    if (isAssociationType(question.type)) {
+      const answerIds = parseMatches(question, answerKeys)
+
+      return answerIds && { answerIds }
+    }
+
     const answerIds =
       question.type === QUESTION_TYPES.ORDERING
         ? parseOrder(answerKeys, publicOrder)
@@ -221,25 +259,36 @@ export const answerParser =
  */
 export const parseAnswer = answerParser(BUILTIN_BLOCKLIST)
 
+// The indices of the items an answer got right: the items put at their
+// place (ordering), matched with their right target (statements,
+// categorize).
+const rightItems = (flags: boolean[]): number[] =>
+  flags.flatMap((right, index) => (right ? [index] : []))
+
 /**
  * Tally shown with SHOW_RESPONSES, keyed by index. Choice types: votes per
  * answer. Ordering: players who put item i (original index) at its place.
- * Shortanswer: inputs recognized per accepted answer. Wordcloud and estimate:
- * nothing, their words and values are counted apart (countWords,
+ * Statements and categorize: players who matched item i with its right
+ * target. Shortanswer: inputs recognized per accepted answer. Wordcloud and
+ * estimate: nothing, their words and values are counted apart (countWords,
  * estimateRanges).
  */
 export const countResponses = (
   question: Question,
   answers: readonly ScoredAnswer[],
 ): Record<number, number> => {
-  const ids =
-    question.type === QUESTION_TYPES.ORDERING
-      ? answers.flatMap(({ answerIds }) =>
-          placedItems(answerIds, question.answers.length).flatMap(
-            (placed, index) => (placed ? [index] : []),
-          ),
-        )
-      : answers.flatMap(({ answerIds }) => answerIds)
+  const idsOf = ({ answerIds }: ScoredAnswer): number[] => {
+    if (question.type === QUESTION_TYPES.ORDERING) {
+      return rightItems(placedItems(answerIds, question.answers.length))
+    }
+
+    if (isAssociationType(question.type)) {
+      return rightItems(matchedItems(answerIds, question.expectedTargets ?? []))
+    }
+
+    return answerIds
+  }
+  const ids = answers.flatMap(idsOf)
 
   return ids.reduce<Record<number, number>>((acc, id) => {
     acc[id] = (acc[id] ?? 0) + 1

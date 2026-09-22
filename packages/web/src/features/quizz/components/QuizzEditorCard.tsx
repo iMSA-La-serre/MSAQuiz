@@ -1,5 +1,6 @@
 import { MEDIA_TYPES, QUESTION_TYPES } from "@razzia/common/constants"
 import type { QuestionMedia } from "@razzia/common/types/game"
+import { isAssociationType } from "@razzia/common/utils/association"
 import { wordCountOf } from "@razzia/common/utils/wordcloud"
 import AlertDialog from "@razzia/web/components/AlertDialog"
 import { type QuestionWithId } from "@razzia/web/features/quizz/contexts/quizz-editor-context"
@@ -47,7 +48,8 @@ const QuizzEditorCard = ({
   // One bar per answer row, green for a right answer. A short answer and an
   // estimate have one field and no public answers: one bar, green, as what
   // they accept is right. A word cloud has one grey bar per field: nobody is
-  // right.
+  // right. Statements and categorize have one bar per item, green once its
+  // right target is picked.
   const isShortAnswer =
     question.type === QUESTION_TYPES.SHORTANSWER ||
     question.type === QUESTION_TYPES.ESTIMATE
@@ -63,6 +65,15 @@ const QuizzEditorCard = ({
   // Past four bars (an ordering), thinner ones in the height of four, so the
   // title keeps its line above an image.
   const thin = bars.length > 4
+  const isRight = (bar: number) => {
+    if (isShortAnswer) {
+      return true
+    }
+
+    return isAssociationType(question.type)
+      ? (question.expectedTargets?.at(bar) ?? -1) >= 0
+      : question.solutions.includes(bar)
+  }
 
   return (
     <div
@@ -92,9 +103,7 @@ const QuizzEditorCard = ({
             className={clsx(
               "w-full rounded-full",
               thin ? "h-1" : "h-1.5",
-              isShortAnswer || question.solutions.includes(i)
-                ? "bg-primary"
-                : "bg-muted",
+              isRight(i) ? "bg-primary" : "bg-muted",
             )}
           />
         ))}

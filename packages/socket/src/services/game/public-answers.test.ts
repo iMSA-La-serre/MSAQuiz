@@ -100,6 +100,22 @@ describe("toPublicAnswers", () => {
     })
   })
 
+  it("keeps the items of statements and categorize in their order", () => {
+    for (const type of [QUESTION_TYPES.STATEMENTS, QUESTION_TYPES.CATEGORIZE]) {
+      expect(
+        toPublicAnswers(
+          question({
+            type,
+            answers: ["un", "deux", "trois"],
+            solutions: [],
+            targets: ["Vrai", "Faux"],
+            expectedTargets: [0, 1, 0],
+          }),
+        ),
+      ).toEqual({ answers: ["un", "deux", "trois"], order: [0, 1, 2] })
+    }
+  })
+
   it("shows no answers for an estimate", () => {
     expect(
       toPublicAnswers(

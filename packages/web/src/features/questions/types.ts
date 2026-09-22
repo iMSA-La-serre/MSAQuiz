@@ -12,6 +12,8 @@ export interface AnswerComponentProps {
   options?: QuestionOptions
   // Highlight: the text, its passages between [brackets] being `answers`.
   text?: string
+  // Statements and categorize: what each item of `answers` is matched with.
+  targets?: string[]
   onSubmit: (_answer: AnswerPayload) => void
   // Host display: the rows are shown, never answered.
   readOnly?: boolean

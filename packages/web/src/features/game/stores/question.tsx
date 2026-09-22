@@ -7,10 +7,12 @@ import { create } from "zustand"
 
 // An answer as this player sent it: answer keys, or the typed text, and how
 // the text reads when its type words it (an estimate's number and unit).
+// Statements and categorize: the targets the keys point to.
 export interface SentAnswer {
   questionType: QuestionType
   answer: AnswerPayload
   display?: string
+  targets?: string[]
 }
 
 interface QuestionStore {

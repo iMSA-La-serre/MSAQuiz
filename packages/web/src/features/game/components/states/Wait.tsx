@@ -1,5 +1,6 @@
 import { QUESTION_TYPES } from "@razzia/common/constants"
 import type { PlayerStatusDataMap } from "@razzia/common/types/game/status"
+import { isAssociationType } from "@razzia/common/utils/association"
 import Loader from "@razzia/web/components/Loader"
 import AnswerChip from "@razzia/web/features/game/components/AnswerChip"
 import {
@@ -21,8 +22,32 @@ const TRAY = "rounded-2xl bg-white p-2 shadow-lg shadow-black/15"
 // phone. Every tray is as tall as the tray of one large letter chip, so the
 // screen keeps its layout from one type to the next; a long text wraps. Word
 // cloud words share the line of a typed text, apart from each other.
+// Statements and categorize pair each item's letter with the target picked,
+// across the line as word cloud words do, in chips smaller still: they wrap
+// once at most, where one item to a line would push the title down the
+// screen.
 const SentAnswerTray = ({ sent }: { sent: SentAnswer }) => {
-  const { answer, questionType, display } = sent
+  const { answer, questionType, display, targets } = sent
+
+  if (isAssociationType(questionType) && "answerKeys" in answer) {
+    return (
+      <ul
+        className={clsx(
+          TRAY,
+          "text-secondary flex max-w-full flex-wrap items-center justify-center gap-x-3 gap-y-2 px-4 py-3 text-xl leading-7 font-bold",
+        )}
+      >
+        {answer.answerKeys.map((key, index) => (
+          <li key={index} className="flex min-w-0 items-center gap-1.5">
+            <AnswerChip index={index} size="sm" />
+            <span className="min-w-0 break-words">
+              {targets?.at(key) ?? "?"}
+            </span>
+          </li>
+        ))}
+      </ul>
+    )
+  }
 
   if ("texts" in answer) {
     return (

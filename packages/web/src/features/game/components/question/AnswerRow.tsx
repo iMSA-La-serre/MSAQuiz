@@ -29,6 +29,9 @@ interface AnswerRowProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   trailing?: ReactNode
   // Under the text: distribution bar and label.
   footer?: ReactNode
+  // Under the whole row, across its width: the targets of an item
+  // (statements, categorize). The row wraps it onto a line of its own.
+  below?: ReactNode
   // Taller row with larger text (true/false on phone).
   large?: boolean
   // In place of the letter chip of `index`: the chip of another letter (an
@@ -82,6 +85,7 @@ const AnswerRow = ({
   interactive = false,
   trailing,
   footer,
+  below,
   large = false,
   marker,
   className,
@@ -101,6 +105,7 @@ const AnswerRow = ({
         : "min-h-16 gap-3 px-3 py-2.5",
       {
         "min-h-20": size === "phone" && large,
+        "flex-wrap": below !== undefined,
         "bg-white/70 shadow-none": locked,
         "bg-white shadow-lg shadow-black/15": !locked,
         "ring-primary ring-4": outlined,
@@ -127,6 +132,7 @@ const AnswerRow = ({
         {footer}
       </span>
       {trailing}
+      {below !== undefined && <span className="block basis-full">{below}</span>}
     </>
   )
 

@@ -377,3 +377,67 @@ describe("countResponses", () => {
     ).toEqual({ 1: 2 })
   })
 })
+
+describe("parseAnswer, statements and categorize", () => {
+  const statements: Question = {
+    ...question(QUESTION_TYPES.STATEMENTS, ["Un", "Deux", "Trois"]),
+    solutions: [],
+    targets: ["Vrai", "Faux"],
+    expectedTargets: [0, 1, 0],
+  }
+  const categorize: Question = {
+    ...question(QUESTION_TYPES.CATEGORIZE, ["Un", "Deux"]),
+    solutions: [],
+    targets: ["Famille", "Retraite", "Maladie"],
+    expectedTargets: [2, 0],
+  }
+
+  it("keeps a target per item, repeats included", () => {
+    expect(parseAnswer(statements, { answerKeys: [0, 0, 1] }, [])).toEqual({
+      answerIds: [0, 0, 1],
+    })
+    expect(parseAnswer(categorize, { answerKeys: [2, 2] }, [])).toEqual({
+      answerIds: [2, 2],
+    })
+  })
+
+  it("reads Vrai and Faux as the targets of statements, whatever is stored", () => {
+    expect(
+      parseAnswer(
+        { ...statements, targets: ["Vrai", "Faux", "Autre"] },
+        { answerKeys: [2, 0, 1] },
+        [],
+      ),
+    ).toBeNull()
+  })
+
+  it("refuses an item left out, one too many, or an unknown target", () => {
+    expect(parseAnswer(statements, { answerKeys: [0, 1] }, [])).toBeNull()
+    expect(parseAnswer(statements, { answerKeys: [0, 1, 0, 1] }, [])).toBeNull()
+    expect(parseAnswer(statements, { answerKeys: [0, 2, 0] }, [])).toBeNull()
+    expect(parseAnswer(statements, { answerKeys: [0, -1, 0] }, [])).toBeNull()
+    expect(parseAnswer(categorize, { answerKeys: [3, 0] }, [])).toBeNull()
+    expect(parseAnswer(categorize, { answerKeys: [0.5, 0] }, [])).toBeNull()
+    expect(parseAnswer(categorize, { answerKeys: [] }, [])).toBeNull()
+    expect(parseAnswer(categorize, { text: "Famille" }, [])).toBeNull()
+  })
+
+  it("counts the players who matched each item with its right target", () => {
+    expect(
+      countResponses(statements, [
+        { answerIds: [0, 1, 0] },
+        { answerIds: [0, 0, 1] },
+        { answerIds: [1, 1, 1] },
+      ]),
+    ).toEqual({ 0: 2, 1: 2, 2: 1 })
+  })
+
+  it("leaves out an item nobody matched, rather than counting it zero", () => {
+    expect(
+      countResponses(statements, [
+        { answerIds: [0, 0, 1] },
+        { answerIds: [0, 0, 1] },
+      ]),
+    ).toEqual({ 0: 2 })
+  })
+})

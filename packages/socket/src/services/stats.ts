@@ -10,6 +10,11 @@ import type {
   QuestionStats,
   WordCount,
 } from "@razzia/common/types/game"
+import {
+  isAssociationType,
+  matchedItems,
+  rightTargetOf,
+} from "@razzia/common/utils/association"
 import { medianOf, toleranceSide } from "@razzia/common/utils/estimate"
 import { placedItems } from "@razzia/common/utils/ordering"
 import { countWords } from "@razzia/common/utils/wordcloud"
@@ -68,11 +73,18 @@ export const isCorrectRecord = (
 }
 
 // Wording of the correct answers. Shortanswer: every accepted answer is one.
-// Ordering: every item has its place, none stands out. Estimate: the right
-// value is a number, given apart.
+// Statements and categorize: the right target of each item, in the order of
+// the items. Ordering: every item has its place, none stands out. Estimate:
+// the right value is a number, given apart.
 const solutionLabelsOf = (question: QuestionResult): string[] => {
   if (question.type === QUESTION_TYPES.SHORTANSWER) {
     return question.accepted ?? []
+  }
+
+  if (isAssociationType(question.type)) {
+    return question.answers.map(
+      (_, index) => rightTargetOf(question, index) ?? "",
+    )
   }
 
   if (
@@ -89,15 +101,29 @@ const solutionLabelsOf = (question: QuestionResult): string[] => {
     .filter((answer): answer is string => answer !== undefined)
 }
 
+// The items flagged right, as labels.
+const itemLabels = (question: QuestionResult, flags: boolean[]): string[] =>
+  flags.flatMap((right, index) => {
+    const label = question.answers.at(index)
+
+    return right && label !== undefined ? [label] : []
+  })
+
 // Labels a recorded answer counts for. Ordering: the items put at their
-// place. Shortanswer: the accepted answer recognized.
+// place. Statements and categorize: the items matched with their right
+// target. Shortanswer: the accepted answer recognized.
 const answerLabels = (
   question: QuestionResult,
   answerIds: number[],
 ): string[] => {
   if (question.type === QUESTION_TYPES.ORDERING) {
-    return placedItems(answerIds, question.answers.length).flatMap(
-      (placed, index) => (placed ? [question.answers[index]] : []),
+    return itemLabels(question, placedItems(answerIds, question.answers.length))
+  }
+
+  if (isAssociationType(question.type)) {
+    return itemLabels(
+      question,
+      matchedItems(answerIds, question.expectedTargets ?? []),
     )
   }
 
@@ -118,18 +144,23 @@ const answerLabels = (
 const AVERAGE_SCORE_TYPES = new Set<string>([
   QUESTION_TYPES.ORDERING,
   QUESTION_TYPES.HIGHLIGHT,
+  QUESTION_TYPES.STATEMENTS,
+  QUESTION_TYPES.CATEGORIZE,
 ])
 
 // Types that list every answer, picked or not: all the items of an ordering,
-// all the passages of a highlight.
+// of statements or of categorize, all the passages of a highlight.
 const LIST_ALL_TYPES = new Set<string>([
   QUESTION_TYPES.ORDERING,
   QUESTION_TYPES.HIGHLIGHT,
+  QUESTION_TYPES.STATEMENTS,
+  QUESTION_TYPES.CATEGORIZE,
 ])
 
 interface Tally {
   stats: QuestionStats
-  // Ordering and highlight: sum of the multipliers, for the mean.
+  // Ordering, highlight, statements and categorize: sum of the multipliers,
+  // for the mean.
   scoreSum: number
   // Wordcloud: the words of every game, counted together at the end, and
   // whether a game kept none (too few authors).
@@ -149,6 +180,8 @@ const OWN_ROW_TYPES = new Set<string>([
   QUESTION_TYPES.WORDCLOUD,
   QUESTION_TYPES.ESTIMATE,
   QUESTION_TYPES.HIGHLIGHT,
+  QUESTION_TYPES.STATEMENTS,
+  QUESTION_TYPES.CATEGORIZE,
 ])
 
 const groupKey = (question: QuestionResult, label: string): string =>

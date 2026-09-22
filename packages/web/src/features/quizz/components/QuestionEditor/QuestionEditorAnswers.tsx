@@ -26,6 +26,8 @@ const HINT_KEYS: Record<QuestionType, string> = {
   wordcloud: "quizz:answers.hint.wordcloud",
   estimate: "quizz:answers.hint.estimate",
   highlight: "quizz:answers.hint.highlight",
+  statements: "quizz:answers.hint.statements",
+  categorize: "quizz:answers.hint.categorize",
 }
 
 // Chip, field, correct-answer box, delete button. Below sm the rows use two

@@ -79,6 +79,7 @@ const Result = ({
     totalPlayers,
     placed,
     found,
+    matched,
   },
 }: Props) => {
   const updatePoints = usePlayerStore((state) => state.updatePoints)
@@ -205,6 +206,14 @@ const Result = ({
               })}
               {found.extra > 0 &&
                 ` · ${t("game:result.extra", { count: found.extra })}`}
+            </p>
+          )}
+          {matched && (
+            <p className="mt-2 text-lg leading-snug font-semibold text-balance">
+              {t("game:result.matched", {
+                count: matched.count,
+                total: matched.total,
+              })}
             </p>
           )}
         </motion.div>

@@ -1,6 +1,8 @@
 import {
+  ASSOCIATION_LIMITS,
   EXAMPLE_QUIZZ,
   HIGHLIGHT_LIMITS,
+  MATCH_SCORING,
   ORDER_SCORING,
   QUESTION_TYPES,
   SCORING_MODES,
@@ -297,6 +299,34 @@ describe("new optional fields on the existing types", () => {
     expect(
       parse({ ...LEGACY_QUESTION, text: "[".repeat(5000) }),
     ).not.toHaveProperty("text")
+  })
+
+  it("drops the targets of statements and categorize, unchecked", () => {
+    const foreign = parse({
+      ...SINGLE_QUESTION,
+      targets: ["Vrai", "Faux"],
+      expectedTargets: [0, 1],
+    })
+
+    expect(foreign).not.toHaveProperty("targets")
+    expect(foreign).not.toHaveProperty("expectedTargets")
+    expect(
+      parse({ ...LEGACY_QUESTION, targets: 42, expectedTargets: ["x"] }),
+    ).not.toHaveProperty("targets")
+  })
+
+  it("drops the scoring of statements and categorize, unchecked", () => {
+    expect(
+      parse({
+        ...SINGLE_QUESTION,
+        type: QUESTION_TYPES.ORDERING,
+        answers: ["A", "B", "C"],
+        options: { orderScoring: ORDER_SCORING.EXACT, matchScoring: "chains" },
+      }).options,
+    ).toEqual({
+      scoringMode: SCORING_MODES.BALANCED,
+      orderScoring: ORDER_SCORING.EXACT,
+    })
   })
 
   it("keeps the old minimum time", () => {
@@ -819,5 +849,215 @@ describe("highlight", () => {
       "errors:quizz.timeTooShort",
     ])
     expect(isValid({ ...HIGHLIGHT, time: -1 })).toBe(true)
+  })
+})
+
+describe("statements", () => {
+  const STATEMENTS = {
+    type: QUESTION_TYPES.STATEMENTS,
+    question: "Vrai ou faux ?",
+    answers: [
+      "La MSA couvre les salariés agricoles",
+      "La MSA verse les allocations chômage",
+      "La MSA gère la retraite des exploitants",
+    ],
+    expectedTargets: [0, 1, 0],
+    cooldown: 5,
+    time: 30,
+  }
+
+  it("imposes Vrai and Faux, and keeps the right one of each apart", () => {
+    const statements = parse({
+      ...STATEMENTS,
+      targets: ["Oui", "Non", "Peut-être"],
+      solutions: [1],
+      accepted: ["Vrai"],
+      expected: 3,
+      text: "[Vrai]",
+    })
+
+    expect(statements.targets).toEqual(["Vrai", "Faux"])
+    expect(statements.expectedTargets).toEqual([0, 1, 0])
+    expect(statements.answers).toEqual(STATEMENTS.answers)
+    expect(statements.solutions).toEqual([])
+    expect(statements).not.toHaveProperty("accepted")
+    expect(statements).not.toHaveProperty("expected")
+    expect(statements).not.toHaveProperty("text")
+  })
+
+  it("keeps its scoring and points tuning", () => {
+    const statements = parse({
+      ...STATEMENTS,
+      options: { matchScoring: MATCH_SCORING.EXACT },
+      maxPoints: 2000,
+      penalty: 100,
+      speedBonus: true,
+    })
+
+    expect(statements.options).toEqual({
+      scoringMode: SCORING_MODES.BALANCED,
+      matchScoring: MATCH_SCORING.EXACT,
+    })
+    expect(statements).toMatchObject({
+      maxPoints: 2000,
+      penalty: 100,
+      speedBonus: true,
+    })
+    expect(isValid({ ...STATEMENTS, options: { matchScoring: "most" } })).toBe(
+      false,
+    )
+  })
+
+  it("takes 2 to 5 statements", () => {
+    const items = ["Un", "Deux", "Trois", "Quatre", "Cinq", "Six"]
+    const withItems = (count: number) => ({
+      ...STATEMENTS,
+      answers: items.slice(0, count),
+      expectedTargets: Array.from({ length: count }, () => 0),
+    })
+
+    expect(issuesOf(withItems(1))).toEqual(["errors:quizz.statementsCount"])
+    expect(isValid(withItems(ASSOCIATION_LIMITS.MAX_ITEMS))).toBe(true)
+    expect(issuesOf(withItems(6))).toEqual(["errors:quizz.statementsCount"])
+  })
+
+  it("rejects a blank, too long or repeated statement", () => {
+    expect(issuesOf({ ...STATEMENTS, answers: ["Un", " ", "Trois"] })).toEqual([
+      "errors:quizz.answerEmpty",
+    ])
+    expect(
+      issuesOf({
+        ...STATEMENTS,
+        answers: ["Un", "Deux", "x".repeat(ASSOCIATION_LIMITS.ITEM_LENGTH + 1)],
+      }),
+    ).toEqual(["errors:quizz.statementTooLong"])
+    expect(
+      issuesOf({ ...STATEMENTS, answers: ["Un", "Deux", "deux !"] }),
+    ).toEqual(["errors:quizz.statementDuplicate"])
+  })
+
+  it("needs Vrai or Faux for every statement", () => {
+    expect(issuesOf({ ...STATEMENTS, expectedTargets: [0, 1] })).toEqual([
+      "errors:quizz.statementUnanswered",
+    ])
+    expect(issuesOf({ ...STATEMENTS, expectedTargets: [0, -1, 0] })).toEqual([
+      "errors:quizz.statementUnanswered",
+    ])
+    expect(issuesOf({ ...STATEMENTS, expectedTargets: [0, 2, 0] })).toEqual([
+      "errors:quizz.statementUnanswered",
+    ])
+    expect(issuesOf({ ...STATEMENTS, expectedTargets: undefined })).toEqual([
+      "errors:quizz.statementUnanswered",
+    ])
+    expect(isValid({ ...STATEMENTS, expectedTargets: [0, 0.5, 0] })).toBe(false)
+  })
+
+  it("keeps one right target per statement", () => {
+    expect(
+      parse({ ...STATEMENTS, expectedTargets: [1, 1, 0, 1, 1] })
+        .expectedTargets,
+    ).toEqual([1, 1, 0])
+  })
+
+  it("needs 5 seconds at least, or no limit", () => {
+    expect(issuesOf({ ...STATEMENTS, time: 3 })).toEqual([
+      "errors:quizz.timeTooShort",
+    ])
+    expect(isValid({ ...STATEMENTS, time: -1 })).toBe(true)
+  })
+})
+
+describe("categorize", () => {
+  const CATEGORIZE = {
+    type: QUESTION_TYPES.CATEGORIZE,
+    question: "Quelle branche verse chaque prestation ?",
+    answers: [
+      "Allocations familiales",
+      "Pension de retraite",
+      "Indemnités journalières",
+    ],
+    targets: ["Famille", "Retraite", "Maladie"],
+    expectedTargets: [0, 1, 2],
+    cooldown: 5,
+    time: 30,
+  }
+
+  it("keeps its categories, cleaned, and the right one of each item", () => {
+    const categorize = parse({
+      ...CATEGORIZE,
+      targets: ["  Famille ", "Retraite", "Mala\u200Bdie"],
+      solutions: [0],
+    })
+
+    expect(categorize.targets).toEqual(["Famille", "Retraite", "Maladie"])
+    expect(categorize.expectedTargets).toEqual([0, 1, 2])
+    expect(categorize.solutions).toEqual([])
+  })
+
+  it("takes 2 to 5 items", () => {
+    expect(
+      issuesOf({ ...CATEGORIZE, answers: ["Un"], expectedTargets: [0] }),
+    ).toEqual(["errors:quizz.categorizeItemsCount"])
+    expect(
+      issuesOf({
+        ...CATEGORIZE,
+        answers: ["Un", "Deux", "Trois", "Quatre", "Cinq", "Six"],
+        expectedTargets: [0, 0, 0, 0, 0, 0],
+      }),
+    ).toEqual(["errors:quizz.categorizeItemsCount"])
+  })
+
+  it("rejects a too long or repeated item", () => {
+    expect(
+      issuesOf({
+        ...CATEGORIZE,
+        answers: ["Un", "Deux", "x".repeat(ASSOCIATION_LIMITS.ITEM_LENGTH + 1)],
+      }),
+    ).toEqual(["errors:quizz.categorizeItemTooLong"])
+    expect(
+      issuesOf({ ...CATEGORIZE, answers: ["Un", "Deux", "DEUX"] }),
+    ).toEqual(["errors:quizz.categorizeItemDuplicate"])
+  })
+
+  it("takes 2 to 4 categories, each short and told apart", () => {
+    expect(
+      issuesOf({
+        ...CATEGORIZE,
+        targets: ["Famille"],
+        expectedTargets: [0, 0, 0],
+      }),
+    ).toEqual(["errors:quizz.categorizeTargetsCount"])
+    expect(
+      issuesOf({ ...CATEGORIZE, targets: ["A", "B", "C", "D", "E"] }),
+    ).toEqual(["errors:quizz.categorizeTargetsCount"])
+    expect(
+      issuesOf({ ...CATEGORIZE, targets: ["Famille", " ", "Maladie"] }),
+    ).toEqual(["errors:quizz.categorizeTargetEmpty"])
+    expect(
+      issuesOf({
+        ...CATEGORIZE,
+        targets: [
+          "Famille",
+          "x".repeat(ASSOCIATION_LIMITS.TARGET_LENGTH + 1),
+          "Maladie",
+        ],
+      }),
+    ).toEqual(["errors:quizz.categorizeTargetTooLong"])
+    expect(
+      issuesOf({ ...CATEGORIZE, targets: ["Famille", "Retraite", "famille"] }),
+    ).toEqual(["errors:quizz.categorizeTargetDuplicate"])
+    expect(issuesOf({ ...CATEGORIZE, targets: undefined })).toEqual([
+      "errors:quizz.categorizeTargetsCount",
+      "errors:quizz.categorizeUnsorted",
+    ])
+  })
+
+  it("needs a category for every item", () => {
+    expect(issuesOf({ ...CATEGORIZE, expectedTargets: [0, 3, 2] })).toEqual([
+      "errors:quizz.categorizeUnsorted",
+    ])
+    expect(issuesOf({ ...CATEGORIZE, expectedTargets: [0, 1] })).toEqual([
+      "errors:quizz.categorizeUnsorted",
+    ])
   })
 })

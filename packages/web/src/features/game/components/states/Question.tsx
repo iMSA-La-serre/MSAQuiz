@@ -28,6 +28,7 @@ const Question = ({
     totalPlayer,
     options,
     text,
+    targets,
   },
 }: Props) => {
   const player = usePlayerStore((state) => state.player)
@@ -71,6 +72,7 @@ const Question = ({
       remaining={remaining}
       options={options}
       text={text}
+      targets={targets}
       onSubmit={ignoreSubmit}
       isHost={!player}
     />

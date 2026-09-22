@@ -27,6 +27,11 @@ import {
   STATUS,
   type StatusDataMap,
 } from "@razzia/common/types/game/status"
+import {
+  countMatched,
+  isAssociationType,
+  targetsOf,
+} from "@razzia/common/utils/association"
 import { estimateRanges, medianOf } from "@razzia/common/utils/estimate"
 import { foundPassages } from "@razzia/common/utils/highlight"
 import {
@@ -135,6 +140,12 @@ const roundOutcome = (
 
   return score > 0 ? "partial" : "wrong"
 }
+
+// The targets of statements and categorize, which go along with their items:
+// Vrai and Faux, or the categories. The right target of each item stays on
+// the server until SHOW_RESPONSES.
+const publicTargets = (question: Question): { targets?: string[] } =>
+  isAssociationType(question.type) ? { targets: targetsOf(question) } : {}
 
 // The final top goes to every player: only what a ranking row shows, never
 // the clientId that lets its holder take over a seat.
@@ -257,9 +268,11 @@ export class RoundManager {
         ? question.media.type
         : undefined
 
-    // A highlight's text goes along with its passages, which are its answers.
+    // A highlight's text goes along with its passages, which are its answers;
+    // the targets of statements and categorize, with their items.
     const highlightText =
       question.type === QUESTION_TYPES.HIGHLIGHT ? { text: question.text } : {}
+    const associationTargets = publicTargets(question)
 
     // The answers are shown during the reading time, but never the solutions
     // (nor the accepted answers, nor the correct order): those only go to the
@@ -275,6 +288,7 @@ export class RoundManager {
       totalPlayer: this.opts.players.count(),
       options: question.options,
       ...highlightText,
+      ...associationTargets,
     })
 
     await sleep(question.cooldown)
@@ -295,6 +309,7 @@ export class RoundManager {
       questionType: question.type,
       options: question.options,
       ...highlightText,
+      ...associationTargets,
     })
 
     await this.opts.cooldown.start(question.time)
@@ -369,6 +384,27 @@ export class RoundManager {
         : [],
     )
 
+    // Statements and categorize, partial outcome only: the items matched with
+    // their right target, shown on the player's result card to explain the
+    // partial points.
+    const matchedCounts = new Map(
+      isAssociationType(question.type)
+        ? rounds.flatMap(({ player, answer, outcome }) =>
+            answer && outcome === "partial"
+              ? [
+                  [
+                    player.id,
+                    countMatched(
+                      answer.answerIds,
+                      question.expectedTargets ?? [],
+                    ),
+                  ] as const,
+                ]
+              : [],
+          )
+        : [],
+    )
+
     const sortedPlayers = rounds
       .map(({ player, answer, points, outcome }) => {
         const credited = outcome === "correct" || outcome === "partial"
@@ -409,6 +445,7 @@ export class RoundManager {
         const outcome = outcomes.get(player.id) ?? "noAnswer"
         const placed = placedCounts.get(player.id)
         const found = foundCounts.get(player.id)
+        const matched = matchedCounts.get(player.id)
 
         this.opts.send(player.id, STATUS.SHOW_RESULT, {
           outcome,
@@ -424,6 +461,7 @@ export class RoundManager {
             placed: { count: placed, total: question.answers.length },
           }),
           ...(found && { found }),
+          ...(matched && { matched }),
         })
       })
     }
@@ -472,6 +510,7 @@ export class RoundManager {
       ...(question.type === QUESTION_TYPES.ORDERING && {
         publicOrder: this.publicAnswers.order,
       }),
+      ...publicTargets(question),
       ...(words && {
         words: words.slice(0, WORDCLOUD_LIMITS.CLOUD_WORDS),
         distinctWords: words.length,

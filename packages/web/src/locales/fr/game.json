@@ -1,5 +1,8 @@
 {
   "answer": {
+    "categorizeEmpty": "Classez chaque élément",
+    "categorizeHint": "Classez : {{targets}}",
+    "categorizeHintAny": "Une catégorie par élément",
     "highlightEmpty": "Touchez au moins un passage",
     "highlightHint": "Plusieurs passages possibles",
     "multiEmpty": "Cochez au moins une réponse",
@@ -11,9 +14,15 @@
     "shortanswerEmpty": "Tapez votre réponse",
     "shortanswerHint": "Réponse à saisir",
     "slideHint": "Suivez la diapo à l'écran",
+    "statementsEmpty": "Répondez pour chaque affirmation",
+    "statementsHint": "Vrai ou faux par affirmation",
     "wordcloudEmpty_one": "Tapez un mot",
     "wordcloudEmpty_other": "Tapez au moins un mot",
     "wordcloudHint": "Réponse non associée à votre pseudo"
+  },
+  "association": {
+    "complete": "Tout est rempli, vous pouvez valider",
+    "groupLabel": "{{letter}} {{item}}"
   },
   "band": {
     "answersLabel": "Réponses reçues : {{count}} sur {{total}}",
@@ -93,6 +102,8 @@
   "reconnectTitle": "Vous étiez dans une partie",
   "responses": {
     "acceptedRowLabel": "{{answer}} : {{count}} sur {{total}} ({{percent}})",
+    "associationSummary_one": "{{count}} réponse sans faute sur {{total}}",
+    "associationSummary_other": "{{count}} réponses sans faute sur {{total}}",
     "correct": "Bonne réponse",
     "correctOrder": "Ordre correct",
     "estimateExpected": "Bonne réponse : {{expected}}",
@@ -100,6 +111,7 @@
     "highlightSummary_one": "{{count}} réponse sans faute sur {{total}}",
     "highlightSummary_other": "{{count}} réponses sans faute sur {{total}}",
     "label": "Répartition des réponses",
+    "matchRowLabel": "{{letter}} {{item}}, réponse {{target}} : juste pour {{count}} sur {{total}} ({{percent}})",
     "noAnswer": "Sans réponse : {{count}}",
     "orderingSummary_one": "Ordre correct · {{count}} ordre exact sur {{total}}",
     "orderingSummary_other": "Ordre correct · {{count}} ordres exacts sur {{total}}",
@@ -120,6 +132,8 @@
     "extra_other": "{{count}} en trop",
     "found_one": "{{count}} passage trouvé sur {{total}}",
     "found_other": "{{count}} passages trouvés sur {{total}}",
+    "matched_one": "{{count}} réponse juste sur {{total}}",
+    "matched_other": "{{count}} réponses justes sur {{total}}",
     "outOf": "sur {{total}}",
     "placed_one": "{{count}} élément sur {{total}} bien placé",
     "placed_other": "{{count}} éléments sur {{total}} bien placés",

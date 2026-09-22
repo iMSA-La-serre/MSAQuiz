@@ -19,6 +19,8 @@ import {
   ListChecks,
   ListOrdered,
   type LucideIcon,
+  Scale,
+  Tags,
   Vote,
 } from "lucide-react"
 import { motion, MotionConfig } from "motion/react"
@@ -40,6 +42,8 @@ interface Props {
   options?: QuestionOptions
   // Highlight: the text holding the passages.
   text?: string
+  // Statements and categorize: what each item is matched with.
+  targets?: string[]
   onSubmit: (_answer: AnswerPayload) => void
   isHost: boolean
 }
@@ -54,6 +58,9 @@ const HINTS: Partial<Record<QuestionType, { icon: LucideIcon; key: string }>> =
     // Worded from the bounds and the tolerance, see answerHint.
     estimate: { icon: EqualApproximately, key: "game:estimate.hintAny" },
     highlight: { icon: Highlighter, key: "game:answer.highlightHint" },
+    statements: { icon: Scale, key: "game:answer.statementsHint" },
+    // Names the categories on the projector, see answerHint.
+    categorize: { icon: Tags, key: "game:answer.categorizeHintAny" },
   }
 
 const TITLE = "font-bold text-balance text-white drop-shadow-lg"
@@ -77,6 +84,7 @@ const QuestionStage = ({
   remaining,
   options,
   text,
+  targets,
   onSubmit,
   isHost,
 }: Props) => {
@@ -148,7 +156,9 @@ const QuestionStage = ({
   const hintChip = hint && (
     <motion.div {...appear(0.12)} className="self-start">
       <HintChip icon={hint.icon}>
-        {answerHint ? answerHint(t, options) : t(hint.key)}
+        {answerHint
+          ? answerHint(t, options, { targets, size: variant })
+          : t(hint.key)}
       </HintChip>
     </motion.div>
   )
@@ -158,6 +168,7 @@ const QuestionStage = ({
       answers={answers}
       options={options}
       text={text}
+      targets={targets}
       onSubmit={onSubmit}
       readOnly={isHost}
       locked={isReading || !opened}

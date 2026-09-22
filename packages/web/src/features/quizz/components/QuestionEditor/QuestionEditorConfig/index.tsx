@@ -1,5 +1,6 @@
 import { QUESTION_TYPE_META } from "@razzia/common/constants"
 import type { QuestionType } from "@razzia/common/types/game"
+import { isAssociationType } from "@razzia/common/utils/association"
 import {
   Select,
   SelectContent,
@@ -27,8 +28,8 @@ const QuestionEditorConfig = () => {
     const next = QUESTION_REGISTRY[nextType]
     const { defaultOptions, defaultAnswerKeys, initialAnswers } = next
     // A type with its own answers editor (ordering, shortanswer, estimate,
-    // highlight) shares nothing with the others: moving to or from one starts
-    // from a blank question of the new type.
+    // highlight, statements, categorize) shares nothing with the others:
+    // moving to or from one starts from a blank question of the new type.
     const isReset = Boolean(
       next.AnswersEditor ?? QUESTION_REGISTRY[questionType].AnswersEditor,
     )
@@ -44,6 +45,11 @@ const QuestionEditorConfig = () => {
       updates.expected = undefined
       updates.text = undefined
       updates.speedBonus = undefined
+      updates.targets = next.initialTargets && [...next.initialTargets]
+      // No right target yet: the author picks one for each item.
+      updates.expectedTargets = isAssociationType(nextType)
+        ? (initialAnswers ?? []).map(() => -1)
+        : undefined
     }
 
     // An answer time left at the old type's default follows the new one.

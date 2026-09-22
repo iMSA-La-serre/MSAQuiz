@@ -1,5 +1,6 @@
 import type {
   ESTIMATE_TOLERANCE,
+  MATCH_SCORING,
   MEDIA_TYPES,
   ORDER_SCORING,
   QUESTION_TYPES,
@@ -11,6 +12,8 @@ export type QuestionType = (typeof QUESTION_TYPES)[keyof typeof QUESTION_TYPES]
 export type ScoringMode = (typeof SCORING_MODES)[keyof typeof SCORING_MODES]
 
 export type OrderScoring = (typeof ORDER_SCORING)[keyof typeof ORDER_SCORING]
+
+export type MatchScoring = (typeof MATCH_SCORING)[keyof typeof MATCH_SCORING]
 
 export type EstimateTolerance =
   (typeof ESTIMATE_TOLERANCE)[keyof typeof ESTIMATE_TOLERANCE]
@@ -27,6 +30,8 @@ export interface QuestionOptions {
   scoringMode?: ScoringMode
   // Ordering, position when absent.
   orderScoring?: OrderScoring
+  // Statements and categorize, share when absent.
+  matchScoring?: MatchScoring
   // Shortanswer: also accept a close spelling. Off when absent.
   typoTolerance?: boolean
   // Wordcloud: fields on the phone, 1 to 3, 1 when absent.
@@ -65,7 +70,8 @@ export interface Answer {
   playerId: string
   // Choice types: picked answers (highlight: the passages tapped). Ordering:
   // original indices, in the order the player chose. Shortanswer: index of the
-  // accepted answer recognized, or empty.
+  // accepted answer recognized, or empty. Statements and categorize: the
+  // target picked for each item, in the order of the answers.
   answerIds: number[]
   // Shortanswer: the input once cleaned (cleanInput).
   text?: string
@@ -110,6 +116,13 @@ export interface Question {
   // (parseHighlight). Public: the passages are the answers, the ones to spot
   // are the solutions.
   text?: string
+  // Statements and categorize: what each item is matched with, public.
+  // Statements: Vrai and Faux (STATEMENT_TARGETS). Categorize: 2 to 4
+  // categories.
+  targets?: string[]
+  // Statements and categorize: the index in `targets` of the right target of
+  // each item, in the order of `answers`. Secret, never sent to a player.
+  expectedTargets?: number[]
   // Per-question switch, QUESTION_TYPE_META default when absent.
   speedBonus?: boolean
 }
@@ -216,19 +229,23 @@ export interface QuestionStats {
   correctCount: number
   successRate: number | null
   // Choice types: picks per answer; highlight lists every passage, in the
-  // order of the text. Ordering: the items in the correct order,
-  // with the players who put each one at its place. Shortanswer: the
-  // accepted answers, with the inputs each one recognized. Wordcloud: the
-  // most frequent words across the games (WORDCLOUD_LIMITS.CLOUD_WORDS).
-  // Estimate: empty, see `estimate`.
+  // order of the text. Statements and categorize: every item, with the
+  // players who matched it with its right target. Ordering: the items in the
+  // correct order, with the players who put each one at its place.
+  // Shortanswer: the accepted answers, with the inputs each one recognized.
+  // Wordcloud: the most frequent words across the games
+  // (WORDCLOUD_LIMITS.CLOUD_WORDS). Estimate: empty, see `estimate`.
   answers: Array<{ label: string; count: number }>
   // Wording of the correct answers, taken from the most recent game: a quizz
   // can be edited between two games. Shortanswer: the accepted answers.
-  // Ordering and estimate: empty, see `estimate` for the latter.
+  // Statements and categorize: the right target of each item listed first in
+  // `answers`, in the same order. Ordering and estimate: empty, see
+  // `estimate` for the latter.
   solutionLabels: string[]
-  // Ordering and highlight: mean multiplier over the answers given, null if
-  // none. `correctCount` counts the exact orders, the answers with every
-  // passage to spot and no other.
+  // Ordering, highlight, statements and categorize: mean multiplier over the
+  // answers given, null if none. `correctCount` counts the exact orders, the
+  // answers with every passage to spot and no other, the answers with every
+  // item matched.
   averageScore?: number | null
   // Shortanswer: inputs that matched no accepted answer.
   unrecognizedCount?: number

@@ -28,6 +28,10 @@ interface ResponseRowProps {
   label: (_figures: { count: number; total: number; percent: string }) => string
   // A right answer: labelled « Bonne réponse », outlined once revealed.
   correct?: boolean
+  // The row's right answer, labelled in place of « Bonne réponse », on a row
+  // that is not outlined: the right target of each item (statements,
+  // categorize). Placed as the « Bonne réponse » label.
+  answerLabel?: string
   revealed: boolean
   dense?: boolean
   // The compact answering rows of a long list (isCompactList), with a thinner
@@ -55,6 +59,7 @@ const ResponseRow = ({
   total,
   label,
   correct = false,
+  answerLabel,
   revealed,
   dense = false,
   compact = false,
@@ -71,11 +76,12 @@ const ResponseRow = ({
   }).format(share)
   const delay = staggerDelay(index, REVEAL_DELAY)
   const rowLabel = label({ count, total, percent })
-  const labelledRow = correct && compact && labelled
+  const tag = answerLabel ?? (correct ? t("game:responses.correct") : null)
+  const labelledRow = tag !== null && compact && labelled
 
   // On the row's top edge, out of the flow: inline after the text, the label
   // wraps to a second line in the narrow image column and every row moves.
-  const correctLabel = correct && (!compact || labelled) && (
+  const correctLabel = tag !== null && (!compact || labelled) && (
     <motion.span
       {...fadeIn(REVEAL_DELAY, reduceMotion)}
       className={clsx(
@@ -86,7 +92,7 @@ const ResponseRow = ({
           "short:-top-2.5 short:right-5 short:py-0.5 short:text-sm short:leading-4",
       )}
     >
-      {t("game:responses.correct")}
+      {tag}
     </motion.span>
   )
 

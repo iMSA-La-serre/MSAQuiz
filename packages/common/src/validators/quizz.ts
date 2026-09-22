@@ -1,7 +1,9 @@
 import {
+  ASSOCIATION_LIMITS,
   ESTIMATE_LIMITS,
   ESTIMATE_TOLERANCE,
   HIGHLIGHT_LIMITS,
+  MATCH_SCORING,
   MEDIA_TYPES,
   NO_TIME_LIMIT,
   ORDER_SCORING,
@@ -13,6 +15,7 @@ import {
   WORDCLOUD_LIMITS,
 } from "@razzia/common/constants"
 import type { Question, QuestionOptions } from "@razzia/common/types/game"
+import { isAssociationType, targetsOf } from "@razzia/common/utils/association"
 import { decimalsOf, fitsDecimals } from "@razzia/common/utils/estimate"
 import {
   formatHighlight,
@@ -39,6 +42,8 @@ export const questionMediaValidator = z.object({
 const optionsValidator = z.object({
   scoringMode: z.enum(SCORING_MODES).default(SCORING_MODES.BALANCED),
   orderScoring: z.enum(ORDER_SCORING).optional(),
+  // Statements and categorize.
+  matchScoring: z.enum(MATCH_SCORING).optional(),
   typoTolerance: z.boolean().optional(),
   wordCount: z
     .number()
@@ -68,6 +73,8 @@ const NEWER_TYPES = new Set<string>([
   QUESTION_TYPES.WORDCLOUD,
   QUESTION_TYPES.ESTIMATE,
   QUESTION_TYPES.HIGHLIGHT,
+  QUESTION_TYPES.STATEMENTS,
+  QUESTION_TYPES.CATEGORIZE,
 ])
 
 const MIN_TIME = 5
@@ -301,42 +308,169 @@ const checkHighlight = (
   }
 }
 
+// The wording of the issues of a statements or a categorize question, whose
+// items are statements or elements to sort.
+const ASSOCIATION_ISSUES = {
+  statements: {
+    itemsCount: "errors:quizz.statementsCount",
+    itemTooLong: "errors:quizz.statementTooLong",
+    itemDuplicate: "errors:quizz.statementDuplicate",
+    unmatched: "errors:quizz.statementUnanswered",
+  },
+  categorize: {
+    itemsCount: "errors:quizz.categorizeItemsCount",
+    itemTooLong: "errors:quizz.categorizeItemTooLong",
+    itemDuplicate: "errors:quizz.categorizeItemDuplicate",
+    unmatched: "errors:quizz.categorizeUnsorted",
+  },
+} as const
+
+// Categorize: 2 to 4 categories, each told apart from the others. The
+// targets of statements are imposed, see withStatementTargets.
+const checkCategories = (targets: string[], issue: IssueFn) => {
+  if (
+    targets.length < ASSOCIATION_LIMITS.MIN_TARGETS ||
+    targets.length > ASSOCIATION_LIMITS.MAX_TARGETS
+  ) {
+    issue("errors:quizz.categorizeTargetsCount", ["targets"])
+  }
+
+  targets.forEach((target, index) => {
+    if (cleanInput(target) === "") {
+      issue("errors:quizz.categorizeTargetEmpty", ["targets", index])
+    } else if (isTooLong(target, ASSOCIATION_LIMITS.TARGET_LENGTH)) {
+      issue("errors:quizz.categorizeTargetTooLong", ["targets", index])
+    }
+  })
+
+  const duplicate = firstDuplicateKey(targets)
+
+  if (duplicate !== -1) {
+    issue("errors:quizz.categorizeTargetDuplicate", ["targets", duplicate])
+  }
+}
+
+// Statements and categorize: 2 to 5 items, each told apart from the others
+// and matched with one of the targets.
+const checkAssociation = (
+  {
+    type,
+    answers,
+    targets = [],
+    expectedTargets = [],
+  }: Pick<Question, "type" | "answers" | "targets" | "expectedTargets">,
+  issue: IssueFn,
+) => {
+  const wording =
+    type === QUESTION_TYPES.STATEMENTS
+      ? ASSOCIATION_ISSUES.statements
+      : ASSOCIATION_ISSUES.categorize
+
+  if (
+    answers.length < ASSOCIATION_LIMITS.MIN_ITEMS ||
+    answers.length > ASSOCIATION_LIMITS.MAX_ITEMS
+  ) {
+    issue(wording.itemsCount, ["answers"])
+  }
+
+  answers.forEach((item, index) => {
+    // An empty string is already reported by the answers schema.
+    if (item !== "" && cleanInput(item) === "") {
+      issue("errors:quizz.answerEmpty", ["answers", index])
+    }
+
+    if (isTooLong(item, ASSOCIATION_LIMITS.ITEM_LENGTH)) {
+      issue(wording.itemTooLong, ["answers", index])
+    }
+  })
+
+  const duplicate = firstDuplicateKey(answers)
+
+  if (duplicate !== -1) {
+    issue(wording.itemDuplicate, ["answers", duplicate])
+  }
+
+  if (type === QUESTION_TYPES.CATEGORIZE) {
+    checkCategories(targets, issue)
+  }
+
+  const unmatched = answers.findIndex((_, index) => {
+    const target = expectedTargets.at(index)
+
+    return target === undefined || target < 0 || target >= targets.length
+  })
+
+  if (unmatched !== -1) {
+    issue(wording.unmatched, ["expectedTargets", unmatched])
+  }
+}
+
 // The settings only an estimate reads.
-const ESTIMATE_OPTION_KEYS = new Set<string>([
+const ESTIMATE_OPTION_KEYS = [
   "decimals",
   "tolerance",
   "toleranceMode",
   "min",
   "max",
   "unit",
-] satisfies Array<keyof QuestionOptions>)
+] satisfies Array<keyof QuestionOptions>
 
-// The other types have the right value and the settings of an estimate
-// dropped before any check, as zod dropped them before the estimate existed:
-// they are neither refused nor stored, nor sent to the players.
-const withoutEstimateFields = (question: Record<string, unknown>) => {
-  if (question.type === QUESTION_TYPES.ESTIMATE) {
-    return question
-  }
+// The fields and the settings only some types read.
+const OWNED_FIELDS: Array<{
+  types: ReadonlySet<string>
+  fields: ReadonlySet<string>
+  options: ReadonlySet<string>
+}> = [
+  {
+    types: new Set([QUESTION_TYPES.ESTIMATE]),
+    fields: new Set(["expected"]),
+    options: new Set(ESTIMATE_OPTION_KEYS),
+  },
+  {
+    types: new Set([QUESTION_TYPES.STATEMENTS, QUESTION_TYPES.CATEGORIZE]),
+    fields: new Set(["targets", "expectedTargets"]),
+    options: new Set(["matchScoring"] satisfies Array<keyof QuestionOptions>),
+  },
+]
 
-  const { expected: _expected, ...rest } = question
-  const { options } = rest
+const withoutKeys = (
+  object: Record<string, unknown>,
+  keys: ReadonlySet<string>,
+): Record<string, unknown> =>
+  Object.fromEntries(Object.entries(object).filter(([key]) => !keys.has(key)))
 
-  if (
-    typeof options !== "object" ||
-    options === null ||
-    Array.isArray(options)
-  ) {
-    return rest
-  }
+// The other types have the fields and the settings of an estimate, of
+// statements or of categorize dropped before any check, as zod dropped them
+// before those types existed: they are neither refused nor stored, nor sent
+// to the players.
+const withoutForeignFields = (question: Record<string, unknown>) =>
+  OWNED_FIELDS.reduce((current, { types, fields, options }) => {
+    if (typeof question.type === "string" && types.has(question.type)) {
+      return current
+    }
 
-  return {
-    ...rest,
-    options: Object.fromEntries(
-      Object.entries(options).filter(([key]) => !ESTIMATE_OPTION_KEYS.has(key)),
-    ),
-  }
-}
+    const rest = withoutKeys(current, fields)
+    const { options: settings } = rest
+
+    if (
+      typeof settings !== "object" ||
+      settings === null ||
+      Array.isArray(settings)
+    ) {
+      return rest
+    }
+
+    return {
+      ...rest,
+      options: withoutKeys(settings as Record<string, unknown>, options),
+    }
+  }, question)
+
+// The targets of statements are Vrai and Faux, whatever was sent along.
+const withStatementTargets = (question: Record<string, unknown>) =>
+  question.type === QUESTION_TYPES.STATEMENTS
+    ? { ...question, targets: targetsOf({ type: QUESTION_TYPES.STATEMENTS }) }
+    : question
 
 // A highlight's answers are the passages of its text, whatever was sent
 // along: the text is the one source. The other types have the text dropped
@@ -365,14 +499,16 @@ const questionValidator = z.preprocess(
     const question = data as Record<string, unknown>
 
     if ("type" in question) {
-      return withHighlightFields(withoutEstimateFields(question))
+      return withStatementTargets(
+        withHighlightFields(withoutForeignFields(question)),
+      )
     }
 
     const isMulti =
       Array.isArray(question.solutions) && question.solutions.length > 1
 
     return withHighlightFields(
-      withoutEstimateFields({
+      withoutForeignFields({
         ...question,
         type: isMulti ? QUESTION_TYPES.MULTI : QUESTION_TYPES.SINGLE,
       }),
@@ -408,6 +544,9 @@ const questionValidator = z.preprocess(
       expected: z.number().optional(),
       // Highlight only, dropped from the other types.
       text: z.string().optional(),
+      // Statements and categorize only, dropped from the other types.
+      targets: z.array(z.string()).optional(),
+      expectedTargets: z.array(z.number().int()).optional(),
       speedBonus: z.boolean().optional(),
     })
     .superRefine((question, ctx) => {
@@ -420,9 +559,12 @@ const questionValidator = z.preprocess(
       // Fixed answers (true/false) are reported as such rather than as too
       // many; a type without answers (slide, shortanswer, wordcloud) has them
       // dropped; a highlight counts the passages of its text, see
-      // checkHighlight.
+      // checkHighlight, statements and categorize their items, see
+      // checkAssociation.
       if (question.type === QUESTION_TYPES.HIGHLIGHT) {
         checkHighlight(question, issue)
+      } else if (isAssociationType(question.type)) {
+        checkAssociation(question, issue)
       } else if (meta.answersCount !== undefined) {
         if (count < meta.minAnswers) {
           issue("errors:quizz.tooFewAnswers", ["answers"])
@@ -441,9 +583,9 @@ const questionValidator = z.preprocess(
         }
       }
 
-      // Ordering and shortanswer do not score against `solutions`, a
-      // highlight checks its own; the newer unscored types do not score at
-      // all.
+      // Ordering, shortanswer, statements and categorize do not score against
+      // `solutions`, a highlight checks its own; the newer unscored types do
+      // not score at all.
       if (
         meta.scored &&
         !NEWER_TYPES.has(question.type) &&
@@ -498,6 +640,20 @@ const questionValidator = z.preprocess(
               scoringMode: highlightScoringMode(options.scoringMode),
             },
           }),
+        }
+      }
+
+      // The right target of each item has its own field, kept secret, one per
+      // item. Categories are stored cleaned, as the screens show them.
+      if (isAssociationType(question.type)) {
+        return {
+          ...question,
+          targets: question.targets?.map(cleanInput),
+          expectedTargets: question.expectedTargets?.slice(
+            0,
+            question.answers.length,
+          ),
+          solutions: [],
         }
       }
 

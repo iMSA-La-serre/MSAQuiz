@@ -1,4 +1,8 @@
-import { QUESTION_TYPES, SCORING_MODES } from "@razzia/common/constants"
+import {
+  MATCH_SCORING,
+  QUESTION_TYPES,
+  SCORING_MODES,
+} from "@razzia/common/constants"
 import type {
   GameResult,
   PlayerAnswerRecord,
@@ -337,6 +341,116 @@ describe("aggregateQuestions, highlight", () => {
       ),
     ).toEqual(
       expect.arrayContaining([QUESTION_TYPES.HIGHLIGHT, QUESTION_TYPES.MULTI]),
+    )
+  })
+})
+
+describe("aggregateQuestions, statements and categorize", () => {
+  const categorize = (withScore: boolean) =>
+    question({
+      type: QUESTION_TYPES.CATEGORIZE,
+      question: "Quelle branche verse chaque prestation ?",
+      answers: ["Allocations familiales", "Pension", "Indemnités journalières"],
+      solutions: [],
+      targets: ["Famille", "Retraite", "Maladie"],
+      expectedTargets: [0, 1, 2],
+      playerAnswers: [
+        { playerName: "Alex", answerIds: [0, 1, 2], score: 1 },
+        { playerName: "Bea", answerIds: [0, 2, 2], score: 2 / 3 },
+        { playerName: "Cyd", answerIds: [1, 0, 0], score: 0 },
+        { playerName: "Dan", answerIds: null, score: 0 },
+      ].map(({ score, ...record }) =>
+        withScore ? { ...record, score } : record,
+      ),
+    })
+
+  it("lists every item with its right target, and the mean score", () => {
+    const [stats] = aggregateQuestions([game([categorize(true)])])
+
+    expect(stats).toMatchObject({
+      type: QUESTION_TYPES.CATEGORIZE,
+      scored: true,
+      answerCount: 3,
+      missingCount: 1,
+      correctCount: 1,
+      solutionLabels: ["Famille", "Retraite", "Maladie"],
+      answers: [
+        { label: "Allocations familiales", count: 2 },
+        { label: "Pension", count: 1 },
+        { label: "Indemnités journalières", count: 2 },
+      ],
+    })
+    expect(stats.successRate).toBeCloseTo(1 / 3)
+    expect(stats.averageScore).toBeCloseTo(5 / 9)
+  })
+
+  it("scores the items again when no multiplier was saved", () => {
+    expect(aggregateQuestions([game([categorize(false)])])).toEqual(
+      aggregateQuestions([game([categorize(true)])]),
+    )
+  })
+
+  it("names Vrai and Faux the targets of statements", () => {
+    const [stats] = aggregateQuestions([
+      game([
+        question({
+          type: QUESTION_TYPES.STATEMENTS,
+          question: "Vrai ou faux ?",
+          answers: ["Un", "Deux"],
+          solutions: [],
+          targets: ["Vrai", "Faux"],
+          expectedTargets: [1, 0],
+          options: {
+            scoringMode: SCORING_MODES.BALANCED,
+            matchScoring: MATCH_SCORING.EXACT,
+          },
+          playerAnswers: answers(["Alex", [1, 0]], ["Bea", [1, 1]]),
+        }),
+      ]),
+    ])
+
+    expect(stats).toMatchObject({
+      solutionLabels: ["Faux", "Vrai"],
+      answers: [
+        { label: "Un", count: 2 },
+        { label: "Deux", count: 1 },
+      ],
+      correctCount: 1,
+      averageScore: 0.5,
+    })
+  })
+
+  it("leaves an item without a right target blank, never the last one", () => {
+    const [stats] = aggregateQuestions([
+      game([
+        question({
+          ...categorize(true),
+          // Saved before the targets were recorded, or short of one.
+          expectedTargets: [0],
+        }),
+      ]),
+    ])
+
+    expect(stats.solutionLabels).toEqual(["Famille", "", ""])
+  })
+
+  it("keeps statements apart from categorize of the same wording", () => {
+    const statements = question({
+      ...categorize(true),
+      type: QUESTION_TYPES.STATEMENTS,
+      targets: ["Vrai", "Faux"],
+      expectedTargets: [0, 0, 0],
+    })
+
+    expect(
+      aggregateQuestions([game([categorize(true), statements])]).map(
+        ({ type }) => type,
+      ),
+    ).toEqual(
+      expect.arrayContaining([
+        QUESTION_TYPES.CATEGORIZE,
+        QUESTION_TYPES.STATEMENTS,
+      ]),
     )
   })
 })

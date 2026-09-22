@@ -1,4 +1,5 @@
 import {
+  MATCH_SCORING,
   ORDER_SCORING,
   QUESTION_TYPES,
   SCORING_MODES,
@@ -301,5 +302,60 @@ describe("highlight", () => {
     }
 
     expect(score(SCORING_MODES.LENIENT, [0, 1], [0, 1, 2, 3, 4])).toBe(0)
+  })
+})
+
+describe("statements and categorize", () => {
+  const STATEMENTS = question({
+    type: QUESTION_TYPES.STATEMENTS,
+    answers: ["Un", "Deux", "Trois", "Quatre"],
+    solutions: [],
+    targets: ["Vrai", "Faux"],
+    expectedTargets: [0, 1, 1, 0],
+  })
+  const CATEGORIZE = question({
+    type: QUESTION_TYPES.CATEGORIZE,
+    answers: ["Un", "Deux", "Trois"],
+    solutions: [],
+    targets: ["Famille", "Retraite", "Maladie"],
+    expectedTargets: [2, 0, 1],
+  })
+
+  it("gives the share of items matched with their right target", () => {
+    expect(
+      QUESTION_SCORING.statements(STATEMENTS, { answerIds: [0, 1, 1, 0] }),
+    ).toBe(1)
+    expect(
+      QUESTION_SCORING.statements(STATEMENTS, { answerIds: [0, 1, 0, 1] }),
+    ).toBe(0.5)
+    expect(
+      QUESTION_SCORING.categorize(CATEGORIZE, { answerIds: [2, 1, 0] }),
+    ).toBeCloseTo(1 / 3)
+  })
+
+  it("gives all or nothing when the scoring is exact", () => {
+    const exact = { options: { matchScoring: MATCH_SCORING.EXACT } }
+
+    expect(
+      QUESTION_SCORING.statements(
+        { ...STATEMENTS, ...exact },
+        { answerIds: [0, 1, 1, 1] },
+      ),
+    ).toBe(0)
+    expect(
+      QUESTION_SCORING.categorize(
+        { ...CATEGORIZE, ...exact },
+        { answerIds: [2, 0, 1] },
+      ),
+    ).toBe(1)
+  })
+
+  it("gives nothing without right targets to compare with", () => {
+    expect(
+      QUESTION_SCORING.statements(
+        { ...STATEMENTS, expectedTargets: undefined },
+        { answerIds: [0, 1, 1, 0] },
+      ),
+    ).toBe(0)
   })
 })

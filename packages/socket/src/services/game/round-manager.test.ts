@@ -1216,6 +1216,160 @@ describe("RoundManager, highlight", () => {
   })
 })
 
+const STATEMENTS = question({
+  type: QUESTION_TYPES.STATEMENTS,
+  question: "Vrai ou faux ?",
+  answers: [
+    "La MSA couvre les salariés agricoles",
+    "La MSA verse les allocations chômage",
+    "La MSA gère la retraite des exploitants",
+    "La MSA ne rembourse pas les soins",
+  ],
+  solutions: [],
+  targets: ["Vrai", "Faux"],
+  expectedTargets: [0, 1, 0, 1],
+  penalty: 100,
+})
+
+const CATEGORIZE = question({
+  type: QUESTION_TYPES.CATEGORIZE,
+  question: "Quelle branche verse chaque prestation ?",
+  answers: ["Allocations familiales", "Pension", "Indemnités journalières"],
+  solutions: [],
+  targets: ["Famille", "Retraite", "Maladie"],
+  expectedTargets: [0, 1, 2],
+})
+
+describe("RoundManager, statements and categorize", () => {
+  it("sends the items and their targets, never the right ones", async () => {
+    const game = setup([CATEGORIZE], [player("camille")])
+
+    await game.reachFirstQuestion()
+
+    expect(game.lastBroadcast(STATUS.SHOW_PREPARED)?.totalAnswers).toBe(3)
+    expect(game.lastBroadcast(STATUS.SHOW_QUESTION)).toMatchObject({
+      answers: CATEGORIZE.answers,
+      targets: CATEGORIZE.targets,
+    })
+    expect(game.lastBroadcast(STATUS.SHOW_QUESTION)).not.toHaveProperty(
+      "expectedTargets",
+    )
+
+    await game.openAnswers(5)
+
+    expect(game.lastBroadcast(STATUS.SELECT_ANSWER)).toMatchObject({
+      answers: CATEGORIZE.answers,
+      targets: CATEGORIZE.targets,
+    })
+    expect(game.lastBroadcast(STATUS.SELECT_ANSWER)).not.toHaveProperty(
+      "expectedTargets",
+    )
+  })
+
+  it("scores the share of items matched, with a partial outcome", async () => {
+    const game = setup(
+      [STATEMENTS],
+      [
+        player("camille"),
+        player("samir"),
+        player("yanis", 300),
+        player("ines"),
+      ],
+    )
+
+    await game.reachFirstQuestion()
+    await game.openAnswers(5)
+    game.round.selectAnswer(socketOf("camille"), { answerKeys: [0, 1, 0, 1] })
+    game.round.selectAnswer(socketOf("samir"), { answerKeys: [0, 1, 1, 1] })
+    game.round.selectAnswer(socketOf("yanis"), { answerKeys: [1, 0, 1, 0] })
+    await game.closeAnswers()
+
+    // No speed bonus by default: the base is the full 1000 points.
+    expect(game.lastSent("camille", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "correct",
+      message: "game:correct",
+      points: 1000,
+    })
+    expect(game.lastSent("samir", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "partial",
+      correct: true,
+      message: "game:partial",
+      points: 750,
+      matched: { count: 3, total: 4 },
+    })
+    expect(game.lastSent("yanis", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "wrong",
+      points: -100,
+      myPoints: 200,
+    })
+
+    // Only a partial result explains itself with the items matched.
+    for (const name of ["camille", "yanis", "ines"]) {
+      expect(game.lastSent(name, STATUS.SHOW_RESULT)).not.toHaveProperty(
+        "matched",
+      )
+    }
+
+    expect(game.lastSent(MANAGER_ID, STATUS.SHOW_RESPONSES)).toMatchObject({
+      answers: STATEMENTS.answers,
+      targets: ["Vrai", "Faux"],
+      expectedTargets: [0, 1, 0, 1],
+      totalAnswered: 3,
+      correctCount: 1,
+      partialCount: 1,
+    })
+    // Exactly: an extra or missing item would slip through toMatchObject.
+    expect(game.lastSent(MANAGER_ID, STATUS.SHOW_RESPONSES)?.responses).toEqual(
+      { 0: 2, 1: 2, 2: 1, 3: 2 },
+    )
+
+    game.round.showLeaderboard(game.manager)
+
+    expect(game.finished[0]?.questions[0]?.playerAnswers).toEqual([
+      { playerName: "camille", answerIds: [0, 1, 0, 1], score: 1 },
+      { playerName: "samir", answerIds: [0, 1, 1, 1], score: 0.75 },
+      { playerName: "yanis", answerIds: [1, 0, 1, 0], score: 0 },
+      { playerName: "ines", answerIds: null, score: 0 },
+    ])
+  })
+
+  it("gives all or nothing when the scoring is exact", async () => {
+    const game = setup(
+      [{ ...CATEGORIZE, options: { matchScoring: "exact" } }],
+      [player("camille"), player("samir")],
+    )
+
+    await game.reachFirstQuestion()
+    await game.openAnswers(5)
+    game.round.selectAnswer(socketOf("camille"), { answerKeys: [0, 1, 2] })
+    game.round.selectAnswer(socketOf("samir"), { answerKeys: [0, 1, 1] })
+    await game.closeAnswers()
+
+    expect(game.lastSent("camille", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "correct",
+    })
+    expect(game.lastSent("samir", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "wrong",
+      points: 0,
+    })
+    expect(game.lastSent("samir", STATUS.SHOW_RESULT)).not.toHaveProperty(
+      "matched",
+    )
+  })
+
+  it("refuses an answer with an item left out, or a text", async () => {
+    const game = setup([CATEGORIZE], [player("camille"), player("yanis")])
+
+    await game.reachFirstQuestion()
+    await game.openAnswers(5)
+    game.round.selectAnswer(socketOf("camille"), { answerKeys: [0, 1] })
+    game.round.selectAnswer(socketOf("yanis"), { text: "Famille" })
+
+    expect(game.lastSent("camille", STATUS.WAIT)).toBeUndefined()
+    expect(game.lastSent("yanis", STATUS.WAIT)).toBeUndefined()
+  })
+})
+
 describe("RoundManager, what players receive", () => {
   // Every key a player may receive, per status. Anything else (accepted
   // answers, solutions, the correct order, a clientId) must stay server side.
@@ -1229,6 +1383,7 @@ describe("RoundManager, what players receive", () => {
       "options",
       "question",
       "questionType",
+      "targets",
       "text",
       "time",
       "totalPlayer",
@@ -1240,6 +1395,7 @@ describe("RoundManager, what players receive", () => {
       "options",
       "question",
       "questionType",
+      "targets",
       "text",
       "time",
       "totalPlayer",
@@ -1248,6 +1404,7 @@ describe("RoundManager, what players receive", () => {
     SHOW_RESULT: [
       "correct",
       "found",
+      "matched",
       "message",
       "myPoints",
       "outcome",
@@ -1265,6 +1422,8 @@ describe("RoundManager, what players receive", () => {
         { ...SHORTANSWER, options: { typoTolerance: true } },
         ESTIMATE,
         HIGHLIGHT,
+        STATEMENTS,
+        CATEGORIZE,
         question(),
       ],
       [player("camille"), player("yanis")],
@@ -1290,6 +1449,15 @@ describe("RoundManager, what players receive", () => {
     await game.reachNextQuestion()
     await game.openAnswers(5)
     game.round.selectAnswer(socketOf("camille"), { answerKeys: [0] })
+    await game.closeAnswers()
+    await game.reachNextQuestion()
+    await game.openAnswers(5)
+    game.round.selectAnswer(socketOf("camille"), { answerKeys: [0, 1, 1, 1] })
+    game.round.selectAnswer(socketOf("yanis"), { answerKeys: [0, 1, 0, 1] })
+    await game.closeAnswers()
+    await game.reachNextQuestion()
+    await game.openAnswers(5)
+    game.round.selectAnswer(socketOf("camille"), { answerKeys: [0, 1, 0] })
     await game.closeAnswers()
     await game.reachNextQuestion()
     await game.openAnswers(5)
@@ -1321,6 +1489,9 @@ describe("RoundManager, what players receive", () => {
     expect(serialized).not.toContain("4271")
     expect(serialized).not.toContain("expected")
     expect(serialized).not.toContain("clientId")
+    // Partial answers explained, with their counts only.
+    expect(serialized).toContain('"matched":{"count":3,"total":4}')
+    expect(serialized).toContain('"matched":{"count":2,"total":3}')
 
     const top = game.lastSent("camille", STATUS.FINISHED)?.top ?? []
 

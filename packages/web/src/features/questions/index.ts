@@ -6,6 +6,7 @@ import type {
   QuestionType,
   ScoringMode,
 } from "@razzia/common/types/game"
+import * as categorize from "@razzia/web/features/questions/categorize"
 import * as estimate from "@razzia/web/features/questions/estimate"
 import * as highlight from "@razzia/web/features/questions/highlight"
 import * as multi from "@razzia/web/features/questions/multi"
@@ -14,6 +15,7 @@ import * as poll from "@razzia/web/features/questions/poll"
 import * as shortanswer from "@razzia/web/features/questions/shortanswer"
 import * as single from "@razzia/web/features/questions/single"
 import * as slide from "@razzia/web/features/questions/slide"
+import * as statements from "@razzia/web/features/questions/statements"
 import * as truefalse from "@razzia/web/features/questions/truefalse"
 import * as wordcloud from "@razzia/web/features/questions/wordcloud"
 import type {
@@ -40,6 +42,8 @@ interface QuestionRegistryEntry {
   // that has its own answers editor.
   initialAnswers?: string[]
   initialAccepted?: string[]
+  // The targets the author starts from (categorize: two empty categories).
+  initialTargets?: string[]
   // Answer time in seconds, DEFAULT_ANSWER_TIME when absent.
   defaultTime?: number
   // Host screens: the stage starts at the top rather than in the middle.
@@ -75,8 +79,14 @@ interface QuestionRegistryEntry {
     _options: QuestionOptions | undefined,
   ) => string | null
   // The hint above the answers when it depends on the settings (the bounds
-  // and tolerance of an estimate), in place of the type's fixed one.
-  answerHint?: (_t: TFunction, _options: QuestionOptions | undefined) => string
+  // and tolerance of an estimate) or on the targets and the screen (the
+  // categories of a categorize question, named on the projector), in place
+  // of the type's fixed one.
+  answerHint?: (
+    _t: TFunction,
+    _options: QuestionOptions | undefined,
+    _context: { targets?: string[]; size: "host" | "phone" },
+  ) => string
   // The waiting screen: the answer sent, as it should read (an estimate's
   // number with its unit), in place of the text typed.
   sentText?: (
@@ -98,6 +108,8 @@ export const QUESTION_REGISTRY: Record<QuestionType, QuestionRegistryEntry> = {
   wordcloud,
   estimate,
   highlight,
+  statements,
+  categorize,
 }
 
 export const QUESTION_TYPE_LIST = Object.keys(

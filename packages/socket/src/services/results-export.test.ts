@@ -598,3 +598,87 @@ describe("buildResultWorkbook, highlight", () => {
     ])
   })
 })
+
+describe("buildResultWorkbook, statements and categorize", () => {
+  it("reports each statement with its right target and the mean score", async () => {
+    const [, questions] = await readWorkbook(
+      result([
+        question({
+          type: QUESTION_TYPES.STATEMENTS,
+          question: "Vrai ou faux ?",
+          answers: ["La MSA couvre les salariés", "La MSA verse le chômage"],
+          solutions: [],
+          targets: ["Vrai", "Faux"],
+          expectedTargets: [0, 1],
+          playerAnswers: [
+            { playerName: "Alex", answerIds: [0, 1], score: 1 },
+            { playerName: "Bea", answerIds: [0, 0], score: 0.5 },
+            { playerName: "Cyd", answerIds: null, score: 0 },
+          ],
+        }),
+      ]),
+    )
+
+    expect(questions.rows.slice(1)).toEqual([
+      ["Q1 — Vrai ou faux ?", null, null, null],
+      [null, "Affirmations", "Réponse", "Justes"],
+      [null, "La MSA couvre les salariés", "Vrai", 2],
+      [null, "La MSA verse le chômage", "Faux", 1],
+      [null, "Réponses sans faute", null, 1],
+      [null, "Score moyen", null, 0.75],
+      [null, "Sans réponse", null, 1],
+    ])
+  })
+
+  it("lists the categories of a categorize question first", async () => {
+    const [, questions] = await readWorkbook(
+      result([
+        question({
+          type: QUESTION_TYPES.CATEGORIZE,
+          question: "Quelle branche ?",
+          answers: ["Allocations familiales", "Pension"],
+          solutions: [],
+          targets: ["Famille", "Retraite"],
+          expectedTargets: [0, 1],
+          playerAnswers: [
+            { playerName: "Alex", answerIds: [1, 1] },
+            { playerName: "Bea", answerIds: [0, 1] },
+          ],
+        }),
+      ]),
+    )
+
+    expect(questions.rows.slice(1)).toEqual([
+      ["Q1 — Quelle branche ?", null, null, null],
+      [null, "Catégories : Famille, Retraite", null, null],
+      [null, "Éléments", "Réponse", "Justes"],
+      [null, "Allocations familiales", "Famille", 1],
+      [null, "Pension", "Retraite", 2],
+      [null, "Réponses sans faute", null, 1],
+      [null, "Score moyen", null, 0.75],
+      [null, "Sans réponse", null, 1],
+    ])
+  })
+
+  it("leaves an item without a right target blank, never the last one", async () => {
+    const [, questions] = await readWorkbook(
+      result([
+        question({
+          type: QUESTION_TYPES.CATEGORIZE,
+          question: "Quelle branche ?",
+          answers: ["Allocations familiales", "Pension"],
+          solutions: [],
+          targets: ["Famille", "Retraite"],
+          // Saved before the targets were recorded, or short of one.
+          expectedTargets: [0],
+          playerAnswers: [{ playerName: "Alex", answerIds: [0, 1] }],
+        }),
+      ]),
+    )
+
+    expect(questions.rows.slice(4, 6)).toEqual([
+      [null, "Allocations familiales", "Famille", 1],
+      [null, "Pension", "", 0],
+    ])
+  })
+})

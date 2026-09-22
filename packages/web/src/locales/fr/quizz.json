@@ -49,7 +49,12 @@
       "min": "Valeur minimale",
       "minHint": "Un nombre plus petit est refusé sur le téléphone",
       "max": "Valeur maximale",
-      "maxHint": "Un nombre plus grand est refusé sur le téléphone"
+      "maxHint": "Un nombre plus grand est refusé sur le téléphone",
+      "matchScoring": "Barème",
+      "matchScoring.share": "Réponses justes",
+      "matchScoring.exact": "Tout ou rien",
+      "matchScoringHint.share": "Points en proportion des réponses justes",
+      "matchScoringHint.exact": "Points seulement si toutes les réponses sont justes"
     },
     "deleteQuestion": "Supprimer la question",
     "deleteQuestionConfirm": "Êtes-vous sûr de vouloir supprimer cette question ?",
@@ -73,7 +78,9 @@
     "shortanswer": "Réponse courte",
     "wordcloud": "Nuage de mots",
     "estimate": "Estimation",
-    "highlight": "Repérage"
+    "highlight": "Repérage",
+    "statements": "Affirmations",
+    "categorize": "Catégories"
   },
   "titleQuizzPlaceholder": "Titre du quiz...",
   "slideNoAnswers": "Une diapo info n'attend pas de réponses — elle affiche simplement la question et son média.",
@@ -94,7 +101,9 @@
       "shortanswer": "Majuscules et accents ignorés",
       "wordcloud": "Réponses non associées au pseudo",
       "estimate": "Juste dans la marge de tolérance",
-      "highlight": "Cochez les passages à repérer"
+      "highlight": "Cochez les passages à repérer",
+      "statements": "Indiquez si chacune est vraie ou fausse",
+      "categorize": "Choisissez la bonne catégorie de chacun"
     },
     "placeholder": "Réponse {{letter}}",
     "remove": "Supprimer la réponse {{letter}}",
@@ -181,5 +190,30 @@
     "title": "Texte et passages",
     "unwrap": "Retirer les crochets du passage {{letter}} « {{passage}} »",
     "wrap": "Entourer la sélection de [crochets]"
+  },
+  "statements": {
+    "add": "Ajouter une affirmation",
+    "columnItem": "Affirmation",
+    "columnTarget": "Bonne réponse",
+    "placeholder": "Affirmation {{letter}}",
+    "remove": "Supprimer l'affirmation {{letter}}",
+    "title": "Affirmations",
+    "verdictLabel": "Bonne réponse de l'affirmation {{letter}}"
+  },
+  "categorize": {
+    "add": "Ajouter un élément",
+    "addCategory": "Ajouter une catégorie",
+    "categoriesHint": "Les participants y classent les éléments",
+    "categoriesTitle": "Catégories",
+    "categoryPlaceholder": "Catégorie {{number}}",
+    "columnCategory": "Catégorie",
+    "columnItem": "Élément",
+    "columnTarget": "Bonne catégorie",
+    "pick": "Choisir",
+    "pickLabel": "Catégorie de l'élément {{letter}}",
+    "placeholder": "Élément {{letter}}",
+    "remove": "Supprimer l'élément {{letter}}",
+    "removeCategory": "Supprimer la catégorie {{number}}",
+    "title": "Éléments à classer"
   }
 }

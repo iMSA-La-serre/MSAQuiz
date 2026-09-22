@@ -67,7 +67,19 @@
     "highlightPassageTooLong": "Un passage ne peut pas dépasser 80 caractères",
     "highlightPassageDuplicate": "Deux passages sont écrits à l'identique : les résultats ne pourraient pas les distinguer",
     "highlightNoSolution": "Cochez au moins un passage à repérer",
-    "highlightSolutionRange": "Une bonne réponse désigne un passage qui n'existe plus"
+    "highlightSolutionRange": "Une bonne réponse désigne un passage qui n'existe plus",
+    "statementsCount": "Il faut de 2 à 5 affirmations",
+    "statementTooLong": "Une affirmation ne peut pas dépasser 50 caractères",
+    "statementDuplicate": "Deux affirmations sont identiques une fois les majuscules, les accents et la ponctuation ignorés",
+    "statementUnanswered": "Indiquez si chaque affirmation est vraie ou fausse",
+    "categorizeItemsCount": "Il faut de 2 à 5 éléments à classer",
+    "categorizeItemTooLong": "Un élément à classer ne peut pas dépasser 50 caractères",
+    "categorizeItemDuplicate": "Deux éléments à classer sont identiques une fois les majuscules, les accents et la ponctuation ignorés",
+    "categorizeUnsorted": "Choisissez la catégorie de chaque élément",
+    "categorizeTargetsCount": "Il faut de 2 à 4 catégories",
+    "categorizeTargetEmpty": "Une catégorie ne peut pas être vide",
+    "categorizeTargetTooLong": "Une catégorie ne peut pas dépasser 24 caractères",
+    "categorizeTargetDuplicate": "Deux catégories sont identiques une fois les majuscules, les accents et la ponctuation ignorés"
   },
   "route": {
     "back": "Retour à l'accueil",
