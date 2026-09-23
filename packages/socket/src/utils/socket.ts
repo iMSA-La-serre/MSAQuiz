@@ -1,5 +1,6 @@
 import {
   EVENTS,
+  MEDIA_SYNC,
   SHORTANSWER_LIMITS,
   WORDCLOUD_LIMITS,
 } from "@razzia/common/constants"
@@ -83,6 +84,11 @@ const CLIENT_EVENT_PAYLOADS: Record<ClientEvent, z.ZodType> = {
   [EVENTS.MANAGER.ABORT_QUIZ]: optionalGameMessage,
   [EVENTS.MANAGER.NEXT_QUESTION]: optionalGameMessage,
   [EVENTS.MANAGER.SHOW_LEADERBOARD]: optionalGameMessage,
+  // A position in seconds, finite: the game checks who sends it.
+  [EVENTS.MANAGER.MEDIA_CONTROL]: gameMessage.extend({
+    playing: z.boolean(),
+    position: z.number().min(0).max(MEDIA_SYNC.MAX_POSITION),
+  }),
   // No payload: whatever comes along is ignored by the handler.
   [EVENTS.MANAGER.GET_CONFIG]: z.unknown(),
   [EVENTS.MANAGER.LOGOUT]: z.unknown(),
@@ -107,6 +113,9 @@ const CLIENT_EVENT_PAYLOADS: Record<ClientEvent, z.ZodType> = {
   [EVENTS.PLAYER.SELECTED_ANSWER]: optionalGameMessage.extend({
     data: selectedAnswer,
   }),
+  [EVENTS.PLAYER.MEDIA_WATCH]: gameMessage.extend({ watching: z.boolean() }),
+  // The client's own time, unused: the answer goes to its acknowledgement.
+  [EVENTS.GAME.CLOCK]: z.unknown(),
   [EVENTS.RESULTS.GET]: id,
   [EVENTS.RESULTS.DELETE]: id,
   [EVENTS.RESULTS.EXPORT]: id,

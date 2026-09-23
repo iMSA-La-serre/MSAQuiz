@@ -29,6 +29,9 @@ export interface YoutubePlayer {
   getDuration: () => number
   getPlayerState: () => number
   getIframe: () => HTMLIFrameElement
+  mute: () => void
+  unMute: () => void
+  isMuted: () => boolean
   destroy: () => void
 }
 
@@ -171,11 +174,14 @@ export const watchReady = (
  * suggested at the end, the interface and the captions in French when the
  * video has them, no annotation. `projected`: the projected screen, whose
  * keys belong to the game (the presentation remote), where the video goes
- * full screen through the host's control, never the player's.
+ * full screen through the host's control, never the player's. `device`: a
+ * phone that follows the host's screen, without YouTube's bar (the host
+ * plays and pauses it for everyone), its captions shown when the video has
+ * some, since that bar is where they are turned on.
  */
 export const youtubePlayerVars = (
   start: number,
-  { projected }: { projected: boolean },
+  { projected, device = false }: { projected: boolean; device?: boolean },
 ): Record<string, string | number> => ({
   playsinline: 1,
   rel: 0,
@@ -185,6 +191,7 @@ export const youtubePlayerVars = (
   start: Math.max(0, Math.floor(start)),
   origin: window.location.origin,
   ...(projected ? { disablekb: 1, fs: 0 } : {}),
+  ...(device ? { controls: 0, disablekb: 1, fs: 0, cc_load_policy: 1 } : {}),
 })
 
 // Why a YouTube player cannot play, as its message's key under

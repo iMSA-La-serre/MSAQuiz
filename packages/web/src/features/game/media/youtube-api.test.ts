@@ -189,6 +189,24 @@ describe("youtubePlayerVars", () => {
     })
   })
 
+  it("shows a phone's player without YouTube's bar, its captions on", () => {
+    vi.stubGlobal("window", { location: { origin: "https://quiz.msa.fr" } })
+
+    expect(youtubePlayerVars(30, { projected: false, device: true })).toEqual({
+      playsinline: 1,
+      rel: 0,
+      hl: "fr",
+      cc_lang_pref: "fr",
+      iv_load_policy: 3,
+      start: 30,
+      origin: "https://quiz.msa.fr",
+      controls: 0,
+      disablekb: 1,
+      fs: 0,
+      cc_load_policy: 1,
+    })
+  })
+
   it("leaves the projected screen's keys and full screen to the game", () => {
     vi.stubGlobal("window", { location: { origin: "https://quiz.msa.fr" } })
 

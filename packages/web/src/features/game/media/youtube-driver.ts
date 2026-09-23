@@ -101,6 +101,9 @@ export const youtubeDriver =
     // Failed because its page never came, not by YouTube's word.
     let timedOut = false
     let label = ""
+    // Its sound cut by its user (a phone's player): kept across a reload of
+    // its page.
+    let muted = false
     let destroyed = false
     // Drops the question to YouTube's page of the video with the player.
     const pageCheck = new AbortController()
@@ -186,6 +189,19 @@ export const youtubeDriver =
       }
     }
 
+    // Cuts the sound, or gives it back; a player just ready has it.
+    const applyMuted = (always: boolean) => {
+      if (!player || !ready || (!muted && !always)) {
+        return
+      }
+
+      if (muted) {
+        player.mute()
+      } else {
+        player.unMute()
+      }
+    }
+
     // Shows the video at `seconds`, paused, or plays it from there.
     const standAt = (seconds: number, play: boolean) => {
       if (!player || !video) {
@@ -257,6 +273,7 @@ export const youtubeDriver =
         state = YOUTUBE_STATE.UNSTARTED
         target = null
         labelFrame()
+        applyMuted(false)
         standAt(last, wanted)
         onChange()
 
@@ -265,6 +282,7 @@ export const youtubeDriver =
 
       ready = true
       labelFrame()
+      applyMuted(false)
       unwatch = deps.watchFrame?.(player.getIframe())
 
       // Ready at last, after the wait said YouTube did not answer.
@@ -432,6 +450,14 @@ export const youtubeDriver =
         label = value
         labelFrame()
       },
+      get muted() {
+        return muted
+      },
+      setMuted: (value) => {
+        muted = value
+        applyMuted(true)
+        onChange()
+      },
       destroy: () => {
         destroyed = true
         pageCheck.abort()
@@ -522,4 +548,16 @@ export const createYoutubeDriver: CreateDriver = youtubeDriver({
   playerVars: (start) => youtubePlayerVars(start, { projected: true }),
   watchFrame: (frame) => handFocusBack(frame),
   pageStatus: youtubePageStatus,
+})
+
+/**
+ * YouTube's player on a phone that follows the host's screen: loaded only
+ * once its user asked (« Regarder ici »), without YouTube's bar. Its page is
+ * never asked why a video fails: the phone points to the screen then.
+ */
+export const createDeviceYoutubeDriver: CreateDriver = youtubeDriver({
+  loadApi: loadYoutubeApi,
+  createBox,
+  playerVars: (start) =>
+    youtubePlayerVars(start, { projected: false, device: true }),
 })

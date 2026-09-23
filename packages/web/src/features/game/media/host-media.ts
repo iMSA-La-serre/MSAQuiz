@@ -1,6 +1,11 @@
-import { MEDIA_TYPES } from "@razzia/common/constants"
+import { EVENTS, MEDIA_TYPES } from "@razzia/common/constants"
+import type { MediaViewers } from "@razzia/common/types/game"
 import type { StatusDataMap } from "@razzia/common/types/game/status"
 import { isVideoMedia } from "@razzia/common/utils/media"
+import {
+  socketClient,
+  useEvent,
+} from "@razzia/web/features/game/contexts/socket-context"
 import {
   type CreateDriver,
   MediaController,
@@ -13,6 +18,7 @@ import {
   hostMediaPlan,
 } from "@razzia/web/features/game/media/plan"
 import type { Status } from "@razzia/web/features/game/utils/createStatus"
+import { PlaybackRelay } from "@razzia/web/features/game/media/relay"
 import { createYoutubeDriver } from "@razzia/web/features/game/media/youtube-driver"
 import { isTypingTarget } from "@razzia/web/features/game/utils/keys"
 import { useEffect, useSyncExternalStore } from "react"
@@ -122,4 +128,96 @@ export const useHostMediaKeys = () => {
       window.removeEventListener("keydown", handleKeyDown)
     }
   }, [])
+}
+
+// Where the relay sends to: the game, while its question's video plays on
+// every device.
+let relayTarget: { gameId: string; url: string } | null = null
+
+// The host's video, told to the server for the phones that follow it.
+const relay = new PlaybackRelay(
+  (playing, position) => {
+    if (relayTarget) {
+      socketClient.emit(EVENTS.MANAGER.MEDIA_CONTROL, {
+        gameId: relayTarget.gameId,
+        playing,
+        // To the millisecond.
+        position: Math.round(position * 1000) / 1000,
+      })
+    }
+  },
+  () => performance.now(),
+)
+
+// Reads the host's player for the relay, when it is the question's video
+// that plays on every device.
+const relayHostMedia = () => {
+  const state = hostMedia.getState()
+
+  if (relayTarget && state.source?.url === relayTarget.url) {
+    relay.update(state)
+  }
+}
+
+// How many phones show the question's video, as the server counts them.
+let viewers: MediaViewers | null = null
+const viewersListeners = new Set<() => void>()
+
+const subscribeViewers = (listener: () => void) => {
+  viewersListeners.add(listener)
+
+  return () => {
+    viewersListeners.delete(listener)
+  }
+}
+
+/** How many phones show the video of `question`, 0 until the server says. */
+export const useMediaViewers = (question: number | undefined): number => {
+  const current = useSyncExternalStore(subscribeViewers, () => viewers)
+
+  return current !== null && current.question === question ? current.count : 0
+}
+
+/**
+ * Follows the question's video when it plays on every device: tells the
+ * server whenever the host's player plays, pauses or moves (PlaybackRelay),
+ * again once the connection is back (the server paused it for everyone
+ * meanwhile), and keeps how many phones show it.
+ */
+export const useDevicesRelay = (
+  status: Status<StatusDataMap> | null,
+  gameId: string | null,
+) => {
+  const plan = hostMediaPlan(status)
+  const url = plan?.devices && gameId ? plan.source.url : null
+
+  useEffect(() => {
+    if (url === null || gameId === null) {
+      relayTarget = null
+
+      return
+    }
+
+    relayTarget = { gameId, url }
+    relayHostMedia()
+
+    const unsubscribe = hostMedia.subscribe(relayHostMedia)
+
+    return () => {
+      unsubscribe()
+      relayTarget = null
+    }
+  }, [url, gameId])
+
+  useEvent(EVENTS.MANAGER.SUCCESS_RECONNECT, () => {
+    relay.reset()
+    relayHostMedia()
+  })
+
+  useEvent(EVENTS.MANAGER.MEDIA_VIEWERS, (next) => {
+    viewers = next
+    viewersListeners.forEach((listener) => {
+      listener()
+    })
+  })
 }

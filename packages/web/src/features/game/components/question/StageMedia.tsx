@@ -2,8 +2,11 @@ import { MEDIA_TYPES } from "@razzia/common/constants"
 import type { StatusMedia } from "@razzia/common/types/game"
 import { isTimedMedia, isVideoMedia } from "@razzia/common/utils/media"
 import MediaUnavailable from "@razzia/web/components/MediaUnavailable"
+import DevicesMedia from "@razzia/web/features/game/components/question/DevicesMedia"
 import HostMediaPlayer from "@razzia/web/features/game/components/question/HostMediaPlayer"
 import ScreenMediaCard from "@razzia/web/features/game/components/question/ScreenMediaCard"
+import { isDevicesMedia } from "@razzia/web/features/game/media/plan"
+import type { DevicePlan } from "@razzia/web/features/game/media/device-media"
 import useImageFailure from "@razzia/web/hooks/useImageFailure"
 import clsx from "clsx"
 
@@ -16,6 +19,10 @@ interface Props {
   variant: "host" | "phone"
   // Slide stage: one centred column, so the media may be taller.
   slide?: boolean
+  // A phone: the video that plays on every device, as it follows it
+  // (devicePlanOf), and whether its offer shows folded (DevicesOffer).
+  devicePlan?: DevicePlan | null
+  foldOffer?: boolean
 }
 
 // A slide's image on the projector: 20rem high at most (32rem on a large
@@ -49,7 +56,14 @@ const frame = (variant: Props["variant"], slide = false) =>
   )
 
 // Game-only media block. The editor keeps components/QuestionMedia.tsx.
-const StageMedia = ({ media, alt, variant, slide }: Props) => {
+const StageMedia = ({
+  media,
+  alt,
+  variant,
+  slide,
+  devicePlan,
+  foldOffer,
+}: Props) => {
   const image = media?.type === MEDIA_TYPES.IMAGE ? media : undefined
   const { failed, fail, retry } = useImageFailure(image?.url)
   const height = maxHeight(variant, slide)
@@ -82,6 +96,12 @@ const StageMedia = ({ media, alt, variant, slide }: Props) => {
     return null
   }
 
+  // It plays on every device: the phone offers to show it, and loads it
+  // once its user asks.
+  if (variant === "phone" && devicePlan) {
+    return <DevicesMedia plan={devicePlan} folded={foldOffer} />
+  }
+
   // It plays on the projected screen: the phone says so, and loads nothing.
   if (variant === "phone" || media.url === undefined) {
     return <ScreenMediaCard type={media.type} />
@@ -93,7 +113,13 @@ const StageMedia = ({ media, alt, variant, slide }: Props) => {
     return null
   }
 
-  return <HostMediaPlayer url={media.url} layout={slide ? "slide" : "side"} />
+  return (
+    <HostMediaPlayer
+      url={media.url}
+      layout={slide ? "slide" : "side"}
+      devices={isDevicesMedia(media)}
+    />
+  )
 }
 
 export default StageMedia

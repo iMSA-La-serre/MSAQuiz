@@ -16,6 +16,7 @@ const EVENTS = [
   "seeked",
   "error",
   "emptied",
+  "volumechange",
 ] as const
 
 /**
@@ -92,6 +93,27 @@ export const createFileDriver: CreateDriver = ({ kind, url }, onChange) => {
     },
     setLabel: (label) => {
       element.setAttribute("aria-label", label)
+    },
+    get muted() {
+      return element.muted
+    },
+    setMuted: (muted) => {
+      element.muted = muted
+    },
+    setRate: (rate) => {
+      if (element.playbackRate !== rate) {
+        element.playbackRate = rate
+      }
+    },
+    unlock: () => {
+      if (!element.paused) {
+        return
+      }
+
+      // Played then paused within the tap: iOS then lets it play later
+      // without one. The pause refuses the play's promise.
+      element.play().catch(() => undefined)
+      element.pause()
     },
     destroy: () => {
       element.removeEventListener("loadedmetadata", applyPendingSeek)

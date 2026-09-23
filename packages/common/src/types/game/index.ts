@@ -152,11 +152,63 @@ export type TimedMediaType = (typeof MEDIA_TYPES)["VIDEO" | "AUDIO" | "YOUTUBE"]
 export interface ScreenOnlyMedia {
   type: TimedMediaType
   url?: undefined
+  playback?: undefined
+}
+
+// A video that plays on every device, driven by the host, as a phone gets
+// it: a file by its address; a YouTube video by the link of its page rebuilt
+// from its identifier and where it starts (youtubeWatchUrl), never the link
+// as the author pasted it. The phone loads nothing before its user asks
+// (« Regarder ici »).
+export interface DevicesMedia {
+  type: (typeof MEDIA_TYPES)["VIDEO" | "YOUTUBE"]
+  url: string
+  playback: (typeof MEDIA_PLAYBACK)["DEVICES"]
 }
 
 // A question's media in a status: whole for the host; for a player, whole
-// when it is an image, its type only when it plays on the screen.
-export type StatusMedia = QuestionMedia | ScreenOnlyMedia
+// when it is an image, as DevicesMedia when it plays on every device, its
+// type only when it plays on the screen.
+export type StatusMedia = QuestionMedia | ScreenOnlyMedia | DevicesMedia
+
+/**
+ * Where the video that plays on every device stands, as the server keeps it:
+ * the host alone moves it (play, pause, a position), the server sends it to
+ * the players on every change, to a phone that starts showing it, and to a
+ * player who comes back. A phone plays it at `position`, plus the time gone
+ * by since `at` while it plays, on the server's clock.
+ */
+export interface MediaSyncState {
+  // The question it belongs to, as GameUpdateQuestion.current counts them.
+  question: number
+  // The video, as the players got it with the question: a phone whose
+  // screen no longer carries it (the waiting screen, its result, after a
+  // reload) still knows what to offer and play.
+  media: DevicesMedia
+  playing: boolean
+  // Seconds from the start of the video, at `at`.
+  position: number
+  // The server's clock (milliseconds since 1970) when the video stood at
+  // `position`.
+  at: number
+  // Grows with every change, over the whole game.
+  seq: number
+}
+
+// What the host sends to play, pause or move the video on every device.
+export interface MediaControl {
+  gameId: string
+  playing: boolean
+  // Seconds from the start of the video.
+  position: number
+}
+
+// How many phones show the video of the question, which the host's screen
+// tells: players who asked for it and are connected.
+export interface MediaViewers {
+  question: number
+  count: number
+}
 
 // A quiz refused on save: the error key, and the question it is about
 // (0-based) when it is about one.

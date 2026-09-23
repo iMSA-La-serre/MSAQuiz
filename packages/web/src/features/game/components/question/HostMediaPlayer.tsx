@@ -8,6 +8,7 @@ import {
   OpenOnYoutubeControl,
   RestartControl,
   RetryControl,
+  ViewersCount,
 } from "@razzia/web/features/game/components/question/HostMediaControls"
 import {
   hostMedia,
@@ -29,6 +30,8 @@ interface Props {
   url: string
   // By the answers (the image's column), or in a slide's centred column.
   layout: "side" | "slide"
+  // It plays on every device too: how many phones show it.
+  devices?: boolean
 }
 
 // The frame's height, 16:9 as wide as it allows: what the projected screen
@@ -54,6 +57,18 @@ const SLIDE_MEDIA_H =
 // buttons.
 const ONE_ROW = "[--media-controls-h:3.5rem]"
 const TWO_ROWS = "[--media-controls-h:5.5rem]"
+
+// With the count of the phones that show the video (ViewersCount), the one
+// row needs 30rem, and a slide's block is 32rem wide at least, so the bar
+// and the clock keep their room beside it.
+const INLINE_TIMELINE = "@md:order-none @md:flex-1 @md:basis-0"
+const INLINE_TIMELINE_DEVICES =
+  "@min-[30rem]:order-none @min-[30rem]:flex-1 @min-[30rem]:basis-0"
+const SIDE_ONE_ROW = "@md:[--media-controls-h:3.5rem]"
+const SIDE_ONE_ROW_DEVICES = "@min-[30rem]:[--media-controls-h:3.5rem]"
+const SLIDE_WIDTH = "max-w-[max(min(100%,28rem),calc(var(--media-h)*16/9))]"
+const SLIDE_WIDTH_DEVICES =
+  "max-w-[max(min(100%,32rem),calc(var(--media-h)*16/9))]"
 
 // The control that had the focus when a screen of the question went away:
 // the same control of the next screen takes it (a remote, a keyboard).
@@ -86,7 +101,7 @@ const isYoutubeFailure = (value: string | null): value is YoutubeFailure =>
  * would play it. The controls come first for the keyboard, under the player
  * on screen: a Tab reaches them before YouTube's own bar.
  */
-const HostMediaPlayer = ({ url, layout }: Props) => {
+const HostMediaPlayer = ({ url, layout, devices = false }: Props) => {
   const { t } = useTranslation()
   const state = useHostMediaState()
   const rootRef = useRef<HTMLDivElement>(null)
@@ -164,7 +179,7 @@ const HostMediaPlayer = ({ url, layout }: Props) => {
   // By the answers, the width of the column tells: one row or two.
   const sideControlsHeight = blocked
     ? TWO_ROWS
-    : clsx(TWO_ROWS, "@md:[--media-controls-h:3.5rem]")
+    : clsx(TWO_ROWS, devices ? SIDE_ONE_ROW_DEVICES : SIDE_ONE_ROW)
 
   return (
     <div
@@ -175,7 +190,8 @@ const HostMediaPlayer = ({ url, layout }: Props) => {
           clsx(
             SLIDE_MEDIA_H,
             blocked ? TWO_ROWS : ONE_ROW,
-            "mx-auto max-w-[max(min(100%,28rem),calc(var(--media-h)*16/9))]",
+            "mx-auto",
+            devices ? SLIDE_WIDTH_DEVICES : SLIDE_WIDTH,
           ),
       )}
     >
@@ -199,10 +215,11 @@ const HostMediaPlayer = ({ url, layout }: Props) => {
             ready={ready}
             className={clsx(
               "order-first basis-full",
-              !blocked && "@md:order-none @md:flex-1 @md:basis-0",
+              !blocked && (devices ? INLINE_TIMELINE_DEVICES : INLINE_TIMELINE),
             )}
           />
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-3">
+            {devices && <ViewersCount />}
             <FullscreenControl element={element} />
           </div>
         </div>

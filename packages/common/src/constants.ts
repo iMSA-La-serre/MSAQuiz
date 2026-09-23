@@ -11,6 +11,10 @@ export const EVENTS = {
     UPDATE_QUESTION: "game:updateQuestion",
     PLAYER_ANSWER: "game:playerAnswer",
     CREATE: "game:create",
+    // Where the video that plays on every device stands (MediaSyncState).
+    MEDIA_STATE: "game:mediaState",
+    // The server's clock, asked with an acknowledgement.
+    CLOCK: "game:clock",
   },
   PLAYER: {
     SUCCESS_RECONNECT: "player:successReconnect",
@@ -22,6 +26,8 @@ export const EVENTS = {
     SELECTED_ANSWER: "player:selectedAnswer",
     CHECK_CODE: "player:checkCode",
     CHECK_CODE_RESULT: "player:checkCodeResult",
+    // Whether the phone shows the video that plays on every device.
+    MEDIA_WATCH: "player:mediaWatch",
   },
   MANAGER: {
     SUCCESS_RECONNECT: "manager:successReconnect",
@@ -43,6 +49,10 @@ export const EVENTS = {
     GET_CONFIG: "manager:getConfig",
     LOGOUT: "manager:logout",
     UNAUTHORIZED: "manager:unauthorized",
+    // Play, pause or move the video that plays on every device.
+    MEDIA_CONTROL: "manager:mediaControl",
+    // How many phones show it.
+    MEDIA_VIEWERS: "manager:mediaViewers",
   },
   QUIZZ: {
     GET: "quizz:get",
@@ -477,10 +487,24 @@ export const MEDIA_TYPES = {
 // Where a video or a sound plays (media.playback). On the projected screen
 // only, the default: the host drives it, and the phones say « Regardez
 // l'écran » without ever loading the file. On every device, driven by the
-// host: kept in the model, not played that way yet (read as the screen).
+// host: a video (a file or a YouTube video), which each phone that opts in
+// plays in step with the projected screen (playsOnDevices); a sound always
+// plays on the screen.
 export const MEDIA_PLAYBACK = {
   SCREEN: "screen",
   DEVICES: "devices",
+} as const
+
+// A video on every device: the server keeps where it stands, which the host
+// alone moves (MediaSyncState).
+export const MEDIA_SYNC = {
+  // Seconds: the longest position the host may send, a day.
+  MAX_POSITION: 86_400,
+  // Milliseconds between two broadcasts of the state to the room: a burst
+  // of commands sends the last one.
+  STATE_INTERVAL: 100,
+  // Milliseconds between two counts of the phones that show it, to the host.
+  VIEWERS_INTERVAL: 250,
 } as const
 
 // The extensions a media's type is read from, lowercase and without the dot:

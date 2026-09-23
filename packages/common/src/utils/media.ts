@@ -1,9 +1,11 @@
 import {
   MEDIA_EXTENSIONS,
   MEDIA_LIMITS,
+  MEDIA_PLAYBACK,
   MEDIA_TYPES,
 } from "@razzia/common/constants"
 import type {
+  DevicesMedia,
   QuestionMedia,
   QuestionMediaType,
   QuizzError,
@@ -14,6 +16,7 @@ import {
   isYoutubeAddress,
   type YoutubeVideo,
   youtubeVideoOf,
+  youtubeWatchUrl,
 } from "@razzia/common/utils/youtube"
 
 type MediaType = NonNullable<QuestionMediaType>
@@ -331,10 +334,65 @@ export const playedMedia = (
     : media
 
 /**
+ * Whether a media plays on every device, driven by the host: a video, a file
+ * or a YouTube video, set so (MEDIA_PLAYBACK.DEVICES). A sound, and any media
+ * without the setting or with one the game does not know, plays on the
+ * projected screen only.
+ */
+export const playsOnDevices = (media: QuestionMedia | undefined): boolean =>
+  media?.playback === MEDIA_PLAYBACK.DEVICES &&
+  isVideoMedia(playedMedia(media)?.type)
+
+/**
+ * Where a video starts, in seconds: where a YouTube video's link says, 0 for
+ * a file.
+ */
+export const mediaStartOf = (media: QuestionMedia | undefined): number =>
+  youtubeOfMedia(playedMedia(media))?.start ?? 0
+
+// A video, as the phones get it when it plays on every device.
+const devicesCopyOf = (media: QuestionMedia): DevicesMedia | undefined => {
+  const video = youtubeOfMedia(media)
+
+  if (video) {
+    return {
+      type: MEDIA_TYPES.YOUTUBE,
+      url: youtubeWatchUrl(video),
+      playback: MEDIA_PLAYBACK.DEVICES,
+    }
+  }
+
+  return media.type === MEDIA_TYPES.VIDEO
+    ? {
+        type: MEDIA_TYPES.VIDEO,
+        url: media.url.trim(),
+        playback: MEDIA_PLAYBACK.DEVICES,
+      }
+    : undefined
+}
+
+/**
+ * A video that plays on every device (playsOnDevices), as the phones get it
+ * (DevicesMedia); undefined for any other media, and for a YouTube media
+ * whose link names no video (a quiz stored before the rule), which plays
+ * nowhere.
+ */
+export const devicesMediaOf = (
+  media: QuestionMedia | undefined,
+): DevicesMedia | undefined => {
+  const played = playedMedia(media)
+
+  return played && playsOnDevices(played) ? devicesCopyOf(played) : undefined
+}
+
+/**
  * What a phone gets of a question's media. An image whole, as every screen
- * shows it. A video (a YouTube video too) or a sound, its type only: it plays
- * on the projected screen, driven by the host, and the phone says so; its
- * address never reaches a phone, so no phone loads the file nor contacts
+ * shows it. A video that plays on every device (playsOnDevices): a file's
+ * address, a YouTube video's page rebuilt from its identifier and where it
+ * starts, never the link as pasted; the phone loads it only once its user
+ * asks. Any other video (a YouTube video too) or a sound, its type only: it
+ * plays on the projected screen, driven by the host, and the phone says so;
+ * its address never reaches a phone, so no phone loads the file nor contacts
  * YouTube. Nothing for a media without a type, which no screen shows, nor
  * for an « image » that is a page of YouTube's.
  */
@@ -349,5 +407,11 @@ export const publicMedia = (
       : { type: played.type, url: played.url }
   }
 
-  return isTimedMedia(played?.type) ? { type: played.type } : undefined
+  if (!isTimedMedia(played?.type)) {
+    return undefined
+  }
+
+  // A YouTube media whose link names no video (a quiz stored before the
+  // rule) plays nowhere: the phone points to the screen, as for any other.
+  return devicesMediaOf(played) ?? { type: played.type }
 }

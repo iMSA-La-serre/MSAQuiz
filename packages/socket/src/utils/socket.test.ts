@@ -242,3 +242,53 @@ describe("isValidClientEvent, wordcloud texts", () => {
     expect(performance.now() - start).toBeLessThan(100)
   })
 })
+
+describe("isValidClientEvent, the video on every device", () => {
+  const control = (payload: unknown) =>
+    isValidClientEvent(EVENTS.MANAGER.MEDIA_CONTROL, payload)
+
+  it("accepts the host's command: play or pause, and where", () => {
+    expect(control({ gameId: "g", playing: true, position: 0 })).toBe(true)
+    expect(control({ gameId: "g", playing: false, position: 83.25 })).toBe(true)
+  })
+
+  it("refuses a command without a game, a state or a position that is a number of seconds", () => {
+    expect(control({ playing: true, position: 0 })).toBe(false)
+    expect(control({ gameId: "g", playing: "true", position: 0 })).toBe(false)
+    expect(control({ gameId: "g", playing: true })).toBe(false)
+    expect(control({ gameId: "g", playing: true, position: "12" })).toBe(false)
+    expect(control({ gameId: "g", playing: true, position: -1 })).toBe(false)
+    expect(control({ gameId: "g", playing: true, position: Number.NaN })).toBe(
+      false,
+    )
+    expect(
+      control({
+        gameId: "g",
+        playing: true,
+        position: Number.POSITIVE_INFINITY,
+      }),
+    ).toBe(false)
+    expect(control({ gameId: "g", playing: true, position: 86_401 })).toBe(
+      false,
+    )
+  })
+
+  it("accepts a phone that says whether it shows the video, and a clock request", () => {
+    expect(
+      isValidClientEvent(EVENTS.PLAYER.MEDIA_WATCH, {
+        gameId: "g",
+        watching: true,
+      }),
+    ).toBe(true)
+    expect(
+      isValidClientEvent(EVENTS.PLAYER.MEDIA_WATCH, {
+        gameId: "g",
+        watching: 1,
+      }),
+    ).toBe(false)
+    expect(isValidClientEvent(EVENTS.PLAYER.MEDIA_WATCH, { gameId: "g" })).toBe(
+      false,
+    )
+    expect(isValidClientEvent(EVENTS.GAME.CLOCK, 1_790_000_000_000)).toBe(true)
+  })
+})

@@ -10,8 +10,10 @@ import {
   mediaFileTypeOf,
   mediaIssue,
   mediaIssuesOf,
+  mediaStartOf,
   mediaTypeOf,
   playedMedia,
+  playsOnDevices,
   publicMedia,
   youtubeOfMedia,
 } from "@razzia/common/utils/media"
@@ -449,6 +451,63 @@ describe("publicMedia", () => {
     ).toEqual({ type: "youtube" })
   })
 
+  it("gives a phone a video that plays on every device: a file's address", () => {
+    expect(
+      publicMedia({
+        type: "video",
+        url: " https://msa.example/film.mp4",
+        playback: "devices",
+      }),
+    ).toEqual({
+      type: "video",
+      url: "https://msa.example/film.mp4",
+      playback: "devices",
+    })
+  })
+
+  it("gives a phone a YouTube video that plays on every device as its page, never the link as pasted", () => {
+    expect(
+      publicMedia({
+        type: "youtube",
+        url: "https://youtu.be/aqz-KE-bpKQ?si=suivi-partage&t=90",
+        playback: "devices",
+      }),
+    ).toEqual({
+      type: "youtube",
+      url: "https://www.youtube.com/watch?v=aqz-KE-bpKQ&t=90s",
+      playback: "devices",
+    })
+    // A YouTube video's link stored as a video file: the YouTube video.
+    expect(
+      publicMedia({
+        type: "video",
+        url: "https://www.youtube.com/watch?v=aqz-KE-bpKQ&list=PL1",
+        playback: "devices",
+      }),
+    ).toEqual({
+      type: "youtube",
+      url: "https://www.youtube.com/watch?v=aqz-KE-bpKQ",
+      playback: "devices",
+    })
+  })
+
+  it("keeps a sound, and a YouTube link that names no video, on the screen", () => {
+    expect(
+      publicMedia({
+        type: "audio",
+        url: "/media/son.mp3",
+        playback: "devices",
+      }),
+    ).toEqual({ type: "audio" })
+    expect(
+      publicMedia({
+        type: "youtube",
+        url: "https://www.youtube.com/@msa",
+        playback: "devices",
+      }),
+    ).toEqual({ type: "youtube" })
+  })
+
   it("gives nothing of a media without a type, or of none", () => {
     expect(publicMedia({ url: "https://msa.example/fichier" })).toBeUndefined()
     expect(publicMedia(undefined)).toBeUndefined()
@@ -478,6 +537,66 @@ describe("publicMedia", () => {
       type: "image",
       url: "https://img.youtube.com/vi/aqz-KE-bpKQ/0.jpg",
     })
+  })
+})
+
+describe("playsOnDevices", () => {
+  it("plays a video, a file or YouTube's, on every device when set so", () => {
+    expect(
+      playsOnDevices({
+        type: "video",
+        url: "/media/film.mp4",
+        playback: "devices",
+      }),
+    ).toBe(true)
+    expect(
+      playsOnDevices({
+        type: "youtube",
+        url: "https://youtu.be/aqz-KE-bpKQ",
+        playback: "devices",
+      }),
+    ).toBe(true)
+  })
+
+  it("keeps anything else on the projected screen", () => {
+    expect(playsOnDevices({ type: "video", url: "/media/film.mp4" })).toBe(
+      false,
+    )
+    expect(
+      playsOnDevices({
+        type: "video",
+        url: "/media/film.mp4",
+        playback: "screen",
+      }),
+    ).toBe(false)
+    expect(
+      playsOnDevices({
+        type: "audio",
+        url: "/media/son.mp3",
+        playback: "devices",
+      }),
+    ).toBe(false)
+    expect(
+      playsOnDevices({
+        type: "image",
+        url: "/media/plan.png",
+        playback: "devices",
+      }),
+    ).toBe(false)
+    expect(playsOnDevices(undefined)).toBe(false)
+  })
+})
+
+describe("mediaStartOf", () => {
+  it("starts a YouTube video where its link says, a file at 0", () => {
+    expect(
+      mediaStartOf({
+        type: "youtube",
+        url: "https://youtu.be/aqz-KE-bpKQ?t=1m30s",
+      }),
+    ).toBe(90)
+    expect(mediaStartOf({ type: "video", url: "/media/film.mp4" })).toBe(0)
+    expect(mediaStartOf(undefined)).toBe(0)
   })
 })
 

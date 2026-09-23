@@ -93,7 +93,11 @@ export interface RoundManagerOptions {
   getManagerId: () => string
   broadcast: BroadcastFn
   send: SendFn
-  onNewQuestion: () => void
+  // A question starts, counted from 1, as it plays (playedMedia).
+  onNewQuestion: (_current: number, _question: Question) => void
+  // The host moved past the distribution of the question, where its screen
+  // drops the question's video.
+  onQuestionOver?: () => void
   onGameFinished: (_result: GameResult) => void
   // Words a word cloud drops besides the built-in list (moderation.txt),
   // read when such a question starts.
@@ -222,6 +226,9 @@ export class RoundManager {
   // Answers only count while SELECT_ANSWER is on screen: not during the
   // reading time, and not once the results are out.
   private acceptingAnswers = false
+  // The question is on the players' screens: from its reading time until its
+  // results, and a slide, which has none, until the host moves past it.
+  private open = false
   private leaderboard: LeaderboardEntry[] = []
   private questionsHistory: QuestionResult[] = []
 
@@ -231,6 +238,11 @@ export class RoundManager {
 
   isStarted(): boolean {
     return this.started
+  }
+
+  /** Whether the current question is on the players' screens. */
+  isOpen(): boolean {
+    return this.open
   }
 
   getReconnectInfo() {
@@ -292,7 +304,8 @@ export class RoundManager {
       this.blocklist = buildBlocklist(this.opts.moderationWords?.() ?? [])
     }
 
-    this.opts.onNewQuestion()
+    this.open = false
+    this.opts.onNewQuestion(this.currentQuestion + 1, question)
 
     this.opts.io.to(this.opts.gameId).emit(EVENTS.GAME.UPDATE_QUESTION, {
       current: this.currentQuestion + 1,
@@ -313,6 +326,8 @@ export class RoundManager {
 
     // A video or a sound plays on the projected screen: the host alone gets
     // its address, the phones its type (publicMedia), so none loads the file.
+    // A video that plays on every device reaches the phones too, which load
+    // it once their user asks (see MediaSync).
     const media = publicMedia(question.media)
     const hostMedia = isTimedMedia(question.media?.type)
       ? question.media
@@ -342,6 +357,7 @@ export class RoundManager {
       ...imageMarkers,
     }
 
+    this.open = true
     this.opts.broadcast(
       STATUS.SHOW_QUESTION,
       reading,
@@ -390,6 +406,9 @@ export class RoundManager {
 
     const { scored, acceptsAnswers, nominative } =
       QUESTION_TYPE_META[question.type]
+
+    // Answerless types (slide): players keep the question's screen.
+    this.open = !acceptsAnswers
     const scoring = QUESTION_SCORING[question.type]
     const currentPlayers = this.opts.players.getAll()
 
@@ -782,6 +801,9 @@ export class RoundManager {
     if (socket.id !== this.opts.getManagerId()) {
       return
     }
+
+    this.open = false
+    this.opts.onQuestionOver?.()
 
     const isLastRound =
       this.currentQuestion + 1 === this.opts.quizz.questions.length

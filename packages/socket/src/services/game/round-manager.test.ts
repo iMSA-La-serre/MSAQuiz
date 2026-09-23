@@ -1415,6 +1415,58 @@ describe("RoundManager, media", () => {
     })
   })
 
+  it("gives the players a video that plays on every device, a YouTube video as its page", async () => {
+    const youtube = {
+      type: MEDIA_TYPES.YOUTUBE,
+      url: "https://youtu.be/aqz-KE-bpKQ?si=partage&t=30",
+      playback: "devices" as const,
+    }
+    const game = setup(
+      [
+        question({ media: { ...youtube } }),
+        question({
+          media: {
+            type: MEDIA_TYPES.VIDEO,
+            url: VIDEO_URL,
+            playback: "devices",
+          },
+        }),
+      ],
+      [player("camille")],
+    )
+
+    await game.reachFirstQuestion()
+
+    const page = {
+      type: MEDIA_TYPES.YOUTUBE,
+      url: "https://www.youtube.com/watch?v=aqz-KE-bpKQ&t=30s",
+      playback: "devices",
+    }
+
+    expect(game.lastBroadcast(STATUS.SHOW_QUESTION)?.media).toEqual(page)
+    // The host keeps the link as pasted.
+    expect(game.lastManagerBroadcast(STATUS.SHOW_QUESTION)?.media).toEqual(
+      youtube,
+    )
+
+    await game.openAnswers(5)
+
+    expect(game.lastBroadcast(STATUS.SELECT_ANSWER)?.media).toEqual(page)
+    expect(game.lastManagerBroadcast(STATUS.SELECT_ANSWER)?.media).toEqual(
+      youtube,
+    )
+
+    await game.closeAnswers()
+    await game.reachNextQuestion()
+    await game.openAnswers(5)
+
+    expect(game.lastBroadcast(STATUS.SELECT_ANSWER)?.media).toEqual({
+      type: MEDIA_TYPES.VIDEO,
+      url: VIDEO_URL,
+      playback: "devices",
+    })
+  })
+
   it("never sends a sound's or a slide video's address to a player", async () => {
     const game = setup(
       [

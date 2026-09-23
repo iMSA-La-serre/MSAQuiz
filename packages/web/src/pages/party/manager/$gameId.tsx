@@ -8,6 +8,7 @@ import {
   useSocket,
 } from "@razzia/web/features/game/contexts/socket-context"
 import {
+  useDevicesRelay,
   useHostMediaKeys,
   useHostMediaSync,
 } from "@razzia/web/features/game/media/host-media"
@@ -35,6 +36,8 @@ const ManagerGamePage = () => {
   // stages to the next.
   useHostMediaSync(status, gameId, questionStates?.current)
   useHostMediaKeys()
+  // A video that plays on every device follows this screen.
+  useDevicesRelay(status, gameId)
 
   useEvent(EVENTS.GAME.STATUS, ({ name, data }) => {
     if (name in GAME_STATE_COMPONENTS_MANAGER) {

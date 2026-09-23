@@ -3,6 +3,9 @@ import type {
   AnswerPayload,
   GameResult,
   GameUpdateQuestion,
+  MediaControl,
+  MediaSyncState,
+  MediaViewers,
   Player,
   QuizzStats,
   QuizzError,
@@ -52,6 +55,8 @@ export interface ServerToClientEvents {
     total: number
   }) => void
   [EVENTS.GAME.PLAYER_ANSWER]: (_count: number) => void
+  // To the players: where the video that plays on every device stands.
+  [EVENTS.GAME.MEDIA_STATE]: (_state: MediaSyncState) => void
 
   // Player events
   [EVENTS.PLAYER.CHECK_CODE_RESULT]: (_data: { valid: boolean }) => void
@@ -85,6 +90,8 @@ export interface ServerToClientEvents {
   [EVENTS.MANAGER.ERROR_MESSAGE]: (_message: string) => void
   [EVENTS.MANAGER.PLAYER_KICKED]: (_playerId: string) => void
   [EVENTS.MANAGER.UNAUTHORIZED]: () => void
+  // How many phones show the video that plays on every device.
+  [EVENTS.MANAGER.MEDIA_VIEWERS]: (_viewers: MediaViewers) => void
 
   // Quizz events
   // After an import, the media a save would refuse, kept for the author to
@@ -127,6 +134,8 @@ export interface ClientToServerEvents {
   [EVENTS.MANAGER.SHOW_LEADERBOARD]: (_message: MessageGameId) => void
   [EVENTS.MANAGER.GET_CONFIG]: () => void
   [EVENTS.MANAGER.LOGOUT]: () => void
+  // The host plays, pauses or moves the video that plays on every device.
+  [EVENTS.MANAGER.MEDIA_CONTROL]: (_control: MediaControl) => void
 
   // Quizz actions
   [EVENTS.QUIZZ.GET]: (_id: string) => void
@@ -151,6 +160,11 @@ export interface ClientToServerEvents {
   [EVENTS.PLAYER.SELECTED_ANSWER]: (
     _message: MessageWithoutStatus<AnswerPayload>,
   ) => void
+  // The phone starts or stops showing the video that plays on every device.
+  [EVENTS.PLAYER.MEDIA_WATCH]: (_message: {
+    gameId: string
+    watching: boolean
+  }) => void
 
   // Results actions
   [EVENTS.RESULTS.GET]: (_id: string) => void
@@ -162,5 +176,11 @@ export interface ClientToServerEvents {
   [EVENTS.STATS.GET]: (_quizzId: string) => void
 
   // Common
+  // The server's clock, in milliseconds since 1970, sent back at once: a
+  // phone measures how far its own is from it.
+  [EVENTS.GAME.CLOCK]: (
+    _sentAt: number,
+    _ack: (_serverNow: number) => void,
+  ) => void
   disconnect: () => void
 }

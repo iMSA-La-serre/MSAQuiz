@@ -12,7 +12,9 @@ import {
   FULLSCREEN_KEY,
   hostMedia,
   TOGGLE_KEY,
+  useMediaViewers,
 } from "@razzia/web/features/game/media/host-media"
+import { useQuestionStore } from "@razzia/web/features/game/stores/question"
 import { REMOTE_SAFE_ATTRIBUTE } from "@razzia/web/features/game/utils/keys"
 import clsx from "clsx"
 import {
@@ -23,6 +25,7 @@ import {
   Play,
   RotateCw,
   SkipBack,
+  Smartphone,
 } from "lucide-react"
 import { useSyncExternalStore } from "react"
 import { useTranslation } from "react-i18next"
@@ -245,7 +248,8 @@ export const MediaTimeline = ({
               style={{ transform: `scaleX(${progress})` }}
             />
           </div>
-          <p className="shrink-0 text-sm font-semibold text-white/80 tabular-nums lg:text-base">
+          {/* On one line: a row too narrow for it wraps, never overlaps. */}
+          <p className="shrink-0 text-sm font-semibold whitespace-nowrap text-white/80 tabular-nums lg:text-base">
             <span aria-hidden>
               {position} / {duration}
             </span>
@@ -301,5 +305,35 @@ export const OpenOnYoutubeControl = ({ url }: { url: string }) => {
       {t("game:media.openOnYoutube")}
       <span className="sr-only">{t("game:media.newTab")}</span>
     </a>
+  )
+}
+
+/**
+ * How many phones show the video that plays on every device, as the server
+ * counts them: a pill apart from the clock (the look of a HintChip), a phone,
+ * the number and, where the row has room (a slide's wide video), « 2
+ * regardent »; named in full for assistive technologies and on hover. Read
+ * out as it changes? No: a room where phones join one by one would chatter.
+ */
+export const ViewersCount = () => {
+  const { t } = useTranslation()
+  const question = useQuestionStore((state) => state.questionStates?.current)
+  const count = useMediaViewers(question)
+  const label = t("game:media.devices.viewers", { count })
+
+  return (
+    <p
+      title={label}
+      className="flex shrink-0 items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-sm font-semibold text-white tabular-nums lg:text-base"
+    >
+      <Smartphone aria-hidden className="size-4 lg:size-5" />
+      <span aria-hidden className="@xl:hidden">
+        {count}
+      </span>
+      <span aria-hidden className="hidden @xl:inline">
+        {t("game:media.devices.viewersShort", { count })}
+      </span>
+      <span className="sr-only">{label}</span>
+    </p>
   )
 }

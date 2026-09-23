@@ -3,12 +3,15 @@ import type { PlayerStatusDataMap } from "@razzia/common/types/game/status"
 import { isAssociationType } from "@razzia/common/utils/association"
 import Loader from "@razzia/web/components/Loader"
 import AnswerChip from "@razzia/web/features/game/components/AnswerChip"
+import { DevicesAside } from "@razzia/web/features/game/components/question/DevicesMedia"
+import { useDeviceMedia } from "@razzia/web/features/game/media/phone-media"
 import MarkerChip from "@razzia/web/features/questions/markers/components/MarkerChip"
 import {
   type SentAnswer,
   useQuestionStore,
 } from "@razzia/web/features/game/stores/question"
 import clsx from "clsx"
+import { useRef } from "react"
 import { useTranslation } from "react-i18next"
 
 interface Props {
@@ -139,11 +142,20 @@ const SentAnswerTray = ({ sent }: { sent: SentAnswer }) => {
 const Wait = ({ data: { text } }: Props) => {
   const { t } = useTranslation()
   const lastAnswer = useQuestionStore((state) => state.lastAnswer)
-  const sent = text === "game:waitingForAnswers" ? lastAnswer : null
+  const { plan, choice } = useDeviceMedia()
+  const headingRef = useRef<HTMLHeadingElement>(null)
+  const answered = text === "game:waitingForAnswers"
+  const sent = answered ? lastAnswer : null
+  // The question's video that plays on every device goes on here, in the
+  // place of the wheel, once its player answered: the player, or the offer
+  // to watch it here for a participant who has not chosen (who answered
+  // first, or whose page reloaded).
+  const video = answered && plan !== null && choice !== "decline"
 
   return (
     <section className="anim-show mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-5 px-4 text-center">
-      <Loader className="size-16 md:size-20" />
+      {answered && <DevicesAside fallbackFocus={headingRef} />}
+      {!video && <Loader className="size-16 md:size-20" />}
 
       {sent && (
         <>
@@ -154,7 +166,11 @@ const Wait = ({ data: { text } }: Props) => {
         </>
       )}
 
-      <h2 className="text-2xl font-bold text-balance text-white md:text-4xl">
+      <h2
+        ref={headingRef}
+        tabIndex={-1}
+        className="text-2xl font-bold text-balance text-white outline-none md:text-4xl"
+      >
         {t(text)}
       </h2>
     </section>

@@ -3,6 +3,8 @@ import {
   keepsPick,
   mediaDraftOf,
   mediaForUrl,
+  mediaWithPlayback,
+  mediaWithType,
   pickOf,
 } from "@razzia/web/features/quizz/utils/media"
 import { describe, expect, it } from "vitest"
@@ -28,7 +30,7 @@ describe("mediaForUrl", () => {
     ).toEqual({ type: "video", url: "https://a.fr/film.mp4" })
   })
 
-  it("keeps where a video or a sound plays, never on an image", () => {
+  it("keeps where a video plays, never on a sound or an image", () => {
     const video = {
       type: "video",
       url: "https://a.fr/film.mp4",
@@ -43,6 +45,11 @@ describe("mediaForUrl", () => {
     expect(mediaForUrl(video, "https://a.fr/plan.png")).toEqual({
       type: "image",
       url: "https://a.fr/plan.png",
+    })
+    // A sound plays on the projected screen.
+    expect(mediaForUrl(video, "https://a.fr/son.mp3")).toEqual({
+      type: "audio",
+      url: "https://a.fr/son.mp3",
     })
   })
 
@@ -207,5 +214,45 @@ describe("mediaDraftOf", () => {
     expect(mediaDraftOf({ url: "https://a.fr/image?id=3" }).issue).toBe(
       MEDIA_ISSUES.TYPE_MISSING,
     )
+  })
+})
+
+describe("mediaWithType", () => {
+  const onDevices = {
+    type: "video",
+    url: "https://a.fr/film.mp4",
+    playback: "devices",
+  } as const
+
+  it("keeps where a video plays from a file to YouTube's", () => {
+    expect(mediaWithType(onDevices, "youtube")).toEqual({
+      ...onDevices,
+      type: "youtube",
+    })
+  })
+
+  it("plays a sound and an image on the projected screen", () => {
+    expect(mediaWithType(onDevices, "audio")).toEqual({
+      type: "audio",
+      url: onDevices.url,
+    })
+    expect(mediaWithType(onDevices, "image")).toEqual({
+      type: "image",
+      url: onDevices.url,
+    })
+  })
+})
+
+describe("mediaWithPlayback", () => {
+  it("keeps « on every device », and the projected screen as no setting", () => {
+    const video = { type: "video", url: "https://a.fr/film.mp4" } as const
+
+    expect(mediaWithPlayback(video, "devices")).toEqual({
+      ...video,
+      playback: "devices",
+    })
+    expect(
+      mediaWithPlayback({ ...video, playback: "devices" }, "screen"),
+    ).toEqual(video)
   })
 })

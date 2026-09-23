@@ -1,6 +1,7 @@
 import { EVENTS } from "@razzia/common/constants"
 import type {
   AnswerPayload,
+  MediaControl,
   Player,
   QuizzWithId,
 } from "@razzia/common/types/game"
@@ -12,6 +13,7 @@ import {
 } from "@razzia/common/types/game/status"
 import { saveResult } from "@razzia/socket/repositories/results"
 import { CooldownTimer } from "@razzia/socket/services/game/cooldown-timer"
+import { MediaSync } from "@razzia/socket/services/game/media-sync"
 import { PlayerManager } from "@razzia/socket/services/game/player-manager"
 import { RoundManager } from "@razzia/socket/services/game/round-manager"
 import { getModerationWords } from "@razzia/socket/services/moderation"
@@ -35,6 +37,8 @@ class Game {
   private readonly playerManager: PlayerManager
   private readonly round: RoundManager
   private readonly cooldown: CooldownTimer
+  // The question's video when it plays on every device.
+  private readonly media: MediaSync
 
   private lastBroadcastStatus: {
     name: Status
@@ -77,6 +81,14 @@ class Game {
       () => this._manager.id,
     )
 
+    this.media = new MediaSync({
+      io,
+      gameId: this.gameId,
+      getManagerId: () => this._manager.id,
+      isConnected: (id) =>
+        this.playerManager.findByClientId(id)?.connected ?? false,
+    })
+
     this.round = new RoundManager({
       quizz,
       players: this.playerManager,
@@ -86,9 +98,13 @@ class Game {
       getManagerId: () => this._manager.id,
       broadcast: this.broadcastStatus.bind(this),
       send: this.sendStatus.bind(this),
-      onNewQuestion: () => {
+      onNewQuestion: (current, question) => {
         this.playerStatus.clear()
         this.managerStatus = null
+        this.media.begin(current, question.media)
+      },
+      onQuestionOver: () => {
+        this.media.end()
       },
       onGameFinished: saveResult,
       moderationWords: getModerationWords,
@@ -166,11 +182,42 @@ class Game {
 
   join(socket: Socket, username: string) {
     this.playerManager.join(socket, username)
+
+    if (this.started && this.playerManager.findById(socket.id)) {
+      this.catchUp(socket)
+    }
+  }
+
+  // A player who arrives while the question's video plays on every device
+  // gets the question, as the room got it, and where the video stands, so
+  // it can watch it too: while the question is on the players' screens (a
+  // question until its results, a slide until the host moves on). Any other
+  // question starts for them with the next. Never kept as their own status:
+  // once the room moves on (the answers open), a reconnection gives them the
+  // room's current one (lastBroadcastStatus), as to every other player.
+  private catchUp(socket: Socket) {
+    const status = this.lastBroadcastStatus
+
+    if (
+      !this.media.getState() ||
+      !this.round.isOpen() ||
+      (status?.name !== STATUS.SHOW_QUESTION &&
+        status?.name !== STATUS.SELECT_ANSWER)
+    ) {
+      return
+    }
+
+    this.io
+      .to(socket.id)
+      .emit(EVENTS.GAME.UPDATE_QUESTION, this.round.getReconnectInfo())
+    this.io.to(socket.id).emit(EVENTS.GAME.STATUS, status)
+    this.media.sendStateTo(socket.id)
   }
 
   kickPlayer(socket: Socket, playerId: string) {
     if (this.playerManager.kick(socket, playerId)) {
       this.playerStatus.delete(playerId)
+      this.media.refreshViewers()
     }
   }
 
@@ -212,6 +259,7 @@ class Game {
       players: this.playerManager.getAll(),
     })
     socket.emit(EVENTS.GAME.TOTAL_PLAYERS, this.playerManager.count())
+    this.media.managerBack()
 
     registry.reactivateGame(this.gameId)
     console.log(`Manager reconnected to game ${this.inviteCode}`)
@@ -258,6 +306,7 @@ class Game {
       player: { username: player.username, points: player.points },
     })
     socket.emit(EVENTS.GAME.TOTAL_PLAYERS, this.playerManager.count())
+    this.media.playerBack(clientId, socket.id)
 
     console.log(
       `Player ${player.username} reconnected to game ${this.inviteCode}`,
@@ -266,8 +315,10 @@ class Game {
 
   // Disconnect helpers
 
+  // The host's screen went away: its video pauses for everyone.
   setManagerDisconnected() {
     this._manager.connected = false
+    this.media.pause()
   }
 
   removePlayer(socketId: string): Player | undefined {
@@ -276,6 +327,7 @@ class Game {
     if (player) {
       this.io.to(this._manager.id).emit(EVENTS.MANAGER.REMOVE_PLAYER, player.id)
       this.playerManager.broadcastCount()
+      this.media.refreshViewers()
     }
 
     return player
@@ -284,6 +336,7 @@ class Game {
   setPlayerDisconnected(socketId: string) {
     this.playerManager.setDisconnected(socketId)
     this.playerManager.broadcastCount()
+    this.media.refreshViewers()
   }
 
   // Game flow
@@ -310,6 +363,22 @@ class Game {
 
   showLeaderboard(socket: Socket) {
     this.round.showLeaderboard(socket)
+  }
+
+  // The video that plays on every device
+
+  // The host alone moves it (see MediaSync.control).
+  controlMedia(socket: Socket, control: MediaControl) {
+    this.media.control(socket, control)
+  }
+
+  // A player's phone shows it, or no longer does.
+  watchMedia(socket: Socket, watching: boolean) {
+    const player = this.playerManager.findById(socket.id)
+
+    if (player) {
+      this.media.watch(player.clientId, socket.id, watching)
+    }
   }
 }
 

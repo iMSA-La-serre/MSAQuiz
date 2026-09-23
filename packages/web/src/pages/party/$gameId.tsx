@@ -6,6 +6,7 @@ import {
   useEvent,
   useSocket,
 } from "@razzia/web/features/game/contexts/socket-context"
+import { useDeviceMediaSync } from "@razzia/web/features/game/media/phone-media"
 import { usePlayerStore } from "@razzia/web/features/game/stores/player"
 import { useQuestionStore } from "@razzia/web/features/game/stores/question"
 import {
@@ -21,9 +22,14 @@ const PlayerGamePage = () => {
   const navigate = useNavigate()
   const { socket } = useSocket()
   const { gameId: gameIdParam } = useParams({ from: "/party/$gameId" })
-  const { status, setPlayer, setGameId, setStatus, reset } = usePlayerStore()
-  const { setQuestionStates } = useQuestionStore()
+  const { status, gameId, setPlayer, setGameId, setStatus, reset } =
+    usePlayerStore()
+  const { questionStates, setQuestionStates } = useQuestionStore()
   const { t } = useTranslation()
+
+  // The question's video when it plays on every device: offered, then in
+  // step with the projected screen.
+  useDeviceMediaSync(status, gameId, questionStates?.current)
 
   useEvent("connect", () => {
     if (gameIdParam) {

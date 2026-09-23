@@ -49,6 +49,9 @@ const fakeYoutube = ({
     getDuration: () => player.duration,
     getPlayerState: () => player.state,
     getIframe: () => frame,
+    mute: () => calls.push("mute"),
+    unMute: () => calls.push("unmute"),
+    isMuted: () => calls.at(-1) === "mute",
     destroy: () => calls.push("destroy"),
   }
   const api = {
@@ -695,5 +698,50 @@ describe("handFocusBack", () => {
 
     stop()
     expect(listeners.size).toBe(0)
+  })
+})
+
+describe("youtubeDriver, a phone's sound", () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it("cuts the sound when its user asks, and gives it back", async () => {
+    const yt = fakeYoutube()
+    const driver = yt.create()
+
+    await flush()
+    yt.ready()
+    expect(yt.calls).not.toContain("mute")
+
+    driver.setMuted?.(true)
+    expect(driver.muted).toBe(true)
+    expect(yt.calls.at(-1)).toBe("mute")
+    expect(yt.onChange).toHaveBeenCalled()
+
+    driver.setMuted?.(false)
+    expect(driver.muted).toBe(false)
+    expect(yt.calls.at(-1)).toBe("unmute")
+  })
+
+  it("keeps the sound cut from before the player is ready, and after its page reloads", async () => {
+    const yt = fakeYoutube()
+    const driver = yt.create()
+
+    driver.setMuted?.(true)
+    expect(yt.calls).not.toContain("mute")
+
+    await flush()
+    yt.ready()
+    expect(yt.calls).toContain("mute")
+
+    yt.calls.length = 0
+    // Its page reloaded (moved by a browser that cannot move it in place).
+    yt.ready()
+    expect(yt.calls[0]).toBe("mute")
   })
 })

@@ -82,6 +82,15 @@
       "audio": "Le son passe par l'ordinateur de l'écran projeté, lancé et arrêté par l'animateur ; les téléphones affichent « Écoutez ».",
       "youtube": "La vidéo YouTube passe sur l'écran projeté, lancée et arrêtée par l'animateur ; les téléphones affichent « Regardez l'écran » sans se connecter à YouTube. L'ordinateur de l'écran projeté doit avoir accès à YouTube."
     },
+    "mediaPlayback": "Où joue la vidéo",
+    "mediaPlaybackChoice": {
+      "screen": "Sur l'écran projeté seulement",
+      "devices": "Sur tous les appareils, pilotée par l'animateur"
+    },
+    "mediaPlaysOnDevices": {
+      "video": "La vidéo passe sur l'écran projeté et, pour chaque participant qui le demande (« Regarder ici »), sur son téléphone en même temps : l'animateur la lance, la met en pause et la fait revenir au début pour tous. Chaque téléphone qui la regarde charge le fichier : son adresse doit être joignable depuis les téléphones, et le réseau doit supporter autant de lectures.",
+      "youtube": "La vidéo YouTube passe sur l'écran projeté et, pour chaque participant qui l'accepte (« Regarder ici »), sur son téléphone en même temps, pilotée par l'animateur pour tous. Chaque téléphone qui l'accepte se connecte à YouTube (traceurs de Google, publicités possibles) et doit donc avoir accès à Internet."
+    },
     "removeMedia": "Retirer le média",
     "mediaFailed": "Média introuvable ou format non lu : il faut un lien direct vers le fichier (…/photo.jpg, …/video.mp4)",
     "mediaPreview": "Aperçu du média",

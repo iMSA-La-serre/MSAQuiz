@@ -2,6 +2,7 @@ import type {
   CommonStatusDataMap,
   ResultOutcome,
 } from "@razzia/common/types/game/status"
+import { DevicesAside } from "@razzia/web/features/game/components/question/DevicesMedia"
 import { usePlayerStore } from "@razzia/web/features/game/stores/player"
 import { SFX } from "@razzia/web/features/game/utils/constants"
 import { EASE_OUT_QUART, enter } from "@razzia/web/features/game/utils/motion"
@@ -156,6 +157,9 @@ const Result = ({
   return (
     <MotionConfig reducedMotion="user">
       <section className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center gap-3 px-4 py-6">
+        {/* The question's video that plays on every device goes on while
+        the projected screen shows it, until the host moves on. */}
+        <DevicesAside folded fallbackFocus={headingRef} />
         <motion.div
           {...enter()}
           className={clsx(

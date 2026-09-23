@@ -146,6 +146,25 @@ export const gameSocketHandlers = ({ io, socket }: SocketContext) => {
     withGame(gameId, socket, (game) => game.showLeaderboard(socket)),
   )
 
+  // The game's own host alone moves the video (checked by the game).
+  socket.on(EVENTS.MANAGER.MEDIA_CONTROL, (control) =>
+    withGame(control.gameId, socket, (game) =>
+      game.controlMedia(socket, control),
+    ),
+  )
+
+  socket.on(EVENTS.PLAYER.MEDIA_WATCH, ({ gameId, watching }) =>
+    withGame(gameId, socket, (game) => game.watchMedia(socket, watching)),
+  )
+
+  // Anyone may ask the time: a phone measures how far its clock is from the
+  // server's, which the video's state counts in.
+  socket.on(EVENTS.GAME.CLOCK, (_sentAt, ack) => {
+    if (typeof ack === "function") {
+      ack(Date.now())
+    }
+  })
+
   socket.on(EVENTS.MANAGER.LEAVE, ({ gameId }) => {
     const game = registry.getManagerGame(gameId, clientId)
 

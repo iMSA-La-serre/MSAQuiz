@@ -1,9 +1,11 @@
+import { MEDIA_PLAYBACK } from "@razzia/common/constants"
 import type {
+  MediaPlayback,
   QuestionMedia,
   QuestionMediaType,
 } from "@razzia/common/types/game"
 import {
-  isTimedMedia,
+  isVideoMedia,
   mediaIssue,
   mediaTypeOf,
 } from "@razzia/common/utils/media"
@@ -55,7 +57,7 @@ export const keepsPick = (
  * author picked while it holds (see keepsPick), else the type the new
  * address tells, else the one it had. The pick is the media's own by
  * default; the editor passes the one it keeps across the keystrokes. Where a
- * video or a sound plays stays as it was.
+ * video plays stays as it was; a sound and an image play on the screen.
  */
 export const mediaForUrl = (
   current: QuestionMedia | undefined,
@@ -71,12 +73,36 @@ export const mediaForUrl = (
     mediaTypeOf(url) ??
     current?.type
   const playback =
-    current?.playback !== undefined && isTimedMedia(type)
+    current?.playback !== undefined && isVideoMedia(type)
       ? { playback: current.playback }
       : {}
 
   return type === undefined ? { url } : { type, url, ...playback }
 }
+
+/**
+ * The media once the author picks its type: where it plays stays with a
+ * video (a file or YouTube's), never with a sound or an image, which play on
+ * the projected screen.
+ */
+export const mediaWithType = (
+  { playback, ...media }: QuestionMedia,
+  type: MediaType,
+): QuestionMedia =>
+  playback !== undefined && isVideoMedia(type)
+    ? { ...media, type, playback }
+    : { ...media, type }
+
+/**
+ * Where a video plays, as the author picks it: on every device is kept; the
+ * projected screen, the default, is kept as no setting at all, as every quiz
+ * saved before the choice existed.
+ */
+export const mediaWithPlayback = (
+  { playback: _playback, ...media }: QuestionMedia,
+  playback: MediaPlayback,
+): QuestionMedia =>
+  playback === MEDIA_PLAYBACK.DEVICES ? { ...media, playback } : media
 
 export interface MediaDraft {
   // The type the media is shown and saved with: the one picked, else the one

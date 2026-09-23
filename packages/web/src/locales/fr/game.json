@@ -266,6 +266,30 @@
       "refused": "Lecteur refusé par YouTube",
       "invalid": "Lien YouTube invalide",
       "player": "Le lecteur YouTube n'a pas pu la lire"
+    },
+    "devices": {
+      "offer": "Regarder la vidéo ici ?",
+      "offerHint": "Pilotée par l'animateur",
+      "fileNotice": "Elle se charge alors sur votre téléphone, avec le son.",
+      "youtubeConsent": "Votre téléphone se connecte alors à YouTube (Google), qui peut y déposer des traceurs (publicité, statistiques) et afficher des publicités.",
+      "googlePrivacy": "Règles de confidentialité de Google",
+      "watchHere": "Regarder ici",
+      "watchScreen": "Non, je regarde l'écran",
+      "controls": "Vidéo sur ce téléphone",
+      "player": "Vidéo de la question",
+      "mute": "Couper le son",
+      "unmute": "Remettre le son",
+      "stop": "Ne plus regarder ici",
+      "playing": "En lecture",
+      "paused": "En attente de l'animateur",
+      "failed": "Indisponible ici",
+      "failedHint": "Regardez-la sur l'écran",
+      "touchVideo": "Si elle ne démarre toujours pas, touchez la vidéo.",
+      "viewers_zero": "Aucun appareil ne regarde la vidéo",
+      "viewers_one": "{{count}} appareil regarde la vidéo",
+      "viewers_other": "{{count}} appareils regardent la vidéo",
+      "viewersShort_one": "{{count}} regarde",
+      "viewersShort_other": "{{count}} regardent"
     }
   }
 }

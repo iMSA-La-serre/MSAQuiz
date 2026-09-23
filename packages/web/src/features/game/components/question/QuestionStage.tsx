@@ -10,6 +10,10 @@ import type {
 import HintChip from "@razzia/web/features/game/components/question/HintChip"
 import QuestionBand from "@razzia/web/features/game/components/question/QuestionBand"
 import StageMedia from "@razzia/web/features/game/components/question/StageMedia"
+import { useDeviceMedia } from "@razzia/web/features/game/media/phone-media"
+import { devicePlanOf } from "@razzia/web/features/game/media/plan"
+import { usePlayerStore } from "@razzia/web/features/game/stores/player"
+import { useQuestionStore } from "@razzia/web/features/game/stores/question"
 import { enter } from "@razzia/web/features/game/utils/motion"
 import useTitleHeight from "@razzia/web/hooks/useTitleHeight"
 import { QUESTION_REGISTRY } from "@razzia/web/features/questions"
@@ -137,17 +141,31 @@ const QuestionStage = ({
     }
   }, [isReading])
 
+  const gameId = usePlayerStore((state) => state.gameId)
+  const current = useQuestionStore((state) => state.questionStates?.current)
+  const devices = useDeviceMedia()
   const variant = isHost ? "host" : "phone"
   const isSlide = questionType === "slide"
+  // A phone: the video that plays on every device, which it offers to show.
+  // Refused, it points to the screen, as a video on the screen only does.
+  const devicePlan = isHost
+    ? null
+    : devicePlanOf(media, { gameId, question: current, label: question })
+  const onPhone =
+    devicePlan !== null &&
+    !(devices.key === devicePlan.key && devices.choice === "decline")
   const hint = HINTS[questionType]
   const image = media?.type === MEDIA_TYPES.IMAGE ? media : undefined
   // A video file or a YouTube video: both show, with the host's controls.
   const isVideo = isVideoMedia(media?.type)
   const hasVisualMedia = Boolean(image) || isVideo
   // A video or a sound plays on the projected screen. On a phone, a card says
-  // so; a slide's own card does (SlideAnswers).
+  // so; a slide's own card does (SlideAnswers). A video on every device
+  // shows on the phone instead, unless its participant would rather watch
+  // the screen.
   const mediaType = media?.type
-  const screenMedia = isTimedMedia(mediaType) ? mediaType : undefined
+  const screenMedia =
+    isTimedMedia(mediaType) && !onPhone ? mediaType : undefined
   // A media without a type (an address saved before types were required) is
   // never shown: no empty block for it. Nor for a sound on the projected
   // screen, whose controls are in the dock (HostSoundBar).
@@ -207,6 +225,10 @@ const QuestionStage = ({
           alt={question}
           variant={variant}
           slide={isSlide}
+          devicePlan={devicePlan}
+          // The offer to watch it here takes one row while the answers are
+          // open, so they stay in view.
+          foldOffer={!isReading && !isSlide}
         />
       )}
     </motion.div>

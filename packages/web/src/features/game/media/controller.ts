@@ -44,6 +44,16 @@ export interface MediaDriver {
   // Names the player for assistive technologies.
   setLabel: (_label: string) => void
   destroy: () => void
+  // A phone's player (see device-media.ts). Whether its sound is cut, which
+  // its user decides.
+  readonly muted?: boolean
+  setMuted?: (_muted: boolean) => void
+  // The speed, 1 by default: a file catches up with the host's screen a
+  // little faster or slower (YouTube's player keeps its own).
+  setRate?: (_rate: number) => void
+  // Called within a tap on the page: lets the browser play the player later
+  // without one (iOS asks it of each video).
+  unlock?: () => void
 }
 
 // A driver tells the controller whenever its player changes (position, play,
@@ -95,6 +105,8 @@ export interface MediaPlaybackState {
   started: boolean
   // Actually played at least once: « Reprendre » rather than « Lancer ».
   played: boolean
+  // Its sound is cut (a phone's player, see MediaDriver.muted).
+  muted: boolean
 }
 
 const IDLE: MediaPlaybackState = {
@@ -110,6 +122,7 @@ const IDLE: MediaPlaybackState = {
   failure: null,
   started: false,
   played: false,
+  muted: false,
 }
 
 // How far the position moves before it is kept again while playing.
@@ -144,6 +157,13 @@ export class MediaController {
   }
 
   getState = (): MediaPlaybackState => this.state
+
+  /** Reads the player now, rather than at its last change. */
+  read(): MediaPlaybackState {
+    this.sync()
+
+    return this.state
+  }
 
   subscribe = (listener: () => void): (() => void) => {
     this.listeners.add(listener)
@@ -268,6 +288,22 @@ export class MediaController {
     this.seek(this.state.source?.start ?? 0)
   }
 
+  /** Cuts the sound of the player, or gives it back. */
+  setMuted(muted: boolean): void {
+    this.driver?.setMuted?.(muted)
+    this.sync()
+  }
+
+  /** The player's speed, where it can change (a file). */
+  setRate(rate: number): void {
+    this.driver?.setRate?.(rate)
+  }
+
+  /** Within a tap: lets the player play later without one (iOS). */
+  unlock(): void {
+    this.driver?.unlock?.()
+  }
+
   /** Names the player for assistive technologies: the question's wording. */
   setLabel(label: string): void {
     this.label = label
@@ -350,6 +386,7 @@ export class MediaController {
       ended: driver.ended,
       failed: driver.failed,
       failure: driver.failure ?? null,
+      muted: driver.muted ?? false,
       // Playing at last (a click on the page, a second try): no longer
       // blocked.
       blocked: previous.blocked && !playing,
@@ -373,6 +410,7 @@ export class MediaController {
       next.ended === previous.ended &&
       next.failed === previous.failed &&
       next.failure === previous.failure &&
+      next.muted === previous.muted &&
       next.blocked === previous.blocked &&
       next.started === previous.started &&
       next.played === previous.played

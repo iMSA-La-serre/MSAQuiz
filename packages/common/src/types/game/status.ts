@@ -51,7 +51,9 @@ export interface CommonStatusDataMap {
     // The host gets the media whole: a video or a sound is loaded while the
     // question is read, and starts when answers open (a slide's, at once).
     // A player gets an image whole, a video or a sound as its type only
-    // (publicMedia): it plays on the projected screen.
+    // (publicMedia): it plays on the projected screen; unless a video plays
+    // on every device (playback "devices"), which a player gets as
+    // DevicesMedia, its address with it.
     media?: StatusMedia
     cooldown: number
     // Shown locked during the reading time, not accepted yet. The public
@@ -79,7 +81,7 @@ export interface CommonStatusDataMap {
     // Public list, see SHOW_QUESTION. Ordering: answer with indices into it.
     answers: string[]
     // Whole for the host, see SHOW_QUESTION; a player never gets the address
-    // of a video or a sound.
+    // of a video or a sound, but of a video on every device (DevicesMedia).
     media?: StatusMedia
     time: number
     totalPlayer: number

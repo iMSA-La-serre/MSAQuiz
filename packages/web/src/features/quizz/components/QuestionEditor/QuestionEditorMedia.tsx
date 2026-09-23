@@ -1,9 +1,14 @@
-import { MEDIA_TYPES } from "@razzia/common/constants"
+import { MEDIA_PLAYBACK, MEDIA_TYPES } from "@razzia/common/constants"
 import type {
   QuestionMedia as Media,
+  MediaPlayback,
   QuestionMediaType,
 } from "@razzia/common/types/game"
-import { isTimedMedia, MEDIA_ISSUES } from "@razzia/common/utils/media"
+import {
+  isTimedMedia,
+  isVideoMedia,
+  MEDIA_ISSUES,
+} from "@razzia/common/utils/media"
 import { youtubeVideoOf } from "@razzia/common/utils/youtube"
 import Card from "@razzia/web/components/Card"
 import Input from "@razzia/web/components/Input"
@@ -18,6 +23,8 @@ import {
   keepsPick,
   mediaDraftOf,
   mediaForUrl,
+  mediaWithPlayback,
+  mediaWithType,
   pickOf,
   type TypePick,
 } from "@razzia/web/features/quizz/utils/media"
@@ -26,8 +33,10 @@ import {
   Image,
   ImageOff,
   type LucideIcon,
+  MonitorPlay,
   Music,
   RotateCcw,
+  Smartphone,
   SquarePlay,
   Trash2,
   Video,
@@ -45,12 +54,36 @@ const TYPE_CHOICES: Array<{
   { type: MEDIA_TYPES.YOUTUBE, icon: SquarePlay },
 ]
 
+// Where a video plays: the projected screen, the default, or every device.
+const PLAYBACK_CHOICES: Array<{ playback: MediaPlayback; icon: LucideIcon }> = [
+  { playback: MEDIA_PLAYBACK.SCREEN, icon: MonitorPlay },
+  { playback: MEDIA_PLAYBACK.DEVICES, icon: Smartphone },
+]
+
+// A choice among a few, as a button: picked, or not; before an address, not
+// yet.
+const choiceClass = (picked: boolean, enabled = true) =>
+  clsx(
+    "has-focus-visible:outline-primary flex min-h-11 items-center gap-1.5 rounded-lg px-3 py-2 text-base font-semibold has-focus-visible:outline-2 has-focus-visible:outline-offset-2",
+    picked
+      ? "bg-primary/15 text-foreground ring-primary ring-2 ring-inset"
+      : "bg-accent text-accent-foreground",
+    enabled ? "cursor-pointer" : "cursor-default opacity-40",
+  )
+
 // How long the address must stay the same, while it is typed, before the
 // preview loads it: never a preview, and never a failure, per keystroke.
 const SETTLE_DELAY = 500
 
 const WHITE_FOCUS =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+
+// Where a video plays, the projected screen when not set (or set to a value
+// the game does not know, read so).
+const playbackOf = (media: Media | undefined): MediaPlayback =>
+  media?.playback === MEDIA_PLAYBACK.DEVICES
+    ? MEDIA_PLAYBACK.DEVICES
+    : MEDIA_PLAYBACK.SCREEN
 
 // While the author types: the question, and the media the preview keeps
 // showing until the address settles.
@@ -77,6 +110,9 @@ const QuestionEditorMedia = () => {
   const { t } = useTranslation()
   const inputId = useId()
   const typeName = useId()
+  const playbackName = useId()
+  const playbackLabelId = useId()
+  const playbackHintId = useId()
   const messageId = useId()
   const inputRef = useRef<HTMLInputElement>(null)
   const timer = useRef<number>(undefined)
@@ -201,7 +237,7 @@ const QuestionEditorMedia = () => {
       return
     }
 
-    const next = { ...media, type }
+    const next = mediaWithType(media, type)
 
     heldPick.current = {
       index: currentIndex,
@@ -210,6 +246,14 @@ const QuestionEditorMedia = () => {
     }
     updateQuestion(currentIndex, { media: next })
     settle()
+  }
+
+  const handlePickPlayback = (playback: MediaPlayback) => () => {
+    if (media) {
+      updateQuestion(currentIndex, {
+        media: mediaWithPlayback(media, playback),
+      })
+    }
   }
 
   // The bin goes with the media: the focus goes back to the field, which
@@ -362,16 +406,7 @@ const QuestionEditorMedia = () => {
             const picked = draft?.type === type
 
             return (
-              <label
-                key={type}
-                className={clsx(
-                  "has-focus-visible:outline-primary flex min-h-11 items-center gap-1.5 rounded-lg px-3 py-2 text-base font-semibold has-focus-visible:outline-2 has-focus-visible:outline-offset-2",
-                  picked
-                    ? "bg-primary/15 text-foreground ring-primary ring-2 ring-inset"
-                    : "bg-accent text-accent-foreground",
-                  media ? "cursor-pointer" : "cursor-default opacity-40",
-                )}
-              >
+              <label key={type} className={choiceClass(picked, Boolean(media))}>
                 <input
                   type="radio"
                   className="sr-only"
@@ -388,11 +423,50 @@ const QuestionEditorMedia = () => {
           })}
         </div>
 
-        {/* Where a video, a sound or a YouTube video plays: the projected
-        screen, driven by the host; the phones never load it. */}
+        {/* Where a video (a file or YouTube's) plays: the projected screen
+        only, the default, or every device too, in step with it and driven
+        by the host. A sound plays on the screen. */}
+        {isVideoMedia(draft?.type) && (
+          <div className="flex flex-col gap-1.5">
+            <p
+              id={playbackLabelId}
+              className="text-foreground text-sm font-semibold"
+            >
+              {t("quizz:question.mediaPlayback")}
+            </p>
+            <div
+              role="radiogroup"
+              aria-labelledby={playbackLabelId}
+              className="flex flex-wrap gap-2"
+            >
+              {PLAYBACK_CHOICES.map(({ playback, icon: Icon }) => (
+                <label
+                  key={playback}
+                  className={choiceClass(playbackOf(media) === playback)}
+                >
+                  <input
+                    type="radio"
+                    className="sr-only"
+                    name={playbackName}
+                    value={playback}
+                    // What the choice means, read with it as it changes.
+                    aria-describedby={playbackHintId}
+                    checked={playbackOf(media) === playback}
+                    onChange={handlePickPlayback(playback)}
+                  />
+                  <Icon className="size-5" aria-hidden />
+                  {t(`quizz:question.mediaPlaybackChoice.${playback}`)}
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
         {isTimedMedia(draft?.type) && (
-          <p className="text-accent-foreground text-sm">
-            {t(`quizz:question.mediaPlaysOnScreen.${draft.type}`)}
+          <p id={playbackHintId} className="text-accent-foreground text-sm">
+            {playbackOf(media) === MEDIA_PLAYBACK.DEVICES &&
+            isVideoMedia(draft.type)
+              ? t(`quizz:question.mediaPlaysOnDevices.${draft.type}`)
+              : t(`quizz:question.mediaPlaysOnScreen.${draft.type}`)}
           </p>
         )}
 
