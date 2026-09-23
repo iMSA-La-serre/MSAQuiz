@@ -7,6 +7,8 @@ import type {
   QuestionMedia,
   QuestionMediaType,
   QuizzError,
+  StatusMedia,
+  TimedMediaType,
 } from "@razzia/common/types/game"
 
 type MediaType = NonNullable<QuestionMediaType>
@@ -238,3 +240,24 @@ export const mediaIssuesOf = (
 
     return message ? [{ message, questionIndex }] : []
   })
+
+/** A video or a sound: a media that plays over time, which the host drives. */
+export const isTimedMedia = (type: QuestionMediaType): type is TimedMediaType =>
+  type === MEDIA_TYPES.VIDEO || type === MEDIA_TYPES.AUDIO
+
+/**
+ * What a phone gets of a question's media. An image whole, as every screen
+ * shows it. A video or a sound, its type only: it plays on the projected
+ * screen, driven by the host, and the phone says so; its address never
+ * reaches a phone, so no phone loads the file. Nothing for a media without a
+ * type, which no screen shows.
+ */
+export const publicMedia = (
+  media: QuestionMedia | undefined,
+): StatusMedia | undefined => {
+  if (media?.type === MEDIA_TYPES.IMAGE) {
+    return { type: media.type, url: media.url }
+  }
+
+  return isTimedMedia(media?.type) ? { type: media.type } : undefined
+}

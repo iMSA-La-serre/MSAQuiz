@@ -358,6 +358,15 @@ const QuestionEditorMedia = () => {
           })}
         </div>
 
+        {/* Where a video or a sound plays: the projected screen, driven by
+        the host; the phones never load it. */}
+        {(draft?.type === MEDIA_TYPES.VIDEO ||
+          draft?.type === MEDIA_TYPES.AUDIO) && (
+          <p className="text-accent-foreground text-sm">
+            {t(`quizz:question.mediaPlaysOnScreen.${draft.type}`)}
+          </p>
+        )}
+
         {/* Where the preview will be. */}
         {!media && (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 py-2">

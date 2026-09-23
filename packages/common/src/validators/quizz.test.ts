@@ -1703,4 +1703,56 @@ describe("media", () => {
 
     expect(quizzSaveValidator.parse(quizz)).toEqual(quizzValidator.parse(quizz))
   })
+
+  it("keeps where a video or a sound plays, the screen when absent", () => {
+    const video = { type: "video", url: "https://msa.example/film.mp4" }
+
+    expect(saved(withMedia(video)).media).toEqual(video)
+    for (const playback of ["screen", "devices"]) {
+      expect(saved(withMedia({ ...video, playback })).media).toEqual({
+        ...video,
+        playback,
+      })
+      expect(parse(withMedia({ ...video, playback })).media?.playback).toBe(
+        playback,
+      )
+    }
+    expect(refusal(withMedia({ ...video, playback: "tous" }))).toEqual({
+      message: "errors:quizz.invalidMediaPlayback",
+      questionIndex: 0,
+    })
+    expect(
+      refusal(
+        withMedia(video),
+        withMedia({ type: "audio", url: "/media/son.mp3", playback: null }),
+      ),
+    ).toEqual({
+      message: "errors:quizz.invalidMediaPlayback",
+      questionIndex: 1,
+    })
+  })
+
+  it("reads a stored quiz whose media plays where it does not know as the screen", () => {
+    const video = { type: "video", url: "https://msa.example/film.mp4" }
+
+    for (const playback of ["tous", null, 3, { where: "devices" }]) {
+      const result = quizzValidator.safeParse({
+        subject: "Quiz",
+        questions: [withMedia({ ...video, playback })],
+      })
+
+      expect(result.success).toBe(true)
+      expect(result.data?.questions[0].media).toEqual(video)
+      expect(result.data?.questions[0].media?.playback).toBeUndefined()
+    }
+    expect(
+      parse(
+        withMedia({
+          type: "image",
+          url: "https://msa.example/a.png",
+          playback: "partout",
+        }),
+      ).media,
+    ).toEqual({ type: "image", url: "https://msa.example/a.png" })
+  })
 })

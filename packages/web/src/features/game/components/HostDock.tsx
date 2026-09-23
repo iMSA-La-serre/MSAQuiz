@@ -1,6 +1,9 @@
 import { STATUS, type Status } from "@razzia/common/types/game/status"
 import Button from "@razzia/web/components/Button"
+import HostMediaStatus from "@razzia/web/features/game/components/question/HostMediaStatus"
+import HostSoundBar from "@razzia/web/features/game/components/question/HostSoundBar"
 import { MANAGER_SKIP_BTN } from "@razzia/web/features/game/utils/constants"
+import { REMOTE_SAFE_ATTRIBUTE } from "@razzia/web/features/game/utils/keys"
 import clsx from "clsx"
 import { ArrowRight, LogOut, type LucideIcon, SkipForward } from "lucide-react"
 import { useEffect } from "react"
@@ -19,7 +22,10 @@ interface DockAction {
   presenterKeys: boolean
 }
 
-const QUIET = "bg-white/15 text-white hover:bg-white/25"
+// Held over a screen too long for it, over a white row, it takes the navy of
+// the phone's band (the stuck variant, see index.css).
+const QUIET =
+  "bg-white/15 text-white hover:bg-white/25 stuck:bg-secondary stuck:shadow-lg stuck:shadow-black/20"
 
 const ACTIONS: Partial<Record<Status, DockAction>> = {
   [STATUS.SELECT_ANSWER]: {
@@ -53,9 +59,12 @@ const hasOwnKeys = (target: EventTarget | null) => {
     return false
   }
 
-  // The dock button itself stays focused after a mouse click: the clicker
-  // must keep working then.
-  if (target.hasAttribute(DOCK_BUTTON_ATTRIBUTE)) {
+  // The dock button itself stays focused after a mouse click, and so does a
+  // media control (play, pause): the clicker must keep working then.
+  if (
+    target.hasAttribute(DOCK_BUTTON_ATTRIBUTE) ||
+    target.closest(`[${REMOTE_SAFE_ATTRIBUTE}]`) !== null
+  ) {
     return false
   }
 
@@ -64,6 +73,10 @@ const hasOwnKeys = (target: EventTarget | null) => {
 
 // Host controls at the bottom right of every in-game screen but the lobby.
 // Always rendered, even empty, so content never jumps when a button appears.
+// On the left, the controls of the question's sound, which has nothing to
+// show (HostSoundBar). Held at the bottom of the screen, over a screen too
+// long for it, so « Passer » and « Suivant » stay in view and clickable,
+// and legible over its rows (stuck, see QUIET).
 const HostDock = ({ statusName, disabled, onNext }: Props) => {
   const { t } = useTranslation()
   const label = statusName ? MANAGER_SKIP_BTN[statusName] : null
@@ -103,7 +116,9 @@ const HostDock = ({ statusName, disabled, onNext }: Props) => {
   const Icon = action?.icon
 
   return (
-    <footer className="short:min-h-16 short:pb-4 mx-auto flex min-h-22 w-full max-w-7xl items-end justify-end px-6 pb-6">
+    <footer className="short:min-h-16 short:pb-4 [container-type:scroll-state] pointer-events-none sticky bottom-0 z-10 mx-auto flex min-h-22 w-full max-w-7xl items-end justify-end gap-6 px-6 pb-6">
+      <HostSoundBar />
+      <HostMediaStatus />
       {label && action && Icon && (
         <Button
           size="lg"
@@ -111,7 +126,7 @@ const HostDock = ({ statusName, disabled, onNext }: Props) => {
           aria-disabled={disabled}
           onClick={onNext}
           className={clsx(
-            "focus-visible:outline-serre-yellow rounded-full px-6 py-3 text-xl font-bold focus-visible:outline-3 focus-visible:outline-offset-2",
+            "focus-visible:outline-serre-yellow pointer-events-auto ml-auto shrink-0 rounded-full px-6 py-3 text-xl font-bold focus-visible:outline-3 focus-visible:outline-offset-2",
             action.className,
             { "pointer-events-none opacity-70": disabled },
           )}

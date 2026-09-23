@@ -470,6 +470,15 @@ export const MEDIA_TYPES = {
   AUDIO: "audio",
 } as const
 
+// Where a video or a sound plays (media.playback). On the projected screen
+// only, the default: the host drives it, and the phones say « Regardez
+// l'écran » without ever loading the file. On every device, driven by the
+// host: kept in the model, not played that way yet (read as the screen).
+export const MEDIA_PLAYBACK = {
+  SCREEN: "screen",
+  DEVICES: "devices",
+} as const
+
 // The extensions a media's type is read from, lowercase and without the dot:
 // the editor picks the type as soon as an address ends with one, and a save
 // fills it in when it is missing.

@@ -1,10 +1,11 @@
 import { MEDIA_TYPES } from "@razzia/common/constants"
+import { isTimedMedia } from "@razzia/common/utils/media"
 import type {
   AnswerPayload,
   QuestionMarker,
-  QuestionMedia,
   QuestionOptions,
   QuestionType,
+  StatusMedia,
 } from "@razzia/common/types/game"
 import HintChip from "@razzia/web/features/game/components/question/HintChip"
 import QuestionBand from "@razzia/web/features/game/components/question/QuestionBand"
@@ -36,8 +37,9 @@ interface Props {
   question: string
   answers: string[]
   questionType: QuestionType
-  media?: QuestionMedia
-  upcomingMedia?: "video" | "audio"
+  // Whole on the projected screen; a phone gets a video or a sound as its
+  // type only.
+  media?: StatusMedia
   time: number
   cooldown?: number
   totalPlayers: number
@@ -78,6 +80,13 @@ const TITLE = "font-bold text-balance text-white drop-shadow-lg"
 
 const HOST_TITLE = "text-2xl md:text-4xl xl:text-5xl short:text-3xl"
 
+const SLIDE_TITLE = "text-center text-3xl md:text-5xl xl:text-6xl"
+
+// A slide's video takes the room a long title would on a short projected
+// screen: the title a size smaller there, the video never under 12.5rem (see
+// HostMediaPlayer).
+const SLIDE_VIDEO_TITLE = "short:md:text-4xl short:xl:text-5xl"
+
 // Question, media and answers in the same boxes during reading and answering.
 // Question and Answers are different components, so the whole stage remounts
 // at SELECT_ANSWER: only identical boxes keep everything in place.
@@ -87,7 +96,6 @@ const QuestionStage = ({
   answers,
   questionType,
   media,
-  upcomingMedia,
   time,
   cooldown,
   totalPlayers,
@@ -126,15 +134,24 @@ const QuestionStage = ({
 
   const variant = isHost ? "host" : "phone"
   const isSlide = questionType === "slide"
-  const slideStage = useTitleHeight(isHost && isSlide)
   const hint = HINTS[questionType]
+  const image = media?.type === MEDIA_TYPES.IMAGE ? media : undefined
+  const isVideo = media?.type === MEDIA_TYPES.VIDEO
+  const hasVisualMedia = Boolean(image) || isVideo
+  // A video or a sound plays on the projected screen. On a phone, a card says
+  // so; a slide's own card does (SlideAnswers).
+  const mediaType = media?.type
+  const screenMedia = isTimedMedia(mediaType) ? mediaType : undefined
   // A media without a type (an address saved before types were required) is
-  // never shown: no empty block for it.
-  const hasMedia = Boolean(media?.type ?? upcomingMedia)
-  const hasVisualMedia =
-    media?.type === MEDIA_TYPES.IMAGE ||
-    media?.type === MEDIA_TYPES.VIDEO ||
-    upcomingMedia === MEDIA_TYPES.VIDEO
+  // never shown: no empty block for it. Nor for a sound on the projected
+  // screen, whose controls are in the dock (HostSoundBar).
+  const hasMedia =
+    Boolean(media?.type) &&
+    !(isHost && media?.type === MEDIA_TYPES.AUDIO) &&
+    !(!isHost && isSlide && screenMedia)
+  // The title's height, which the frame of a slide's media, or of a video by
+  // the answers, takes into account (StageMedia, HostMediaPlayer).
+  const titleStage = useTitleHeight(isHost && (isSlide || isVideo))
   const {
     AnswerComponent,
     MediaComponent,
@@ -163,12 +180,14 @@ const QuestionStage = ({
 
   // A type that draws the image itself (markers) puts its own layer over it,
   // in the same block. On a slide, whose column centres its blocks, the block
-  // takes the whole width, so a video fills it (see StageMedia).
+  // takes the whole width, so a video fills it (see StageMedia). A video or a
+  // sound plays on the projected screen, with the host's controls under it;
+  // a phone says where to look.
   const mediaBlock = hasMedia && (
     <motion.div {...appear(0.1)} className={clsx(isSlide && "w-full")}>
       {MediaComponent ? (
         <MediaComponent
-          media={media}
+          media={image}
           alt={question}
           variant={variant}
           answers={answers}
@@ -179,7 +198,6 @@ const QuestionStage = ({
       ) : (
         <StageMedia
           media={media}
-          upcomingMedia={upcomingMedia}
           alt={question}
           variant={variant}
           slide={isSlide}
@@ -204,6 +222,7 @@ const QuestionStage = ({
       options={options}
       text={text}
       targets={targets}
+      screenMedia={screenMedia}
       onSubmit={onSubmit}
       readOnly={isHost}
       locked={isReading || !opened}
@@ -250,16 +269,13 @@ const QuestionStage = ({
     if (isSlide) {
       return (
         <div
-          ref={slideStage.stageRef}
+          ref={titleStage.stageRef}
           className="short:py-4 mx-auto flex w-full max-w-5xl flex-1 flex-col items-center justify-center gap-8 px-6 py-8"
         >
           <motion.h2
-            ref={slideStage.titleRef}
+            ref={titleStage.titleRef}
             {...appear(0.05)}
-            className={clsx(
-              TITLE,
-              "text-center text-3xl md:text-5xl xl:text-6xl",
-            )}
+            className={clsx(TITLE, SLIDE_TITLE, isVideo && SLIDE_VIDEO_TITLE)}
           >
             {question}
           </motion.h2>
@@ -271,6 +287,7 @@ const QuestionStage = ({
     if (hasVisualMedia) {
       return (
         <div
+          ref={titleStage.stageRef}
           className={clsx(
             "short:py-4 mx-auto grid w-full max-w-7xl flex-1 gap-8 px-6 py-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-12",
             hostTopAligned ? "items-start" : "items-center",
@@ -278,6 +295,7 @@ const QuestionStage = ({
         >
           <div className="flex flex-col gap-6">
             <motion.h2
+              ref={titleStage.titleRef}
               {...appear(0.05)}
               className={clsx(TITLE, HOST_TITLE, "text-left")}
             >

@@ -5,6 +5,7 @@ import {
   HIGHLIGHT_LIMITS,
   MARKERS_LIMITS,
   MATCH_SCORING,
+  MEDIA_PLAYBACK,
   MEDIA_TYPES,
   NO_TIME_LIMIT,
   ORDER_SCORING,
@@ -62,6 +63,10 @@ export const questionMediaValidator = z.object({
       (url) => isSameServerPath(url) || anyUrl.safeParse(url).success,
       MEDIA_ISSUES.NOT_WEB,
     ),
+  // Absent from every quiz stored before it existed: the projected screen.
+  // Read with tolerance, a value it does not know (a later version's, a hand
+  // edit) as the screen: a save refuses it, see quizzSaveValidator.
+  playback: z.enum(MEDIA_PLAYBACK).optional().catch(undefined),
 })
 
 // A media without an address is no media: clearing the field removes it, and
@@ -1040,15 +1045,55 @@ export const quizzValidator = z.object({
 
 export type QuizzValidated = z.infer<typeof quizzValidator>
 
+const PLAYBACKS: ReadonlySet<unknown> = new Set(Object.values(MEDIA_PLAYBACK))
+
+// Where a video or a sound plays, as a save sends it: read with tolerance
+// (questionMediaValidator), never saved unless it is one the game knows.
+const checkSavedPlayback = (input: unknown, ctx: z.RefinementCtx) => {
+  const questions =
+    typeof input === "object" && input !== null && "questions" in input
+      ? input.questions
+      : undefined
+
+  if (!Array.isArray(questions)) {
+    return
+  }
+
+  questions.forEach((question: unknown, index) => {
+    const media =
+      typeof question === "object" && question !== null && "media" in question
+        ? question.media
+        : undefined
+
+    if (
+      typeof media === "object" &&
+      media !== null &&
+      "playback" in media &&
+      media.playback !== undefined &&
+      !PLAYBACKS.has(media.playback)
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        message: "errors:quizz.invalidMediaPlayback",
+        path: ["questions", index, "media", "playback"],
+      })
+    }
+  })
+}
+
 /**
  * What a save from the editor accepts: the rules of quizzValidator, then
  * those added since for new content, which stored quizzes (and the files
  * they were exported to, see the import) are never read against. A media
  * must be a web address, a path on the quiz's own server or a small pasted
- * image, never a video page's link, and have a type (see mediaIssue).
+ * image, never a video page's link, and have a type (see mediaIssue); where
+ * a video or a sound plays must be one the game knows.
  */
-export const quizzSaveValidator = quizzValidator.superRefine(
-  ({ questions }, ctx) => {
+export const quizzSaveValidator = z
+  .unknown()
+  .superRefine(checkSavedPlayback)
+  .pipe(quizzValidator)
+  .superRefine(({ questions }, ctx) => {
     questions.forEach((question, index) => {
       // A question that failed its own checks may not be parsed.
       const media = (question as Partial<Question> | undefined)?.media
@@ -1072,8 +1117,7 @@ export const quizzSaveValidator = quizzValidator.superRefine(
         })
       }
     })
-  },
-)
+  })
 
 /**
  * The first issue of a quiz refused on save, and the question it is about

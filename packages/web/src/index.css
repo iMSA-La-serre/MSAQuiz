@@ -8,6 +8,12 @@ browser window with its toolbar. Host layouts tighten below this height. */
 (max-w-5xl) past 1072 px, so only the height tells a larger room. */
 @custom-variant tall (@media (min-height: 1000px));
 
+/* The host's dock held at the bottom of a screen too long for the projector,
+over its content (HostDock, a scroll-state container): its translucent pills
+take the navy of the phone's band, so they stay legible over a white row.
+Chromium 133+; elsewhere they stay as they are. */
+@custom-variant stuck (@container scroll-state(stuck: bottom));
+
 /* Default look = the La Serre brand guidelines (RGB palette, Work Sans). A
 config/branding/theme.json can still override any of these tokens. */
 @theme {

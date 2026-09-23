@@ -76,6 +76,10 @@
     "placeholder": "Commencez à écrire votre question...",
     "mediaUrlLabel": "Adresse web du média",
     "mediaType": "Type de média",
+    "mediaPlaysOnScreen": {
+      "video": "La vidéo passe sur l'écran projeté, lancée et arrêtée par l'animateur ; les téléphones affichent « Regardez l'écran ».",
+      "audio": "Le son passe par l'ordinateur de l'écran projeté, lancé et arrêté par l'animateur ; les téléphones affichent « Écoutez »."
+    },
     "removeMedia": "Retirer le média",
     "mediaFailed": "Média introuvable ou format non lu : il faut un lien direct vers le fichier (…/photo.jpg, …/video.mp4)",
     "mediaPreview": "Aperçu du média",

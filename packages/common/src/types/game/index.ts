@@ -1,6 +1,7 @@
 import type {
   ESTIMATE_TOLERANCE,
   MATCH_SCORING,
+  MEDIA_PLAYBACK,
   MEDIA_TYPES,
   ORDER_SCORING,
   QUESTION_TYPES,
@@ -129,10 +130,29 @@ export type AnswerPayload =
 export type QuestionMediaType =
   (typeof MEDIA_TYPES)[keyof typeof MEDIA_TYPES] | undefined
 
+export type MediaPlayback = (typeof MEDIA_PLAYBACK)[keyof typeof MEDIA_PLAYBACK]
+
 export interface QuestionMedia {
   type?: QuestionMediaType
   url: string
+  // Video and audio: where it plays, the projected screen when absent
+  // (MEDIA_PLAYBACK). Meaningless on an image.
+  playback?: MediaPlayback
 }
+
+// The media that play over time, which the host starts, pauses and rewinds.
+export type TimedMediaType = (typeof MEDIA_TYPES)["VIDEO" | "AUDIO"]
+
+// A video or a sound as a phone gets it: its type, never its address. It
+// plays on the projected screen, and the phone says so (publicMedia).
+export interface ScreenOnlyMedia {
+  type: TimedMediaType
+  url?: undefined
+}
+
+// A question's media in a status: whole for the host; for a player, whole
+// when it is an image, its type only when it plays on the screen.
+export type StatusMedia = QuestionMedia | ScreenOnlyMedia
 
 // A quiz refused on save: the error key, and the question it is about
 // (0-based) when it is about one.

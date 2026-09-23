@@ -6,6 +6,7 @@ import {
 import type { QuestionType } from "@razzia/common/types/game"
 import type { ManagerStatusDataMap } from "@razzia/common/types/game/status"
 import { partialCredits } from "@razzia/common/utils/choice"
+import { isTimedMedia } from "@razzia/common/utils/media"
 import QuestionBand from "@razzia/web/features/game/components/question/QuestionBand"
 import ResponseRow, {
   ResponseList,
@@ -37,6 +38,11 @@ const TITLE = "font-bold text-balance text-white drop-shadow-lg"
 
 const HOST_TITLE = "text-2xl md:text-4xl xl:text-5xl short:text-3xl"
 
+const SLIDE_TITLE = "text-center text-3xl md:text-5xl xl:text-6xl"
+
+// As while answering (QuestionStage): a slide's video keeps its room.
+const SLIDE_VIDEO_TITLE = "short:md:text-4xl short:xl:text-5xl"
+
 // Beyond this many characters in any answer, host rows use smaller text.
 const DENSE_LENGTH = 60
 
@@ -57,10 +63,14 @@ const Responses = ({ data }: Props) => {
   const reduceMotion = useReducedMotion()
   const [revealed, setRevealed] = useState(false)
   const [sfxReveal] = useSound(SFX.SHOW_SOUND, { volume: 0.2 })
+  // A video or a sound plays on, with its own sound: no jingle over it.
+  const timedMedia = isTimedMedia(media?.type)
 
   useEffect(() => {
-    sfxReveal()
-  }, [sfxReveal])
+    if (!timedMedia) {
+      sfxReveal()
+    }
+  }, [sfxReveal, timedMedia])
 
   useEffect(() => {
     if (reduceMotion) {
@@ -85,7 +95,11 @@ const Responses = ({ data }: Props) => {
   } = QUESTION_REGISTRY[type]
   const { scored } = QUESTION_TYPE_META[type]
   const isSlide = type === "slide"
-  const slideStage = useTitleHeight(isSlide)
+  const image = media?.type === MEDIA_TYPES.IMAGE ? media : undefined
+  // A video stays, playing on or paused where it was, until the host moves
+  // on (hostMedia); a sound too, its controls in the dock (HostSoundBar).
+  const video = media?.type === MEDIA_TYPES.VIDEO ? media : undefined
+  const titleStage = useTitleHeight(isSlide || Boolean(video))
   const fixedHint = HINTS[type]
   const hint =
     distributionHint?.(t, data) ??
@@ -101,7 +115,6 @@ const Responses = ({ data }: Props) => {
       ? formatCredit(i18n.language, credit)
       : undefined
   }
-  const image = media?.type === MEDIA_TYPES.IMAGE ? media : undefined
   const dense = answers.some((answer) => answer.length > DENSE_LENGTH)
   const showCorrect = revealed || Boolean(reduceMotion)
   const unanswered = Math.max(0, totalPlayers - totalAnswered)
@@ -120,12 +133,12 @@ const Responses = ({ data }: Props) => {
     </header>
   )
 
-  // Same wrapper as the answering stage, so the image does not move. A type
+  // Same wrapper as the answering stage, so the media does not move. A type
   // that draws the image itself (markers) keeps its layer over it, the right
   // markers outlined with the rows.
-  const imageBlock = image && (
+  const mediaBlock = (image ?? video) && (
     <div className={clsx(isSlide && "w-full")}>
-      {MediaComponent ? (
+      {MediaComponent && image ? (
         <MediaComponent
           media={image}
           alt={question}
@@ -137,7 +150,7 @@ const Responses = ({ data }: Props) => {
         />
       ) : (
         <StageMedia
-          media={image}
+          media={image ?? video}
           alt={question}
           variant="host"
           slide={isSlide}
@@ -145,6 +158,8 @@ const Responses = ({ data }: Props) => {
       )}
     </div>
   )
+  // An image or a video by the rows, as while answering.
+  const sideMedia = Boolean(image ?? video)
 
   // Types not answered by picking choices bring their own rows, in the same
   // frame.
@@ -189,39 +204,41 @@ const Responses = ({ data }: Props) => {
   )
 
   const renderBody = () => {
-    // Nobody answers a slide: title and image at the slide-stage sizes.
+    // Nobody answers a slide: title and media at the slide-stage sizes.
     if (isSlide) {
       return (
         <div
-          ref={slideStage.stageRef}
+          ref={titleStage.stageRef}
           className="short:py-4 mx-auto flex w-full max-w-5xl flex-1 flex-col items-center justify-center gap-8 px-6 py-8"
         >
           <h2
-            ref={slideStage.titleRef}
-            className={clsx(
-              TITLE,
-              "text-center text-3xl md:text-5xl xl:text-6xl",
-            )}
+            ref={titleStage.titleRef}
+            className={clsx(TITLE, SLIDE_TITLE, video && SLIDE_VIDEO_TITLE)}
           >
             {question}
           </h2>
-          {imageBlock}
+          {mediaBlock}
         </div>
       )
     }
 
-    // Video and audio are not replayed: without an image, one column.
-    if (imageBlock) {
+    if (sideMedia) {
       return (
         <div
+          ref={titleStage.stageRef}
           className={clsx(
             "short:py-4 mx-auto grid w-full max-w-7xl flex-1 gap-8 px-6 py-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-12",
             hostTopAligned ? "items-start" : "items-center",
           )}
         >
           <div className="flex flex-col gap-6">
-            <h2 className={clsx(TITLE, HOST_TITLE, "text-left")}>{question}</h2>
-            {imageBlock}
+            <h2
+              ref={titleStage.titleRef}
+              className={clsx(TITLE, HOST_TITLE, "text-left")}
+            >
+              {question}
+            </h2>
+            {mediaBlock}
           </div>
           {content}
         </div>

@@ -119,10 +119,31 @@ class Game {
 
   // ── Status broadcasting ──────────────────────────────────────────────────
 
-  private broadcastStatus<T extends Status>(status: T, data: StatusDataMap[T]) {
+  // To the whole room. With `managerData`, the manager gets it instead of
+  // `data`, and gets it again on reconnecting; the players, `data`. Either
+  // way, the manager reconnects to the last status it was sent.
+  private broadcastStatus<T extends Status>(
+    status: T,
+    data: StatusDataMap[T],
+    managerData?: StatusDataMap[T],
+  ) {
     const statusData = { name: status, data }
     this.lastBroadcastStatus = statusData
-    this.io.to(this.gameId).emit(EVENTS.GAME.STATUS, statusData)
+
+    if (managerData === undefined) {
+      this.managerStatus = null
+      this.io.to(this.gameId).emit(EVENTS.GAME.STATUS, statusData)
+
+      return
+    }
+
+    const managerStatus = { name: status, data: managerData }
+    this.managerStatus = managerStatus
+    this.io
+      .to(this.gameId)
+      .except(this._manager.id)
+      .emit(EVENTS.GAME.STATUS, statusData)
+    this.io.to(this._manager.id).emit(EVENTS.GAME.STATUS, managerStatus)
   }
 
   private sendStatus<T extends Status>(

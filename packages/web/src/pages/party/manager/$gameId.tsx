@@ -7,6 +7,10 @@ import {
   useEvent,
   useSocket,
 } from "@razzia/web/features/game/contexts/socket-context"
+import {
+  useHostMediaKeys,
+  useHostMediaSync,
+} from "@razzia/web/features/game/media/host-media"
 import { useManagerStore } from "@razzia/web/features/game/stores/manager"
 import { useQuestionStore } from "@razzia/web/features/game/stores/question"
 import {
@@ -24,8 +28,13 @@ const ManagerGamePage = () => {
   const { socket } = useSocket()
   const { gameId, status, setGameId, setStatus, setPlayers, reset } =
     useManagerStore()
-  const { setQuestionStates } = useQuestionStore()
+  const { questionStates, setQuestionStates } = useQuestionStore()
   const { t } = useTranslation()
+
+  // The question's video or sound, played on this screen from one of its
+  // stages to the next.
+  useHostMediaSync(status, gameId, questionStates?.current)
+  useHostMediaKeys()
 
   useEvent(EVENTS.GAME.STATUS, ({ name, data }) => {
     if (name in GAME_STATE_COMPONENTS_MANAGER) {

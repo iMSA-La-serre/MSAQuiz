@@ -1,4 +1,4 @@
-import { EVENTS, QUESTION_TYPES } from "@razzia/common/constants"
+import { EVENTS, MEDIA_TYPES, QUESTION_TYPES } from "@razzia/common/constants"
 import type { QuizzWithId } from "@razzia/common/types/game"
 import type { Server, Socket } from "@razzia/common/types/game/socket"
 import { STATUS } from "@razzia/common/types/game/status"
@@ -39,7 +39,8 @@ const QUIZZ: QuizzWithId = {
   ],
 }
 
-// Just enough of socket.io to run a game, recording what reaches each target.
+// Just enough of socket.io to run a game, recording what reaches each target
+// (a room less one socket reads as "room!socket").
 const setup = () => {
   const emitted: Emitted[] = []
   const emitTo = (target: string) => ({
@@ -48,6 +49,7 @@ const setup = () => {
 
       return true
     },
+    except: (excluded: string) => emitTo(`${target}!${excluded}`),
   })
   const io = {
     to: emitTo,
@@ -68,7 +70,12 @@ const setup = () => {
       .filter((entry) => entry.event === EVENTS.GAME.STATUS)
       .map(({ data }) => data as { name: string; data: unknown })
 
-  return { io, socket, statusesOf }
+  const eventsOf = (target: string, event: string) =>
+    emitted
+      .filter((entry) => entry.target === target && entry.event === event)
+      .map(({ data }) => data)
+
+  return { io, socket, statusesOf, eventsOf }
 }
 
 beforeEach(() => {
@@ -118,6 +125,70 @@ describe("Game reconnection", () => {
     expect(statusesOf("manager-1").at(-1)).toMatchObject({
       name: STATUS.SHOW_RESPONSES,
       data: { responses: { 1: 1, 2: 1 }, totalAnswered: 2 },
+    })
+  })
+})
+
+const VIDEO = { type: MEDIA_TYPES.VIDEO, url: "https://intranet.example/v.mp4" }
+
+describe("Game, a video on the projected screen", () => {
+  it("gives its address to the manager alone, again after a reconnection", async () => {
+    const { io, socket, statusesOf, eventsOf } = setup()
+    const manager = socket("manager-1", "client-manager")
+    const game = new Game(io, manager, {
+      ...QUIZZ,
+      questions: [{ ...QUIZZ.questions[0], media: VIDEO }],
+    })
+    const camille = socket("camille-1", "client-camille")
+
+    game.join(camille, "Camille")
+    void game.start(manager)
+    // Start screen, countdown, question number, then the reading time.
+    await vi.advanceTimersByTimeAsync(13_000)
+
+    // The room but the manager: the type only.
+    expect(
+      statusesOf(`${game.gameId}!manager-1`).map(({ name, data }) => ({
+        name,
+        media: (data as { media?: unknown }).media,
+      })),
+    ).toEqual([
+      { name: STATUS.SHOW_QUESTION, media: { type: MEDIA_TYPES.VIDEO } },
+      { name: STATUS.SELECT_ANSWER, media: { type: MEDIA_TYPES.VIDEO } },
+    ])
+    // The manager: the whole media.
+    expect(
+      statusesOf("manager-1")
+        .filter(({ name }) => name !== STATUS.SHOW_RESPONSES)
+        .map(({ data }) => (data as { media?: unknown }).media),
+    ).toEqual([VIDEO, VIDEO])
+
+    // A reload of the projected screen: the whole media again.
+    game.setManagerDisconnected()
+    const managerBack = socket("manager-2", "client-manager")
+
+    game.reconnect(managerBack)
+
+    expect(
+      eventsOf("manager-2", EVENTS.MANAGER.SUCCESS_RECONNECT),
+    ).toMatchObject([
+      { status: { name: STATUS.SELECT_ANSWER, data: { media: VIDEO } } },
+    ])
+
+    // A player back: the type only.
+    game.setPlayerDisconnected("camille-1")
+    const camilleBack = socket("camille-2", "client-camille")
+
+    game.reconnect(camilleBack)
+
+    const [camilleStatus] = eventsOf(
+      "camille-2",
+      EVENTS.PLAYER.SUCCESS_RECONNECT,
+    ) as Array<{ status: { name: string; data: { media?: unknown } } }>
+
+    expect(camilleStatus.status.name).toBe(STATUS.SELECT_ANSWER)
+    expect(camilleStatus.status.data.media).toEqual({
+      type: MEDIA_TYPES.VIDEO,
     })
   })
 })

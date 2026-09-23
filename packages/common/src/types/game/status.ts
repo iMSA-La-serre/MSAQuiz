@@ -6,6 +6,7 @@ import type {
   QuestionMedia,
   QuestionOptions,
   QuestionType,
+  StatusMedia,
   WordCount,
 } from "@razzia/common/types/game"
 
@@ -47,10 +48,11 @@ export interface CommonStatusDataMap {
   }
   SHOW_QUESTION: {
     question: string
-    // Still image-only at this step: video and audio start with the answers.
-    media?: QuestionMedia
-    // Type only, so the screen can reserve the space of the upcoming media.
-    upcomingMedia?: "video" | "audio"
+    // The host gets the media whole: a video or a sound is loaded while the
+    // question is read, and starts when answers open (a slide's, at once).
+    // A player gets an image whole, a video or a sound as its type only
+    // (publicMedia): it plays on the projected screen.
+    media?: StatusMedia
     cooldown: number
     // Shown locked during the reading time, not accepted yet. The public
     // list: shuffled for an ordering (the same list as SELECT_ANSWER), empty
@@ -76,7 +78,9 @@ export interface CommonStatusDataMap {
     question: string
     // Public list, see SHOW_QUESTION. Ordering: answer with indices into it.
     answers: string[]
-    media?: QuestionMedia
+    // Whole for the host, see SHOW_QUESTION; a player never gets the address
+    // of a video or a sound.
+    media?: StatusMedia
     time: number
     totalPlayer: number
     questionType: QuestionType

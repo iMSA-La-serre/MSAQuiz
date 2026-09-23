@@ -1,9 +1,18 @@
 import type { ImageRetry } from "@razzia/web/hooks/useImageFailure"
 import clsx from "clsx"
-import { ImageOff } from "lucide-react"
+import { ImageOff, VideoOff, VolumeX } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
+// What did not load: its icon and its label.
+const KINDS = {
+  image: { icon: ImageOff, label: "game:media.imageUnavailable" },
+  video: { icon: VideoOff, label: "game:media.videoUnavailable" },
+  audio: { icon: VolumeX, label: "game:media.audioUnavailable" },
+} as const
+
 interface Props {
+  // An image when absent.
+  kind?: keyof typeof KINDS
   // The size of the media it stands in for.
   className?: string
   // On the game's background, or on a white card (the editor, the result
@@ -18,18 +27,20 @@ interface Props {
 }
 
 /**
- * Stands in for an image that did not load, at the place it would take: a
- * neutral block rather than a broken-image icon. Its icon and its label grow
- * with the projected screen.
+ * Stands in for an image (or a video) that did not load, at the place it
+ * would take: a neutral block rather than a broken-image icon. Its icon and
+ * its label grow with the projected screen.
  */
 const MediaUnavailable = ({
+  kind = "image",
   className,
   tone = "stage",
   placement = "center",
   retry,
 }: Props) => {
   const { t } = useTranslation()
-  const label = t("game:media.imageUnavailable")
+  const { icon: Icon, label: labelKey } = KINDS[kind]
+  const label = t(labelKey)
 
   return (
     <div
@@ -49,7 +60,7 @@ const MediaUnavailable = ({
         className,
       )}
     >
-      <ImageOff
+      <Icon
         className={clsx(
           "shrink-0",
           placement === "center" ? "size-[2em]" : "size-[1.5em]",

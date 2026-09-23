@@ -1,4 +1,5 @@
 import type { CommonStatusDataMap } from "@razzia/common/types/game/status"
+import { isTimedMedia } from "@razzia/common/utils/media"
 import QuestionStage from "@razzia/web/features/game/components/question/QuestionStage"
 import { usePlayerStore } from "@razzia/web/features/game/stores/player"
 import { useQuestionStore } from "@razzia/web/features/game/stores/question"
@@ -20,7 +21,6 @@ const Question = ({
   data: {
     question,
     media,
-    upcomingMedia,
     cooldown,
     answers,
     questionType,
@@ -36,10 +36,15 @@ const Question = ({
   const setLastAnswer = useQuestionStore((state) => state.setLastAnswer)
   const [remaining, setRemaining] = useState(cooldown)
   const [sfxShow] = useSound(SFX.SHOW_SOUND, { volume: 0.5 })
+  // A video or a sound is the question's own sound (a slide's starts at
+  // once): no jingle over it.
+  const timedMedia = isTimedMedia(media?.type)
 
   useEffect(() => {
-    sfxShow()
-  }, [sfxShow])
+    if (!timedMedia) {
+      sfxShow()
+    }
+  }, [sfxShow, timedMedia])
 
   // A new question: the waiting screen no longer shows the previous answer.
   useEffect(() => {
@@ -65,7 +70,6 @@ const Question = ({
       answers={answers}
       questionType={questionType}
       media={media}
-      upcomingMedia={upcomingMedia}
       time={time}
       cooldown={cooldown}
       totalPlayers={totalPlayer}

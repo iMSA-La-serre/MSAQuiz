@@ -54,7 +54,11 @@ const setup = (
   moderationWords?: () => readonly string[],
 ) => {
   let roster = players
-  const broadcasts: Array<{ name: Status; data: unknown }> = []
+  const broadcasts: Array<{
+    name: Status
+    data: unknown
+    managerData?: unknown
+  }> = []
   const sent: Array<{ target: string; name: Status; data: unknown }> = []
   const finished: GameResult[] = []
   const openWindows: Array<() => void> = []
@@ -95,8 +99,8 @@ const setup = (
     io: { to: () => ({ emit: () => true }) } as unknown as Server,
     gameId: "game",
     getManagerId: () => MANAGER_ID,
-    broadcast: (name, data) => {
-      broadcasts.push({ name, data })
+    broadcast: (name, data, managerData) => {
+      broadcasts.push({ name, data, managerData })
     },
     send: (target, name, data) => {
       sent.push({ target, name, data })
@@ -114,6 +118,14 @@ const setup = (
     broadcasts.findLast((entry) => entry.name === name)?.data as
       StatusDataMap[T] | undefined
 
+  // What the manager got of the last broadcast of `name`: its own copy when
+  // it had one, the room's otherwise.
+  const lastManagerBroadcast = <T extends Status>(name: T) => {
+    const entry = broadcasts.findLast((item) => item.name === name)
+
+    return (entry?.managerData ?? entry?.data) as StatusDataMap[T] | undefined
+  }
+
   const lastSent = <T extends Status>(target: string, name: T) =>
     sent.findLast((entry) => entry.target === target && entry.name === name)
       ?.data as StatusDataMap[T] | undefined
@@ -126,6 +138,7 @@ const setup = (
     finished,
     roster: () => roster,
     lastBroadcast,
+    lastManagerBroadcast,
     lastSent,
     // Start of the game, up to the reading time of the first question.
     reachFirstQuestion: async () => {
@@ -171,24 +184,6 @@ describe("RoundManager answer window", () => {
       cooldown: 5,
     })
     expect(shown).not.toHaveProperty("solutions")
-    expect(shown?.upcomingMedia).toBeUndefined()
-  })
-
-  it("announces a video by its type only", async () => {
-    const game = setup(
-      [
-        question({
-          media: { type: MEDIA_TYPES.VIDEO, url: "https://example.org/v.mp4" },
-        }),
-      ],
-      [player("camille")],
-    )
-
-    await game.reachFirstQuestion()
-
-    const shown = game.lastBroadcast(STATUS.SHOW_QUESTION)
-
-    expect(shown?.upcomingMedia).toBe(MEDIA_TYPES.VIDEO)
     expect(shown?.media).toBeUndefined()
   })
 
@@ -1370,6 +1365,142 @@ describe("RoundManager, statements and categorize", () => {
   })
 })
 
+const VIDEO_URL = "https://intranet.example/films/consignes.mp4"
+
+describe("RoundManager, media", () => {
+  it("gives a video's address to the host alone, from the reading time on", async () => {
+    const game = setup(
+      [question({ media: { type: MEDIA_TYPES.VIDEO, url: VIDEO_URL } })],
+      [player("camille")],
+    )
+
+    await game.reachFirstQuestion()
+
+    // The phones: the type only, which says « Regardez l'écran ».
+    expect(game.lastBroadcast(STATUS.SHOW_QUESTION)?.media).toEqual({
+      type: MEDIA_TYPES.VIDEO,
+    })
+    // The host: the whole media, loaded while the question is read.
+    expect(game.lastManagerBroadcast(STATUS.SHOW_QUESTION)?.media).toEqual({
+      type: MEDIA_TYPES.VIDEO,
+      url: VIDEO_URL,
+    })
+
+    await game.openAnswers(5)
+
+    expect(game.lastBroadcast(STATUS.SELECT_ANSWER)?.media).toEqual({
+      type: MEDIA_TYPES.VIDEO,
+    })
+    expect(game.lastManagerBroadcast(STATUS.SELECT_ANSWER)?.media).toEqual({
+      type: MEDIA_TYPES.VIDEO,
+      url: VIDEO_URL,
+    })
+
+    // Both copies say the same but for the media.
+    const answering = game.broadcasts.findLast(
+      ({ name }) => name === STATUS.SELECT_ANSWER,
+    )
+
+    expect({
+      ...(answering?.managerData as object),
+      media: undefined,
+    }).toEqual({ ...(answering?.data as object), media: undefined })
+
+    await game.closeAnswers()
+
+    // The distribution keeps it, for the host to go on playing it.
+    expect(game.lastSent(MANAGER_ID, STATUS.SHOW_RESPONSES)?.media).toEqual({
+      type: MEDIA_TYPES.VIDEO,
+      url: VIDEO_URL,
+    })
+  })
+
+  it("never sends a sound's or a slide video's address to a player", async () => {
+    const game = setup(
+      [
+        question({
+          type: QUESTION_TYPES.POLL,
+          solutions: [],
+          media: {
+            type: MEDIA_TYPES.AUDIO,
+            url: "/media/generique.mp3",
+            playback: "screen",
+          },
+        }),
+        question({
+          type: QUESTION_TYPES.SLIDE,
+          answers: [],
+          solutions: [],
+          media: { type: MEDIA_TYPES.VIDEO, url: VIDEO_URL },
+        }),
+      ],
+      [player("camille"), player("yanis")],
+    )
+
+    await game.reachFirstQuestion()
+    await game.openAnswers(5)
+    game.round.selectAnswer(socketOf("camille"), { answerKeys: [0] })
+    await game.closeAnswers()
+    await game.reachNextQuestion()
+    await game.openAnswers(5)
+    await game.closeAnswers()
+
+    const toPlayers = [
+      ...game.broadcasts.map(({ data }) => data),
+      ...game.sent
+        .filter(({ target }) => target !== MANAGER_ID)
+        .map(({ data }) => data),
+    ]
+    const serialized = JSON.stringify(toPlayers)
+
+    expect(serialized).not.toContain("generique.mp3")
+    expect(serialized).not.toContain("consignes.mp4")
+    expect(serialized).not.toContain("playback")
+    expect(
+      game.broadcasts
+        .filter(({ name }) => name === STATUS.SELECT_ANSWER)
+        .map(({ data }) => (data as StatusDataMap["SELECT_ANSWER"]).media),
+    ).toEqual([{ type: MEDIA_TYPES.AUDIO }, { type: MEDIA_TYPES.VIDEO }])
+    // The host got both addresses, and its setting.
+    expect(
+      game.broadcasts
+        .filter(({ name }) => name === STATUS.SELECT_ANSWER)
+        .map(
+          ({ managerData }) =>
+            (managerData as StatusDataMap["SELECT_ANSWER"]).media?.url,
+        ),
+    ).toEqual(["/media/generique.mp3", VIDEO_URL])
+  })
+
+  it("sends an image to everyone alike, with no copy for the host", async () => {
+    const image = { type: MEDIA_TYPES.IMAGE, url: "https://msa.example/a.png" }
+    const game = setup([question({ media: image })], [player("camille")])
+
+    await game.reachFirstQuestion()
+    await game.openAnswers(5)
+
+    for (const status of [STATUS.SHOW_QUESTION, STATUS.SELECT_ANSWER]) {
+      const entry = game.broadcasts.findLast(({ name }) => name === status)
+
+      expect(entry?.data).toMatchObject({ media: image })
+      expect(entry?.managerData).toBeUndefined()
+    }
+  })
+
+  it("sends nothing of a media without a type, which no screen shows", async () => {
+    const game = setup(
+      [question({ media: { url: "https://msa.example/fichier" } })],
+      [player("camille")],
+    )
+
+    await game.reachFirstQuestion()
+    await game.openAnswers(5)
+
+    expect(game.lastBroadcast(STATUS.SHOW_QUESTION)?.media).toBeUndefined()
+    expect(game.lastBroadcast(STATUS.SELECT_ANSWER)?.media).toBeUndefined()
+  })
+})
+
 describe("RoundManager, what players receive", () => {
   // Every key a player may receive, per status. Anything else (accepted
   // answers, solutions, the correct order, a clientId) must stay server side.
@@ -1387,7 +1518,6 @@ describe("RoundManager, what players receive", () => {
       "text",
       "time",
       "totalPlayer",
-      "upcomingMedia",
     ],
     SELECT_ANSWER: [
       "answers",

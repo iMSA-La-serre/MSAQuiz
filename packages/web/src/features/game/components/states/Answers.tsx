@@ -4,6 +4,7 @@ import type {
   QuestionMediaType,
 } from "@razzia/common/types/game"
 import type { CommonStatusDataMap } from "@razzia/common/types/game/status"
+import { isTimedMedia } from "@razzia/common/utils/media"
 import QuestionStage from "@razzia/web/features/game/components/question/QuestionStage"
 import {
   useEvent,
@@ -98,7 +99,11 @@ const Answers = ({
 
   useEvent(EVENTS.GAME.PLAYER_ANSWER, (count) => {
     setAnswered(count)
-    sfxPop()
+
+    // A pop per answer would cover the question's video or sound.
+    if (!isTimedMedia(media?.type)) {
+      sfxPop()
+    }
   })
 
   return (

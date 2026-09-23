@@ -2,7 +2,11 @@ import type {
   QuestionMedia,
   QuestionMediaType,
 } from "@razzia/common/types/game"
-import { mediaIssue, mediaTypeOf } from "@razzia/common/utils/media"
+import {
+  isTimedMedia,
+  mediaIssue,
+  mediaTypeOf,
+} from "@razzia/common/utils/media"
 
 type MediaType = NonNullable<QuestionMediaType>
 
@@ -50,7 +54,8 @@ export const keepsPick = (
  * is cleared, so the question saves without one; otherwise the type the
  * author picked while it holds (see keepsPick), else the type the new
  * address tells, else the one it had. The pick is the media's own by
- * default; the editor passes the one it keeps across the keystrokes.
+ * default; the editor passes the one it keeps across the keystrokes. Where a
+ * video or a sound plays stays as it was.
  */
 export const mediaForUrl = (
   current: QuestionMedia | undefined,
@@ -65,8 +70,12 @@ export const mediaForUrl = (
     (keepsPick(pick, url) ? pick.type : undefined) ??
     mediaTypeOf(url) ??
     current?.type
+  const playback =
+    current?.playback !== undefined && isTimedMedia(type)
+      ? { playback: current.playback }
+      : {}
 
-  return type === undefined ? { url } : { type, url }
+  return type === undefined ? { url } : { type, url, ...playback }
 }
 
 export interface MediaDraft {

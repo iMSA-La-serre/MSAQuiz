@@ -1,12 +1,14 @@
 import { MEDIA_LIMITS } from "@razzia/common/constants"
 import {
   isSameServerPath,
+  isTimedMedia,
   isVideoPageLink,
   MEDIA_ISSUES,
   mediaFileTypeOf,
   mediaIssue,
   mediaIssuesOf,
   mediaTypeOf,
+  publicMedia,
 } from "@razzia/common/utils/media"
 import { describe, expect, it } from "vitest"
 
@@ -272,5 +274,44 @@ describe("mediaIssuesOf", () => {
       { message: MEDIA_ISSUES.PAGE_LINK, questionIndex: 2 },
       { message: MEDIA_ISSUES.TYPE_MISSING, questionIndex: 3 },
     ])
+  })
+})
+
+describe("isTimedMedia", () => {
+  it("tells a video and a sound from an image or no type", () => {
+    expect(isTimedMedia("video")).toBe(true)
+    expect(isTimedMedia("audio")).toBe(true)
+    expect(isTimedMedia("image")).toBe(false)
+    expect(isTimedMedia(undefined)).toBe(false)
+  })
+})
+
+describe("publicMedia", () => {
+  it("gives a phone an image whole, without its playback setting", () => {
+    expect(
+      publicMedia({
+        type: "image",
+        url: "https://msa.example/plan.png",
+        playback: "devices",
+      }),
+    ).toEqual({ type: "image", url: "https://msa.example/plan.png" })
+  })
+
+  it("gives a phone a video or a sound as its type only", () => {
+    expect(
+      publicMedia({ type: "video", url: "https://msa.example/film.mp4" }),
+    ).toEqual({ type: "video" })
+    expect(
+      publicMedia({
+        type: "audio",
+        url: "/media/son.mp3",
+        playback: "screen",
+      }),
+    ).toEqual({ type: "audio" })
+  })
+
+  it("gives nothing of a media without a type, or of none", () => {
+    expect(publicMedia({ url: "https://msa.example/fichier" })).toBeUndefined()
+    expect(publicMedia(undefined)).toBeUndefined()
   })
 })

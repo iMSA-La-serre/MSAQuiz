@@ -2,7 +2,6 @@
 import {
   EVENTS,
   MAX_POINTS,
-  MEDIA_TYPES,
   NO_TIME_LIMIT,
   QUESTION_TYPE_META,
   QUESTION_TYPES,
@@ -43,6 +42,7 @@ import {
 import { estimateRanges, medianOf } from "@razzia/common/utils/estimate"
 import { foundPassages } from "@razzia/common/utils/highlight"
 import { markersOf } from "@razzia/common/utils/markers"
+import { isTimedMedia, publicMedia } from "@razzia/common/utils/media"
 import {
   BUILTIN_BLOCKLIST,
   type Blocklist,
@@ -67,9 +67,12 @@ import { orderToPoint, timeToPoint } from "@razzia/socket/utils/game"
 import sleep from "@razzia/socket/utils/sleep"
 import { nanoid } from "nanoid"
 
+// To the whole room; with `managerData`, the manager gets that instead of
+// `data` (the address of a video, which the players never get).
 type BroadcastFn = <T extends Status>(
   _status: T,
   _data: StatusDataMap[T],
+  _managerData?: StatusDataMap[T],
 ) => void
 type SendFn = <T extends Status>(
   _target: string,
@@ -299,13 +302,12 @@ export class RoundManager {
       return
     }
 
-    const imageMedia =
-      question.media?.type === MEDIA_TYPES.IMAGE ? question.media : undefined
-    const upcomingMedia =
-      question.media?.type === MEDIA_TYPES.VIDEO ||
-      question.media?.type === MEDIA_TYPES.AUDIO
-        ? question.media.type
-        : undefined
+    // A video or a sound plays on the projected screen: the host alone gets
+    // its address, the phones its type (publicMedia), so none loads the file.
+    const media = publicMedia(question.media)
+    const hostMedia = isTimedMedia(question.media?.type)
+      ? question.media
+      : undefined
 
     // A highlight's text goes along with its passages, which are its answers;
     // the targets of statements and categorize, with their items.
@@ -317,10 +319,9 @@ export class RoundManager {
     // The answers are shown during the reading time, but never the solutions
     // (nor the accepted answers, nor the correct order, nor the credits of a
     // single choice): those only go to the manager with SHOW_RESPONSES.
-    this.opts.broadcast(STATUS.SHOW_QUESTION, {
+    const reading = {
       question: question.question,
-      media: imageMedia,
-      upcomingMedia,
+      media,
       cooldown: question.cooldown,
       answers,
       questionType: question.type,
@@ -330,7 +331,13 @@ export class RoundManager {
       ...highlightText,
       ...associationTargets,
       ...imageMarkers,
-    })
+    }
+
+    this.opts.broadcast(
+      STATUS.SHOW_QUESTION,
+      reading,
+      hostMedia && { ...reading, media: hostMedia },
+    )
 
     await sleep(question.cooldown)
 
@@ -341,10 +348,10 @@ export class RoundManager {
     this.startTime = Date.now()
     this.acceptingAnswers = true
 
-    this.opts.broadcast(STATUS.SELECT_ANSWER, {
+    const answering = {
       question: question.question,
       answers,
-      media: question.media,
+      media,
       time: question.time,
       totalPlayer: this.opts.players.count(),
       questionType: question.type,
@@ -352,7 +359,13 @@ export class RoundManager {
       ...highlightText,
       ...associationTargets,
       ...imageMarkers,
-    })
+    }
+
+    this.opts.broadcast(
+      STATUS.SELECT_ANSWER,
+      answering,
+      hostMedia && { ...answering, media: hostMedia },
+    )
 
     await this.opts.cooldown.start(question.time)
 

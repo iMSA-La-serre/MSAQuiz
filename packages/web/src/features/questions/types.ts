@@ -6,6 +6,7 @@ import type {
   QuestionOptions,
   QuestionResult,
   QuestionStats,
+  TimedMediaType,
 } from "@razzia/common/types/game"
 import type { ManagerStatusDataMap } from "@razzia/common/types/game/status"
 
@@ -24,6 +25,9 @@ export interface AnswerComponentProps {
   size: "host" | "phone"
   // Taller rows with larger text (true/false on phone).
   large?: boolean
+  // A video or a sound playing on the projected screen, which a slide's card
+  // on a phone points to.
+  screenMedia?: TimedMediaType
 }
 
 // The media block of a type that draws the question's image itself, with its

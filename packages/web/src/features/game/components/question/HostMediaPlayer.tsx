@@ -1,0 +1,188 @@
+import MediaUnavailable from "@razzia/web/components/MediaUnavailable"
+import {
+  FullscreenControl,
+  MediaTimeline,
+  MediaToggle,
+  RestartControl,
+  RetryControl,
+} from "@razzia/web/features/game/components/question/HostMediaControls"
+import {
+  hostMedia,
+  useHostMediaState,
+} from "@razzia/web/features/game/media/host-media"
+import {
+  parkMediaElement,
+  placeMediaElement,
+} from "@razzia/web/features/game/media/stage"
+import clsx from "clsx"
+import { useLayoutEffect, useRef } from "react"
+import { useTranslation } from "react-i18next"
+
+interface Props {
+  url: string
+  // By the answers (the image's column), or in a slide's centred column.
+  layout: "side" | "slide"
+}
+
+// The frame's height, 16:9 as wide as it allows: what the projected screen
+// leaves once the title (--title-h, see useTitleHeight), the controls under
+// it (--media-controls-h), the band and the dock are placed. By the answers,
+// at most the height an image gets there, never under 8rem; on a slide, the
+// sizes of a slide's image, never under 12.5rem, the smallest player a video
+// site allows.
+const SIDE_MEDIA_H =
+  "[--media-h:max(8rem,min(20rem,calc(100dvh_-_20rem_-_var(--title-h,4rem)_-_var(--media-controls-h))))] lg:[--media-h:max(8rem,min(26rem,calc(100dvh_-_20rem_-_var(--title-h,4rem)_-_var(--media-controls-h))))] short:[--media-h:max(8rem,min(14rem,calc(100dvh_-_15.5rem_-_var(--title-h,4rem)_-_var(--media-controls-h))))]"
+
+const SLIDE_MEDIA_H =
+  "[--media-h:max(12.5rem,min(20rem,calc(100dvh_-_20rem_-_var(--title-h,4rem)_-_var(--media-controls-h))))] lg:[--media-h:max(12.5rem,min(32rem,calc(100dvh_-_20rem_-_var(--title-h,4rem)_-_var(--media-controls-h))))] short:[--media-h:max(12.5rem,min(20rem,calc(100dvh_-_16rem_-_var(--title-h,4rem)_-_var(--media-controls-h))))]"
+
+// The height the controls take under the video, the gap above them
+// included: one row of 2.75rem buttons with the bar in it, once the block is
+// 28rem wide; below, or while the browser refuses to play on its own (its
+// message on a row of its own), the bar or the message (1.5rem) over the
+// buttons.
+const ONE_ROW = "[--media-controls-h:3.5rem]"
+const TWO_ROWS = "[--media-controls-h:5.5rem]"
+
+// The control that had the focus when a screen of the question went away:
+// the same control of the next screen takes it (a remote, a keyboard).
+let handedFocus: { key: string; control: string } | null = null
+
+/**
+ * The video of the question on the projected screen, with the host's
+ * controls under it, never over it: back to the start, play or pause, where
+ * it is, full screen. A click on the picture plays or pauses it too. The
+ * player itself belongs to hostMedia: this block only lends it its frame,
+ * and the next screen of the question takes it over where it was.
+ */
+const HostMediaPlayer = ({ url, layout }: Props) => {
+  const { t } = useTranslation()
+  const state = useHostMediaState()
+  const rootRef = useRef<HTMLDivElement>(null)
+  const slotRef = useRef<HTMLDivElement>(null)
+  // Only the player of this very media: never the previous question's for a
+  // frame.
+  const element = state.source?.url === url ? state.element : null
+  const key = element ? state.key : null
+  const ready = element !== null
+  const { blocked, failed } = state
+  const slide = layout === "slide"
+
+  // Taken over from the previous screen's block within the same commit,
+  // which left it in the page (see stage.ts): it never stops.
+  useLayoutEffect(() => {
+    const slot = slotRef.current
+
+    if (!slot || !element) {
+      return
+    }
+
+    placeMediaElement(element, slot)
+
+    return () => {
+      if (element.parentNode === slot) {
+        parkMediaElement(element)
+      }
+    }
+  }, [element])
+
+  // The focus goes on from one screen of the question to the next.
+  useLayoutEffect(() => {
+    const root = rootRef.current
+
+    if (!root || key === null) {
+      return
+    }
+
+    if (handedFocus?.key === key) {
+      root
+        .querySelector<HTMLElement>(
+          `[data-media-control="${handedFocus.control}"]`,
+        )
+        ?.focus({ preventScroll: true })
+    }
+
+    handedFocus = null
+
+    return () => {
+      const active = document.activeElement
+
+      handedFocus =
+        active instanceof HTMLElement &&
+        root.contains(active) &&
+        active.dataset.mediaControl
+          ? { key, control: active.dataset.mediaControl }
+          : null
+    }
+  }, [key])
+
+  // By the answers, the width of the column tells: one row or two.
+  const sideControlsHeight = blocked
+    ? TWO_ROWS
+    : clsx(TWO_ROWS, "@md:[--media-controls-h:3.5rem]")
+
+  return (
+    <div
+      ref={rootRef}
+      className={clsx(
+        "@container flex w-full flex-col gap-3",
+        slide &&
+          clsx(
+            SLIDE_MEDIA_H,
+            blocked ? TWO_ROWS : ONE_ROW,
+            "mx-auto max-w-[max(min(100%,28rem),calc(var(--media-h)*16/9))]",
+          ),
+      )}
+    >
+      <div
+        onClick={
+          ready && !failed
+            ? () => {
+                hostMedia.toggle()
+              }
+            : undefined
+        }
+        className={clsx(
+          "relative aspect-video max-h-(--media-h) w-full max-w-[calc(var(--media-h)*16/9)] overflow-hidden rounded-2xl bg-black/40",
+          slide ? "mx-auto" : clsx(SIDE_MEDIA_H, sideControlsHeight),
+          ready && !failed && "cursor-pointer",
+        )}
+      >
+        <div ref={slotRef} className="size-full" />
+        {failed && (
+          <MediaUnavailable
+            kind="video"
+            className="absolute inset-0 rounded-2xl"
+          />
+        )}
+      </div>
+      {failed ? (
+        <div className="flex flex-wrap items-center gap-3">
+          <RetryControl />
+        </div>
+      ) : (
+        <div
+          role="group"
+          aria-label={t("game:media.videoControls")}
+          className="flex flex-wrap items-center gap-x-3 gap-y-2"
+        >
+          <RestartControl ready={ready} />
+          <MediaToggle kind="video" state={state} ready={ready} />
+          <MediaTimeline
+            state={state}
+            ready={ready}
+            className={clsx(
+              "order-first basis-full",
+              !blocked && "@md:order-none @md:flex-1 @md:basis-0",
+            )}
+          />
+          <div className="ml-auto">
+            <FullscreenControl element={element} />
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default HostMediaPlayer

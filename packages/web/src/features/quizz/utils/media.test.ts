@@ -28,6 +28,24 @@ describe("mediaForUrl", () => {
     ).toEqual({ type: "video", url: "https://a.fr/film.mp4" })
   })
 
+  it("keeps where a video or a sound plays, never on an image", () => {
+    const video = {
+      type: "video",
+      url: "https://a.fr/film.mp4",
+      playback: "devices",
+    } as const
+
+    expect(mediaForUrl(video, "https://a.fr/autre.webm")).toEqual({
+      type: "video",
+      url: "https://a.fr/autre.webm",
+      playback: "devices",
+    })
+    expect(mediaForUrl(video, "https://a.fr/plan.png")).toEqual({
+      type: "image",
+      url: "https://a.fr/plan.png",
+    })
+  })
+
   it("keeps the address as typed, spaces included", () => {
     expect(mediaForUrl(undefined, " https://a.fr/son.mp3")).toEqual({
       type: "audio",
