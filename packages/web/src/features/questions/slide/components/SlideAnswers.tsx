@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next"
 
 const HINTS = {
   video: "game:answer.slideVideoHint",
+  youtube: "game:answer.slideVideoHint",
   audio: "game:answer.slideAudioHint",
 } as const
 

@@ -122,7 +122,7 @@ describe("quizz handlers", () => {
         questions: [
           {
             ...QUESTION,
-            media: { url: "https://youtu.be/aqz-KE-bpKQ" },
+            media: { url: "https://vimeo.com/123456" },
           },
         ],
       }),
@@ -228,7 +228,7 @@ describe("quizz handlers", () => {
         data: {
           id,
           warnings: [
-            { message: "errors:quizz.mediaPageLink", questionIndex: 1 },
+            { message: "errors:quizz.mediaYoutubeType", questionIndex: 1 },
             { message: "errors:quizz.mediaTypeMissing", questionIndex: 2 },
           ],
         },
@@ -297,7 +297,7 @@ describe("quizz handlers", () => {
     ).toEqual([
       {
         event: EVENTS.QUIZZ.ERROR,
-        data: { message: "errors:quizz.mediaPageLink", questionIndex: 0 },
+        data: { message: "errors:quizz.mediaYoutubeType", questionIndex: 0 },
       },
     ])
   })

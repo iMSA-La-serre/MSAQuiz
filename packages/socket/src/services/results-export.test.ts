@@ -873,3 +873,75 @@ describe("buildResultWorkbook, single choice with partial credits", () => {
     ])
   })
 })
+
+describe("buildResultWorkbook, media", () => {
+  // A slide is never in the results: a question with answers carries the
+  // video.
+  it("links a YouTube video under the question, and nothing for a file", async () => {
+    const [, questions] = await readWorkbook(
+      result([
+        question({
+          question: "La MSA, c'est quoi ?",
+          media: { type: "youtube", url: "https://youtu.be/wIJE-WNenXA?t=12" },
+          playerAnswers: answers(["Alex", [0]]),
+        }),
+        question({
+          media: { type: "video", url: "https://msa.example/film.mp4" },
+          playerAnswers: answers(["Alex", [0]]),
+        }),
+      ]),
+    )
+    const link = "https://www.youtube.com/watch?v=wIJE-WNenXA&t=12s"
+
+    expect(questions.rows[1]).toEqual([
+      "Q1 — La MSA, c'est quoi ?",
+      null,
+      null,
+      null,
+    ])
+    expect(questions.rows[2]).toEqual([
+      null,
+      { text: `Vidéo YouTube : ${link}`, hyperlink: link },
+      null,
+      null,
+    ])
+    expect(questions.rows[3]?.[1]).toBe("Paris")
+    expect(questions.rows.map((row) => row[0])).toContain(
+      "Q2 — Capitale de la France ?",
+    )
+    expect(JSON.stringify(questions.rows)).not.toContain("film.mp4")
+  })
+
+  it("links a YouTube video's link a game of an older version stored as a video file or an image", async () => {
+    const [, questions] = await readWorkbook(
+      result([
+        question({
+          media: { type: "video", url: "https://youtu.be/wIJE-WNenXA" },
+          playerAnswers: answers(["Alex", [0]]),
+        }),
+        question({
+          media: {
+            type: "image",
+            url: "https://www.youtube.com/watch?v=wIJE-WNenXA",
+          },
+          playerAnswers: answers(["Alex", [0]]),
+        }),
+        question({
+          media: { type: "audio", url: "https://youtu.be/wIJE-WNenXA" },
+          playerAnswers: answers(["Alex", [0]]),
+        }),
+      ]),
+    )
+    const link = "https://www.youtube.com/watch?v=wIJE-WNenXA"
+    const linked = questions.rows.filter(
+      (row) =>
+        typeof row[1] === "object" &&
+        row[1] !== null &&
+        "hyperlink" in row[1] &&
+        row[1].hyperlink === link,
+    )
+
+    // Not a sound's.
+    expect(linked).toHaveLength(2)
+  })
+})

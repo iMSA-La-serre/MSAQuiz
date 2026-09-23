@@ -46,6 +46,26 @@ describe("mediaForUrl", () => {
     })
   })
 
+  it("recognises a YouTube video's link as it is pasted", () => {
+    expect(
+      mediaForUrl(
+        { type: "video", url: "https://a.fr/film.mp4", playback: "screen" },
+        "https://youtu.be/aqz-KE-bpKQ?si=abc",
+      ),
+    ).toEqual({
+      type: "youtube",
+      url: "https://youtu.be/aqz-KE-bpKQ?si=abc",
+      playback: "screen",
+    })
+    // Back to a file: its type again.
+    expect(
+      mediaForUrl(
+        { type: "youtube", url: "https://youtu.be/aqz-KE-bpKQ" },
+        "https://a.fr/film.mp4",
+      ),
+    ).toEqual({ type: "video", url: "https://a.fr/film.mp4" })
+  })
+
   it("keeps the address as typed, spaces included", () => {
     expect(mediaForUrl(undefined, " https://a.fr/son.mp3")).toEqual({
       type: "audio",
@@ -145,6 +165,16 @@ describe("pickOf and keepsPick", () => {
 })
 
 describe("mediaDraftOf", () => {
+  it("shows a YouTube video's link as a YouTube video", () => {
+    expect(
+      mediaDraftOf({ url: " https://youtu.be/aqz-KE-bpKQ?t=90 " }),
+    ).toEqual({
+      type: "youtube",
+      issue: undefined,
+      url: "https://youtu.be/aqz-KE-bpKQ?t=90",
+    })
+  })
+
   it("shows the type the address tells when none was picked", () => {
     expect(mediaDraftOf({ url: " https://a.fr/plan.png " })).toEqual({
       type: "image",
@@ -157,11 +187,23 @@ describe("mediaDraftOf", () => {
     expect(mediaDraftOf({ url: String.raw`C:\Videos\jeu.mp4` }).issue).toBe(
       MEDIA_ISSUES.NOT_WEB,
     )
-    expect(mediaDraftOf({ url: "https://youtu.be/aqz-KE-bpKQ" })).toEqual({
+    expect(mediaDraftOf({ url: "https://vimeo.com/123456" })).toEqual({
       type: "video",
       issue: MEDIA_ISSUES.PAGE_LINK,
-      url: "https://youtu.be/aqz-KE-bpKQ",
+      url: "https://vimeo.com/123456",
     })
+    expect(
+      mediaDraftOf({ url: "https://www.youtube.com/@msa_agricole" }),
+    ).toEqual({
+      type: "youtube",
+      issue: MEDIA_ISSUES.YOUTUBE_LINK,
+      url: "https://www.youtube.com/@msa_agricole",
+    })
+    // A YouTube video's link picked as a video file.
+    expect(
+      mediaDraftOf({ type: "video", url: "https://youtu.be/aqz-KE-bpKQ" })
+        .issue,
+    ).toBe(MEDIA_ISSUES.YOUTUBE_TYPE)
     expect(mediaDraftOf({ url: "https://a.fr/image?id=3" }).issue).toBe(
       MEDIA_ISSUES.TYPE_MISSING,
     )

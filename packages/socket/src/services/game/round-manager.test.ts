@@ -1472,6 +1472,101 @@ describe("RoundManager, media", () => {
     ).toEqual(["/media/generique.mp3", VIDEO_URL])
   })
 
+  it("gives a YouTube video's link to the host alone: no phone contacts YouTube", async () => {
+    const youtube = {
+      type: MEDIA_TYPES.YOUTUBE,
+      url: "https://youtu.be/wIJE-WNenXA?t=12",
+    }
+    const game = setup(
+      [
+        question({
+          type: QUESTION_TYPES.SLIDE,
+          answers: [],
+          solutions: [],
+          media: youtube,
+        }),
+      ],
+      [player("camille")],
+    )
+
+    await game.reachFirstQuestion()
+    await game.openAnswers(5)
+    await game.closeAnswers()
+
+    for (const status of [STATUS.SHOW_QUESTION, STATUS.SELECT_ANSWER]) {
+      expect(game.lastBroadcast(status)?.media).toEqual({
+        type: MEDIA_TYPES.YOUTUBE,
+      })
+      expect(game.lastManagerBroadcast(status)?.media).toEqual(youtube)
+    }
+
+    expect(game.lastSent(MANAGER_ID, STATUS.SHOW_RESPONSES)?.media).toEqual(
+      youtube,
+    )
+
+    const toPlayers = JSON.stringify([
+      ...game.broadcasts.map(({ data }) => data),
+      ...game.sent
+        .filter(({ target }) => target !== MANAGER_ID)
+        .map(({ data }) => data),
+    ])
+
+    expect(toPlayers).not.toContain("wIJE-WNenXA")
+    expect(toPlayers).not.toContain("youtu.be")
+  })
+
+  it("plays a YouTube video's link stored as a file or an image as the YouTube video: never on a phone", async () => {
+    const url = "https://www.youtube.com/watch?v=wIJE-WNenXA"
+    const game = setup(
+      [
+        question({ media: { type: MEDIA_TYPES.IMAGE, url } }),
+        question({ media: { type: MEDIA_TYPES.VIDEO, url } }),
+      ],
+      [player("camille")],
+    )
+
+    await game.reachFirstQuestion()
+    await game.openAnswers(5)
+    game.round.selectAnswer(socketOf("camille"), { answerKeys: [0] })
+    await game.closeAnswers()
+
+    const youtube = { type: MEDIA_TYPES.YOUTUBE, url }
+
+    for (const status of [STATUS.SHOW_QUESTION, STATUS.SELECT_ANSWER]) {
+      expect(game.lastBroadcast(status)?.media).toEqual({
+        type: MEDIA_TYPES.YOUTUBE,
+      })
+      expect(game.lastManagerBroadcast(status)?.media).toEqual(youtube)
+    }
+
+    expect(game.lastSent(MANAGER_ID, STATUS.SHOW_RESPONSES)?.media).toEqual(
+      youtube,
+    )
+    await game.reachNextQuestion()
+    await game.openAnswers(5)
+    await game.closeAnswers()
+
+    expect(game.lastBroadcast(STATUS.SELECT_ANSWER)?.media).toEqual({
+      type: MEDIA_TYPES.YOUTUBE,
+    })
+
+    // The results show both as the YouTube video.
+    game.round.showLeaderboard(game.manager)
+    expect(game.finished[0]?.questions.map(({ media }) => media)).toEqual([
+      youtube,
+      youtube,
+    ])
+
+    const toPlayers = JSON.stringify([
+      ...game.broadcasts.map(({ data }) => data),
+      ...game.sent
+        .filter(({ target }) => target !== MANAGER_ID)
+        .map(({ data }) => data),
+    ])
+
+    expect(toPlayers).not.toContain("wIJE-WNenXA")
+  })
+
   it("sends an image to everyone alike, with no copy for the host", async () => {
     const image = { type: MEDIA_TYPES.IMAGE, url: "https://msa.example/a.png" }
     const game = setup([question({ media: image })], [player("camille")])

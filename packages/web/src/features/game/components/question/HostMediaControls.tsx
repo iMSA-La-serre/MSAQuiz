@@ -16,6 +16,7 @@ import {
 import { REMOTE_SAFE_ATTRIBUTE } from "@razzia/web/features/game/utils/keys"
 import clsx from "clsx"
 import {
+  ExternalLink,
   Maximize,
   Minimize,
   Pause,
@@ -45,7 +46,8 @@ interface StateProps {
   ready: boolean
 }
 
-const isVideo = (kind: TimedMediaType) => kind === MEDIA_TYPES.VIDEO
+// A video file or a YouTube video: « la vidéo ».
+const isVideo = (kind: TimedMediaType) => kind !== MEDIA_TYPES.AUDIO
 
 /**
  * Play and pause. As wide playing as paused (« Lire », « Pause »), so the
@@ -273,5 +275,31 @@ export const RetryControl = () => {
       <RotateCw aria-hidden className="size-5" />
       {t("game:media.retry")}
     </Button>
+  )
+}
+
+/**
+ * The video on YouTube, in a new tab: a video its owner keeps to YouTube
+ * still plays there. A link, as a control of the host's.
+ */
+export const OpenOnYoutubeControl = ({ url }: { url: string }) => {
+  const { t } = useTranslation()
+
+  return (
+    <a
+      {...controlProps("youtube")}
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={clsx(
+        CONTROL,
+        QUIET,
+        "inline-flex items-center justify-center gap-2 px-4",
+      )}
+    >
+      <ExternalLink aria-hidden className="size-5" />
+      {t("game:media.openOnYoutube")}
+      <span className="sr-only">{t("game:media.newTab")}</span>
+    </a>
   )
 }

@@ -21,7 +21,9 @@ import {
   toleranceOf,
   unitOf,
 } from "@razzia/common/utils/estimate"
+import { youtubeOfMedia } from "@razzia/common/utils/media"
 import { rankOrder, rankPoints } from "@razzia/common/utils/ranking"
+import { youtubeWatchUrl } from "@razzia/common/utils/youtube"
 import {
   scaleEndLabel,
   scaleRangeOf,
@@ -356,6 +358,23 @@ const addWordCloudRows = ({ sheet, question, answered }: QuestionRows) => {
   sheet.addRow({ answer: "Ont répondu", votes: answered.length })
 }
 
+// A YouTube video shown with the question: a link to its page, under the
+// question's title. A YouTube video's link stored as a video file or an
+// image (a game of an older version) is the YouTube video it played.
+const addYoutubeRow = (sheet: Excel.Worksheet, question: QuestionResult) => {
+  const video = youtubeOfMedia(question.media)
+
+  if (!video) {
+    return
+  }
+
+  const url = youtubeWatchUrl(video)
+
+  sheet.addRow({
+    answer: { text: `Vidéo YouTube : ${url}`, hyperlink: url },
+  }).font = { italic: true, underline: true }
+}
+
 // The questions whose answers are not linked to a username (word clouds,
 // scales): one column each, saying whether the player answered, and nothing
 // more.
@@ -456,6 +475,7 @@ export const buildResultWorkbook = async (
       question: `Q${index + 1} — ${question.question}`,
     })
     titleRow.font = { bold: true }
+    addYoutubeRow(questions, question)
 
     const rows = { sheet: questions, question, answered }
 

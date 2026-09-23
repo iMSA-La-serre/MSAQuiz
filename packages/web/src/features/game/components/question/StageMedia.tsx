@@ -1,6 +1,6 @@
 import { MEDIA_TYPES } from "@razzia/common/constants"
 import type { StatusMedia } from "@razzia/common/types/game"
-import { isTimedMedia } from "@razzia/common/utils/media"
+import { isTimedMedia, isVideoMedia } from "@razzia/common/utils/media"
 import MediaUnavailable from "@razzia/web/components/MediaUnavailable"
 import HostMediaPlayer from "@razzia/web/features/game/components/question/HostMediaPlayer"
 import ScreenMediaCard from "@razzia/web/features/game/components/question/ScreenMediaCard"
@@ -8,9 +8,9 @@ import useImageFailure from "@razzia/web/hooks/useImageFailure"
 import clsx from "clsx"
 
 interface Props {
-  // Whole on the projected screen; on a phone, a video or a sound comes as
-  // its type only (it plays on the projected screen). On the projected
-  // screen, a sound shows nothing here: see HostSoundBar.
+  // Whole on the projected screen; on a phone, a video (a YouTube video too)
+  // or a sound comes as its type only (it plays on the projected screen). On
+  // the projected screen, a sound shows nothing here: see HostSoundBar.
   media?: StatusMedia
   alt: string
   variant: "host" | "phone"
@@ -88,8 +88,8 @@ const StageMedia = ({ media, alt, variant, slide }: Props) => {
   }
 
   // A sound has nothing to show: its controls are in the host's dock
-  // (HostSoundBar).
-  if (media.type !== MEDIA_TYPES.VIDEO) {
+  // (HostSoundBar). A video file and a YouTube video show the same way.
+  if (!isVideoMedia(media.type)) {
     return null
   }
 

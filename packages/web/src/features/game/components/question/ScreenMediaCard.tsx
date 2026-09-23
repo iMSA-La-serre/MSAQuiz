@@ -13,6 +13,12 @@ const CONTENT = {
     title: "game:media.watchScreen",
     hint: "game:media.watchScreenHint",
   },
+  // A YouTube video too: the phone never contacts YouTube.
+  [MEDIA_TYPES.YOUTUBE]: {
+    icon: MonitorPlay,
+    title: "game:media.watchScreen",
+    hint: "game:media.watchScreenHint",
+  },
   [MEDIA_TYPES.AUDIO]: {
     icon: Volume2,
     title: "game:media.listen",

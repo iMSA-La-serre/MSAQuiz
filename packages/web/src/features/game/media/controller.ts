@@ -1,24 +1,30 @@
 import type { TimedMediaType } from "@razzia/common/types/game"
 
-/** A media the host plays: a video or a sound file, by its address. */
+/**
+ * A media the host plays: a video or a sound file, by its address, or a
+ * YouTube video, by its link.
+ */
 export interface MediaSource {
   kind: TimedMediaType
   url: string
+  // Where « Revenir au début » goes, in seconds: where the link says a
+  // YouTube video starts; 0 when absent.
+  start?: number
 }
 
 /**
  * One player of one media: the <video> or <audio> element of a file
- * (file-driver.ts). Another kind of player (an embedded video site's) only
- * needs to be another driver: the controller, the controls and the screens
- * stay the same.
+ * (file-driver.ts), YouTube's player (youtube-driver.ts). The controller,
+ * the controls and the screens stay the same whatever the player.
  */
 export interface MediaDriver {
   // What the stage shows: a box holding the player, created once, which the
   // screens of the question hand over to one another (see stage.ts): moved,
-  // never taken out of the page, so a <video> plays on, and an <iframe> (an
-  // embedded video site's player) keeps its page, where the browser can
-  // move an element without reloading it (Element.moveBefore). The box goes
-  // full screen, not the player in it.
+  // never taken out of the page, so a <video> plays on, and YouTube's
+  // <iframe> keeps its page, where the browser can move an element without
+  // reloading it (Element.moveBefore; elsewhere it reloads, and the driver
+  // picks the video up where it was). The box goes full screen, not the
+  // player in it.
   readonly element: HTMLElement
   readonly paused: boolean
   readonly ended: boolean
@@ -28,6 +34,8 @@ export interface MediaDriver {
   readonly duration: number | null
   // The media could not be loaded or read.
   readonly failed: boolean
+  // Why, when the player tells (see YOUTUBE_FAILURES): null otherwise.
+  readonly failure?: string | null
   // Resolves once playing; rejects with a NotAllowedError when the browser
   // refuses to play without a gesture on the page (autoplay policy).
   play: () => Promise<void>
@@ -79,6 +87,8 @@ export interface MediaPlaybackState {
   // screen): the host has to press play.
   blocked: boolean
   failed: boolean
+  // Why it failed, when its player tells (see MediaDriver.failure).
+  failure: string | null
   // Started at least once, by the host or when its screen started it (the
   // browser may have refused): a later screen of the same question never
   // starts it again.
@@ -97,6 +107,7 @@ const IDLE: MediaPlaybackState = {
   ended: false,
   blocked: false,
   failed: false,
+  failure: null,
   started: false,
   played: false,
 }
@@ -252,8 +263,9 @@ export class MediaController {
     this.remember()
   }
 
+  /** Back to where the media starts: 0, or where its link says. */
   restart(): void {
-    this.seek(0)
+    this.seek(this.state.source?.start ?? 0)
   }
 
   /** Names the player for assistive technologies: the question's wording. */
@@ -337,6 +349,7 @@ export class MediaController {
       duration: driver.duration,
       ended: driver.ended,
       failed: driver.failed,
+      failure: driver.failure ?? null,
       // Playing at last (a click on the page, a second try): no longer
       // blocked.
       blocked: previous.blocked && !playing,
@@ -359,6 +372,7 @@ export class MediaController {
       next.duration === previous.duration &&
       next.ended === previous.ended &&
       next.failed === previous.failed &&
+      next.failure === previous.failure &&
       next.blocked === previous.blocked &&
       next.started === previous.started &&
       next.played === previous.played

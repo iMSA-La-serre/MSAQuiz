@@ -1,20 +1,44 @@
 import { MEDIA_TYPES, NO_TIME_LIMIT } from "@razzia/common/constants"
 import type { QuestionMedia } from "@razzia/common/types/game"
+import { youtubeOfMedia } from "@razzia/common/utils/media"
+import { youtubeWatchUrl } from "@razzia/common/utils/youtube"
 import MediaUnavailable from "@razzia/web/components/MediaUnavailable"
 import ChoiceSummary from "@razzia/web/features/manager/components/ResultModal/ChoiceSummary"
 import { useResultModal } from "@razzia/web/features/manager/contexts/result-modal-context"
 import { QUESTION_REGISTRY } from "@razzia/web/features/questions"
 import { scoringModeLabelKey } from "@razzia/web/features/questions/options"
 import useImageFailure from "@razzia/web/hooks/useImageFailure"
-import { Clock, ImageOff, Music, Video } from "lucide-react"
+import { Clock, ImageOff, Music, SquarePlay, Video } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
 // An image that does not load says so, in the block of the same size as a
-// question without media, as a markers question's image does.
+// question without media, as a markers question's image does. A YouTube
+// video is a link to its page, in the same block: a YouTube video's link
+// stored as a video file or an image (a game of an older version) too.
 const MediaPreview = ({ media }: { media?: QuestionMedia }) => {
+  const { t } = useTranslation()
+  const youtube = youtubeOfMedia(media)
   const { failed, fail, retry } = useImageFailure(
-    media?.type === MEDIA_TYPES.IMAGE ? media.url : undefined,
+    media?.type === MEDIA_TYPES.IMAGE && !youtube ? media.url : undefined,
   )
+
+  if (youtube) {
+    return (
+      <a
+        href={youtubeWatchUrl(youtube)}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="bg-accent text-foreground hover:bg-muted focus-visible:outline-primary flex h-16 w-24 shrink-0 flex-col items-center justify-center gap-1 rounded-lg px-1 text-center text-xs font-semibold underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 md:h-38 md:w-full md:text-sm"
+      >
+        <SquarePlay
+          aria-hidden
+          className="text-muted-foreground size-6 md:size-10"
+        />
+        {t("game:media.openOnYoutube")}
+        <span className="sr-only">{t("game:media.newTab")}</span>
+      </a>
+    )
+  }
 
   if (failed) {
     return (

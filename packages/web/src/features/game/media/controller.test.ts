@@ -28,6 +28,7 @@ const fakePlayer = () => {
     position: 0,
     duration: 40 as number | null,
     failed: false,
+    failure: null as string | null,
     refuse: false,
     created: 0,
     destroyed: 0,
@@ -57,6 +58,9 @@ const fakePlayer = () => {
       },
       get failed() {
         return player.failed
+      },
+      get failure() {
+        return player.failure
       },
       play: () => {
         if (player.refuse) {
@@ -239,6 +243,37 @@ describe("MediaController", () => {
     expect(controller.getState()).toMatchObject({
       position: 0,
       playing: false,
+    })
+  })
+
+  it("goes back to where a YouTube link says the video starts", async () => {
+    const { controller, tick } = setup()
+
+    controller.load("q1", {
+      kind: "youtube",
+      url: "https://youtu.be/wIJE-WNenXA?t=30",
+      start: 30,
+    })
+    await controller.play()
+    tick(75)
+    controller.restart()
+
+    expect(controller.getState()).toMatchObject({ position: 30, playing: true })
+  })
+
+  it("says why a player failed, when it tells", () => {
+    const { controller, player, tick } = setup()
+
+    controller.load("q1", VIDEO)
+    expect(controller.getState().failure).toBeNull()
+
+    player.failed = true
+    player.failure = "notEmbeddable"
+    tick(0)
+
+    expect(controller.getState()).toMatchObject({
+      failed: true,
+      failure: "notEmbeddable",
     })
   })
 

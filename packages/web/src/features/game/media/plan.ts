@@ -1,7 +1,7 @@
-import { QUESTION_TYPES } from "@razzia/common/constants"
+import { MEDIA_TYPES, QUESTION_TYPES } from "@razzia/common/constants"
 import type { StatusMedia } from "@razzia/common/types/game"
 import { STATUS, type StatusDataMap } from "@razzia/common/types/game/status"
-import { isTimedMedia } from "@razzia/common/utils/media"
+import { isTimedMedia, youtubeOfMedia } from "@razzia/common/utils/media"
 import type { MediaSource } from "@razzia/web/features/game/media/controller"
 import type { Status } from "@razzia/web/features/game/utils/createStatus"
 
@@ -13,11 +13,33 @@ export interface HostMediaPlan {
   label: string
 }
 
-// A video or a sound with its address, which only the host gets.
-const sourceOf = ({ media }: { media?: StatusMedia }): MediaSource | null =>
-  media?.url !== undefined && isTimedMedia(media.type)
-    ? { kind: media.type, url: media.url }
-    : null
+/**
+ * A video or a sound with its address, which only the host gets. A YouTube
+ * video starts where its link says. A YouTube video's link stored as a video
+ * file (the editor once let it through) plays as the YouTube video it is
+ * (youtubeOfMedia; the server sends it as one, see playedMedia).
+ */
+export const sourceOf = ({
+  media,
+}: {
+  media?: StatusMedia
+}): MediaSource | null => {
+  if (media?.url === undefined || !isTimedMedia(media.type)) {
+    return null
+  }
+
+  const youtube = youtubeOfMedia(media)
+
+  if (media.type === MEDIA_TYPES.YOUTUBE || youtube) {
+    return {
+      kind: MEDIA_TYPES.YOUTUBE,
+      url: media.url,
+      start: youtube?.start ?? 0,
+    }
+  }
+
+  return { kind: media.type, url: media.url }
+}
 
 /**
  * What the projected screen does with the video or the sound of the status it

@@ -1,5 +1,5 @@
 import { MEDIA_TYPES } from "@razzia/common/constants"
-import { isTimedMedia } from "@razzia/common/utils/media"
+import { isTimedMedia, isVideoMedia } from "@razzia/common/utils/media"
 import type {
   AnswerPayload,
   QuestionMarker,
@@ -80,6 +80,11 @@ const TITLE = "font-bold text-balance text-white drop-shadow-lg"
 
 const HOST_TITLE = "text-2xl md:text-4xl xl:text-5xl short:text-3xl"
 
+// By the answers, YouTube's player never goes under 200 px (HostMediaPlayer):
+// on a short projected screen, it comes closer to the title instead, so a
+// long title still leaves the dock its room.
+const YOUTUBE_SIDE_GAP = "short:gap-4"
+
 const SLIDE_TITLE = "text-center text-3xl md:text-5xl xl:text-6xl"
 
 // A slide's video takes the room a long title would on a short projected
@@ -136,7 +141,8 @@ const QuestionStage = ({
   const isSlide = questionType === "slide"
   const hint = HINTS[questionType]
   const image = media?.type === MEDIA_TYPES.IMAGE ? media : undefined
-  const isVideo = media?.type === MEDIA_TYPES.VIDEO
+  // A video file or a YouTube video: both show, with the host's controls.
+  const isVideo = isVideoMedia(media?.type)
   const hasVisualMedia = Boolean(image) || isVideo
   // A video or a sound plays on the projected screen. On a phone, a card says
   // so; a slide's own card does (SlideAnswers).
@@ -293,7 +299,12 @@ const QuestionStage = ({
             hostTopAligned ? "items-start" : "items-center",
           )}
         >
-          <div className="flex flex-col gap-6">
+          <div
+            className={clsx(
+              "flex flex-col gap-6",
+              media?.type === MEDIA_TYPES.YOUTUBE && YOUTUBE_SIDE_GAP,
+            )}
+          >
             <motion.h2
               ref={titleStage.titleRef}
               {...appear(0.05)}

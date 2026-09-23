@@ -70,15 +70,17 @@
     "media": {
       "audio": "Audio",
       "image": "Image",
-      "video": "Vidéo"
+      "video": "Vidéo",
+      "youtube": "YouTube"
     },
-    "mediaUrlPlaceholder": "https://…/fichier.mp4",
+    "mediaUrlPlaceholder": "https://…/fichier.mp4 ou lien YouTube",
     "placeholder": "Commencez à écrire votre question...",
     "mediaUrlLabel": "Adresse web du média",
     "mediaType": "Type de média",
     "mediaPlaysOnScreen": {
       "video": "La vidéo passe sur l'écran projeté, lancée et arrêtée par l'animateur ; les téléphones affichent « Regardez l'écran ».",
-      "audio": "Le son passe par l'ordinateur de l'écran projeté, lancé et arrêté par l'animateur ; les téléphones affichent « Écoutez »."
+      "audio": "Le son passe par l'ordinateur de l'écran projeté, lancé et arrêté par l'animateur ; les téléphones affichent « Écoutez ».",
+      "youtube": "La vidéo YouTube passe sur l'écran projeté, lancée et arrêtée par l'animateur ; les téléphones affichent « Regardez l'écran » sans se connecter à YouTube. L'ordinateur de l'écran projeté doit avoir accès à YouTube."
     },
     "removeMedia": "Retirer le média",
     "mediaFailed": "Média introuvable ou format non lu : il faut un lien direct vers le fichier (…/photo.jpg, …/video.mp4)",

@@ -6,8 +6,16 @@ import { wordCountOf } from "@razzia/common/utils/wordcloud"
 import AlertDialog from "@razzia/web/components/AlertDialog"
 import { type QuestionWithId } from "@razzia/web/features/quizz/contexts/quizz-editor-context"
 import useImageFailure from "@razzia/web/hooks/useImageFailure"
+import useYoutubeFailure from "@razzia/web/hooks/useYoutubeFailure"
 import clsx from "clsx"
-import { ImageOff, Music, Trash2, Video } from "lucide-react"
+import {
+  ImageOff,
+  Music,
+  SquarePlay,
+  Trash2,
+  Video,
+  VideoOff,
+} from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { twMerge } from "tailwind-merge"
 
@@ -18,6 +26,11 @@ const SlideMedia = ({ media }: { media?: QuestionMedia }) => {
   // one of them (« Réessayer », a file put in place since), every one shows
   // it.
   const { failed, fail, retry } = useImageFailure(image?.url)
+  // A YouTube video its player will not play, as the preview or YouTube's
+  // page of the video told, before the author opens its question.
+  const youtubeFailure = useYoutubeFailure(
+    media?.type === MEDIA_TYPES.YOUTUBE ? media.url : undefined,
+  )
 
   if (image) {
     // A broken image is pointed out, in red, so the author finds it while
@@ -60,6 +73,18 @@ const SlideMedia = ({ media }: { media?: QuestionMedia }) => {
 
   if (media?.type === MEDIA_TYPES.AUDIO) {
     return <Music className="text-muted-foreground mx-auto size-10" />
+  }
+
+  if (media?.type === MEDIA_TYPES.YOUTUBE) {
+    return youtubeFailure ? (
+      <VideoOff
+        role="img"
+        aria-label={`${t("game:media.videoUnavailable")}. ${t(`game:media.youtube.${youtubeFailure}`)}`}
+        className="text-danger-strong mx-auto size-10"
+      />
+    ) : (
+      <SquarePlay className="text-muted-foreground mx-auto size-10" />
+    )
   }
 
   return null

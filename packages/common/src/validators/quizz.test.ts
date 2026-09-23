@@ -1577,12 +1577,68 @@ describe("media", () => {
     expect(parse(withMedia({ url: "/media/film.mp4" })).media?.type).toBe(
       "video",
     )
-    // A video site's page is not a file: no type, as before, never a player
-    // with nothing to play.
+    // A YouTube video's link: the YouTube video it is.
     expect(
       parse(withMedia({ url: "https://www.youtube.com/watch?v=aqz-KE-bpKQ" }))
         .media,
-    ).toEqual({ url: "https://www.youtube.com/watch?v=aqz-KE-bpKQ" })
+    ).toEqual({
+      type: "youtube",
+      url: "https://www.youtube.com/watch?v=aqz-KE-bpKQ",
+    })
+    // Another video site's page is not a file: no type, as before, never a
+    // player with nothing to play.
+    expect(
+      parse(withMedia({ url: "https://www.dailymotion.com/video/x8abc" }))
+        .media,
+    ).toEqual({ url: "https://www.dailymotion.com/video/x8abc" })
+  })
+
+  it("reads and saves a YouTube video as its link", () => {
+    const media = {
+      type: "youtube",
+      url: "https://youtu.be/wIJE-WNenXA?t=90",
+    }
+
+    expect(parse(withMedia(media)).media).toEqual(media)
+    expect(saved(withMedia(media)).media).toEqual(media)
+    expect(
+      saved(withMedia({ ...media, playback: "screen" })).media?.playback,
+    ).toBe("screen")
+    expect(
+      saved(
+        withMedia({ type: "youtube", url: " https://youtu.be/wIJE-WNenXA " }),
+      ).media?.url,
+    ).toBe("https://youtu.be/wIJE-WNenXA")
+  })
+
+  it("refuses on save a YouTube media that names no video", () => {
+    expect(
+      refusal(
+        withMedia({ type: "youtube", url: "https://www.youtube.com/@msa" }),
+      ),
+    ).toEqual({ message: "errors:quizz.mediaYoutubeLink", questionIndex: 0 })
+    expect(
+      refusal(withMedia({ type: "youtube", url: "https://msa.example/a.mp4" })),
+    ).toEqual({ message: "errors:quizz.mediaYoutubeLink", questionIndex: 0 })
+  })
+
+  it("refuses on save a YouTube video's link as an image, still reading it", () => {
+    const media = {
+      type: "image",
+      url: "https://www.youtube.com/watch?v=aqz-KE-bpKQ",
+    }
+
+    expect(refusal(withMedia(media))).toEqual({
+      message: "errors:quizz.mediaYoutubeType",
+      questionIndex: 0,
+    })
+    expect(parse(withMedia(media)).media).toEqual(media)
+  })
+
+  it("still reads a stored YouTube media whose link names no video", () => {
+    const media = { type: "youtube", url: "https://www.youtube.com/@msa" }
+
+    expect(parse(withMedia(media)).media).toEqual(media)
   })
 
   it("reads and saves a path on the quiz's own server", () => {
@@ -1594,7 +1650,7 @@ describe("media", () => {
 
   it("names an unknown media type in French", () => {
     expect(
-      issuesOf(withMedia({ type: "youtube", url: "https://a.fr/x" })),
+      issuesOf(withMedia({ type: "vimeo", url: "https://a.fr/x" })),
     ).toEqual(["errors:quizz.invalidMediaType"])
   })
 
@@ -1638,11 +1694,12 @@ describe("media", () => {
       refusal(
         withMedia({ type: "video", url: "https://youtu.be/aqz-KE-bpKQ" }),
       ),
+    ).toEqual({ message: "errors:quizz.mediaYoutubeType", questionIndex: 0 })
+    expect(
+      refusal(withMedia({ url: "https://www.dailymotion.com/video/x8abc" })),
     ).toEqual({ message: "errors:quizz.mediaPageLink", questionIndex: 0 })
     expect(
-      refusal(
-        withMedia({ url: "https://www.youtube.com/watch?v=aqz-KE-bpKQ" }),
-      ),
+      refusal(withMedia({ type: "video", url: "https://vimeo.com/123456" })),
     ).toEqual({ message: "errors:quizz.mediaPageLink", questionIndex: 0 })
     expect(
       refusal(withMedia({ url: "https://msa.example/image?id=3" })),

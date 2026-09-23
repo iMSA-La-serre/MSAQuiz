@@ -134,17 +134,21 @@ export type MediaPlayback = (typeof MEDIA_PLAYBACK)[keyof typeof MEDIA_PLAYBACK]
 
 export interface QuestionMedia {
   type?: QuestionMediaType
+  // A YouTube video's: its link as the author pasted it, which tells the
+  // video and where it starts (youtubeVideoOf).
   url: string
-  // Video and audio: where it plays, the projected screen when absent
-  // (MEDIA_PLAYBACK). Meaningless on an image.
+  // Video, audio and YouTube: where it plays, the projected screen when
+  // absent (MEDIA_PLAYBACK). Meaningless on an image.
   playback?: MediaPlayback
 }
 
-// The media that play over time, which the host starts, pauses and rewinds.
-export type TimedMediaType = (typeof MEDIA_TYPES)["VIDEO" | "AUDIO"]
+// The media that play over time, which the host starts, pauses and rewinds:
+// a video file, a sound file, a YouTube video.
+export type TimedMediaType = (typeof MEDIA_TYPES)["VIDEO" | "AUDIO" | "YOUTUBE"]
 
-// A video or a sound as a phone gets it: its type, never its address. It
-// plays on the projected screen, and the phone says so (publicMedia).
+// A video (a YouTube video too) or a sound as a phone gets it: its type,
+// never its address. It plays on the projected screen, and the phone says so
+// (publicMedia).
 export interface ScreenOnlyMedia {
   type: TimedMediaType
   url?: undefined

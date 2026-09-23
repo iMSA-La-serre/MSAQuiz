@@ -28,9 +28,9 @@ import { isCreditStep, storedCredits } from "@razzia/common/utils/choice"
 import { decimalsOf, fitsDecimals } from "@razzia/common/utils/estimate"
 import { markersOf, stackedMarker } from "@razzia/common/utils/markers"
 import {
+  impliedMediaTypeOf,
   isSameServerPath,
   MEDIA_ISSUES,
-  mediaFileTypeOf,
   mediaIssue,
 } from "@razzia/common/utils/media"
 import {
@@ -53,9 +53,15 @@ const anyUrl = z.url()
 // quizzSaveValidator: a stored quiz never becomes unreadable.
 export const questionMediaValidator = z.object({
   type: z
-    .enum([MEDIA_TYPES.IMAGE, MEDIA_TYPES.VIDEO, MEDIA_TYPES.AUDIO], {
-      error: "errors:quizz.invalidMediaType",
-    })
+    .enum(
+      [
+        MEDIA_TYPES.IMAGE,
+        MEDIA_TYPES.VIDEO,
+        MEDIA_TYPES.AUDIO,
+        MEDIA_TYPES.YOUTUBE,
+      ],
+      { error: "errors:quizz.invalidMediaType" },
+    )
     .optional(),
   url: z
     .string()
@@ -72,9 +78,9 @@ export const questionMediaValidator = z.object({
 // A media without an address is no media: clearing the field removes it, and
 // a draft or a file saved that way still opens. The address is kept without
 // the spaces around it. A media without a type (the editor once saved an
-// address alone) gets the one its file's extension tells, when read as when
-// saved, so the game shows it: the author's intent, never a quiz made
-// unreadable.
+// address alone) gets the one its address tells for sure, its file's
+// extension or a YouTube video's link, when read as when saved, so the game
+// shows it: the author's intent, never a quiz made unreadable.
 const withCleanMedia = (question: Record<string, unknown>) => {
   const { media, ...rest } = question
 
@@ -98,7 +104,7 @@ const withCleanMedia = (question: Record<string, unknown>) => {
     return rest
   }
 
-  const found = type === undefined ? mediaFileTypeOf(address) : undefined
+  const found = type === undefined ? impliedMediaTypeOf(address) : undefined
 
   return {
     ...question,
@@ -1086,8 +1092,9 @@ const checkSavedPlayback = (input: unknown, ctx: z.RefinementCtx) => {
  * those added since for new content, which stored quizzes (and the files
  * they were exported to, see the import) are never read against. A media
  * must be a web address, a path on the quiz's own server or a small pasted
- * image, never a video page's link, and have a type (see mediaIssue); where
- * a video or a sound plays must be one the game knows.
+ * image, never a video page's link (a YouTube video's link is a YouTube
+ * media), and have a type (see mediaIssue); where a video or a sound plays
+ * must be one the game knows.
  */
 export const quizzSaveValidator = z
   .unknown()

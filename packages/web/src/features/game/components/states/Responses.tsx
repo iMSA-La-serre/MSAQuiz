@@ -6,7 +6,7 @@ import {
 import type { QuestionType } from "@razzia/common/types/game"
 import type { ManagerStatusDataMap } from "@razzia/common/types/game/status"
 import { partialCredits } from "@razzia/common/utils/choice"
-import { isTimedMedia } from "@razzia/common/utils/media"
+import { isTimedMedia, isVideoMedia } from "@razzia/common/utils/media"
 import QuestionBand from "@razzia/web/features/game/components/question/QuestionBand"
 import ResponseRow, {
   ResponseList,
@@ -37,6 +37,11 @@ const HINTS: Partial<Record<QuestionType, { icon: LucideIcon; key: string }>> =
 const TITLE = "font-bold text-balance text-white drop-shadow-lg"
 
 const HOST_TITLE = "text-2xl md:text-4xl xl:text-5xl short:text-3xl"
+
+// By the answers, YouTube's player never goes under 200 px (HostMediaPlayer):
+// on a short projected screen, it comes closer to the title instead, so a
+// long title still leaves the dock its room.
+const YOUTUBE_SIDE_GAP = "short:gap-4"
 
 const SLIDE_TITLE = "text-center text-3xl md:text-5xl xl:text-6xl"
 
@@ -96,9 +101,10 @@ const Responses = ({ data }: Props) => {
   const { scored } = QUESTION_TYPE_META[type]
   const isSlide = type === "slide"
   const image = media?.type === MEDIA_TYPES.IMAGE ? media : undefined
-  // A video stays, playing on or paused where it was, until the host moves
-  // on (hostMedia); a sound too, its controls in the dock (HostSoundBar).
-  const video = media?.type === MEDIA_TYPES.VIDEO ? media : undefined
+  // A video (a file or YouTube's) stays, playing on or paused where it was,
+  // until the host moves on (hostMedia); a sound too, its controls in the
+  // dock (HostSoundBar).
+  const video = isVideoMedia(media?.type) ? media : undefined
   const titleStage = useTitleHeight(isSlide || Boolean(video))
   const fixedHint = HINTS[type]
   const hint =
@@ -231,7 +237,12 @@ const Responses = ({ data }: Props) => {
             hostTopAligned ? "items-start" : "items-center",
           )}
         >
-          <div className="flex flex-col gap-6">
+          <div
+            className={clsx(
+              "flex flex-col gap-6",
+              video?.type === MEDIA_TYPES.YOUTUBE && YOUTUBE_SIDE_GAP,
+            )}
+          >
             <h2
               ref={titleStage.titleRef}
               className={clsx(TITLE, HOST_TITLE, "text-left")}

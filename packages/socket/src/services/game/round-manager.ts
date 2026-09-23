@@ -42,7 +42,11 @@ import {
 import { estimateRanges, medianOf } from "@razzia/common/utils/estimate"
 import { foundPassages } from "@razzia/common/utils/highlight"
 import { markersOf } from "@razzia/common/utils/markers"
-import { isTimedMedia, publicMedia } from "@razzia/common/utils/media"
+import {
+  isTimedMedia,
+  playedMedia,
+  publicMedia,
+} from "@razzia/common/utils/media"
 import {
   BUILTIN_BLOCKLIST,
   type Blocklist,
@@ -271,7 +275,12 @@ export class RoundManager {
       return
     }
 
-    const question = this.opts.quizz.questions[this.currentQuestion]
+    const stored = this.opts.quizz.questions[this.currentQuestion]
+    // A YouTube video's link stored as a video file or an image plays as the
+    // YouTube video it is, on every screen and in the results (playedMedia).
+    const question = stored.media
+      ? { ...stored, media: playedMedia(stored.media) }
+      : stored
 
     // Drawn once: every screen, and any reconnection, shows this same list.
     this.publicAnswers = toPublicAnswers(question)

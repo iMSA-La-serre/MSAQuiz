@@ -96,10 +96,12 @@
     "invalidMediaPlayback": "Lieu de lecture du média non reconnu",
     "mediaUrlNotWeb": "Collez une adresse web (https://…) vers le fichier : un fichier de votre ordinateur ne peut pas être lu par la page du quiz",
     "mediaDataTooLarge": "Image collée trop lourde (500 Ko au plus) : collez plutôt l'adresse web (https://…) du fichier",
-    "mediaPageLink": "Ce lien ouvre une page (YouTube, Dailymotion, partage Google Drive ou SharePoint…), pas le fichier : un lecteur ne peut pas le lire. Collez un lien direct vers le fichier (…/video.mp4) ou un lien de téléchargement",
-    "mediaTypeMissing": "Choisissez Image, Vidéo ou Audio pour le média",
+    "mediaPageLink": "Ce lien ouvre une page (Dailymotion, Vimeo, partage Google Drive ou SharePoint…), pas le fichier : un lecteur ne peut pas le lire. Collez un lien direct vers le fichier (…/video.mp4), un lien de téléchargement ou le lien d'une vidéo YouTube",
+    "mediaTypeMissing": "Choisissez Image, Vidéo, Audio ou YouTube pour le média",
     "inQuestion": "Question {{number}} : {{message}}",
-    "inImportedQuestion": "Import refusé, question {{number}} du fichier : {{message}}"
+    "inImportedQuestion": "Import refusé, question {{number}} du fichier : {{message}}",
+    "mediaYoutubeLink": "Ce lien ne mène pas à une vidéo YouTube : copiez l'adresse de la vidéo avec le bouton Partager de YouTube (youtu.be/…)",
+    "mediaYoutubeType": "C'est le lien d'une vidéo YouTube : choisissez le type YouTube"
   },
   "route": {
     "back": "Retour à l'accueil",

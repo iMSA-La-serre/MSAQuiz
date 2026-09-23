@@ -3,14 +3,17 @@ import type {
   QuestionMedia as Media,
   QuestionMediaType,
 } from "@razzia/common/types/game"
-import { MEDIA_ISSUES } from "@razzia/common/utils/media"
+import { isTimedMedia, MEDIA_ISSUES } from "@razzia/common/utils/media"
+import { youtubeVideoOf } from "@razzia/common/utils/youtube"
 import Card from "@razzia/web/components/Card"
 import Input from "@razzia/web/components/Input"
 import QuestionMedia from "@razzia/web/components/QuestionMedia"
+import type { YoutubeFailure } from "@razzia/web/features/game/media/youtube-api"
 import { useQuizzEditor } from "@razzia/web/features/quizz/contexts/quizz-editor-context"
 import useImageFailure, {
   imageFailures,
 } from "@razzia/web/hooks/useImageFailure"
+import { youtubeFailures } from "@razzia/web/hooks/useYoutubeFailure"
 import {
   keepsPick,
   mediaDraftOf,
@@ -25,6 +28,7 @@ import {
   type LucideIcon,
   Music,
   RotateCcw,
+  SquarePlay,
   Trash2,
   Video,
 } from "lucide-react"
@@ -38,6 +42,7 @@ const TYPE_CHOICES: Array<{
   { type: MEDIA_TYPES.IMAGE, icon: Image },
   { type: MEDIA_TYPES.VIDEO, icon: Video },
   { type: MEDIA_TYPES.AUDIO, icon: Music },
+  { type: MEDIA_TYPES.YOUTUBE, icon: SquarePlay },
 ]
 
 // How long the address must stay the same, while it is typed, before the
@@ -81,7 +86,12 @@ const QuestionEditorMedia = () => {
   // Each settled address loads the preview anew: an address typed again
   // after a failure, or « Réessayer », tries it once more.
   const [attempt, setAttempt] = useState(0)
-  const [failure, setFailure] = useState<{ attempt: number; key: string }>()
+  // For a YouTube video, why its player refuses it.
+  const [failure, setFailure] = useState<{
+    attempt: number
+    key: string
+    youtube?: YoutubeFailure
+  }>()
   // Read out once the media is removed.
   const [notice, setNotice] = useState("")
   const { media } = currentQuestion
@@ -103,19 +113,23 @@ const QuestionEditorMedia = () => {
     failure?.attempt === attempt &&
     failure.key === previewKey &&
     (preview.type !== MEDIA_TYPES.IMAGE || shared.failed)
-  // « h » is not an address yet, nor « https://intranet/film.mp » a type:
-  // those wait until the author pauses, leaves the field or pastes. A video
-  // page's link or a pasted image too large show at once.
+  // « h » is not an address yet, nor « https://intranet/film.mp » a type,
+  // nor « https://youtu.be/ » a video: those wait until the author pauses,
+  // leaves the field or pastes. A video page's link or a pasted image too
+  // large show at once.
   const waits =
     draft?.issue === MEDIA_ISSUES.NOT_WEB ||
-    draft?.issue === MEDIA_ISSUES.TYPE_MISSING
+    draft?.issue === MEDIA_ISSUES.TYPE_MISSING ||
+    draft?.issue === MEDIA_ISSUES.YOUTUBE_LINK
   const issue = waits && isTyping ? undefined : draft?.issue
   let message = ""
 
   if (issue) {
     message = t(issue)
   } else if (failed) {
-    message = t("quizz:question.mediaFailed")
+    message = failure.youtube
+      ? t(`game:media.youtube.${failure.youtube}`)
+      : t("quizz:question.mediaFailed")
   }
 
   useEffect(
@@ -222,11 +236,18 @@ const QuestionEditorMedia = () => {
         key={`${attempt}|${previewKey}`}
         media={{ type: preview.type, url: preview.url }}
         alt={t("quizz:question.mediaPreview")}
-        onError={() => {
-          setFailure({ attempt, key: previewKey })
+        onError={(youtube) => {
+          setFailure({ attempt, key: previewKey, youtube })
 
           if (isImage) {
             imageFailures.fail(preview.url)
+          }
+
+          // The list of questions points it out too.
+          const video = youtube && youtubeVideoOf(preview.url)
+
+          if (youtube && video) {
+            youtubeFailures.fail(video.id, youtube)
           }
         }}
         onLoad={() => {
@@ -302,6 +323,15 @@ const QuestionEditorMedia = () => {
               <button
                 type="button"
                 onClick={() => {
+                  const video =
+                    preview.type === MEDIA_TYPES.YOUTUBE
+                      ? youtubeVideoOf(preview.url)
+                      : undefined
+
+                  if (video) {
+                    youtubeFailures.forget(video.id)
+                  }
+
                   setAttempt((count) => count + 1)
                   inputRef.current?.focus()
                 }}
@@ -358,10 +388,9 @@ const QuestionEditorMedia = () => {
           })}
         </div>
 
-        {/* Where a video or a sound plays: the projected screen, driven by
-        the host; the phones never load it. */}
-        {(draft?.type === MEDIA_TYPES.VIDEO ||
-          draft?.type === MEDIA_TYPES.AUDIO) && (
+        {/* Where a video, a sound or a YouTube video plays: the projected
+        screen, driven by the host; the phones never load it. */}
+        {isTimedMedia(draft?.type) && (
           <p className="text-accent-foreground text-sm">
             {t(`quizz:question.mediaPlaysOnScreen.${draft.type}`)}
           </p>

@@ -464,10 +464,14 @@ export const ESTIMATE_LIMITS = {
   OTHER_RANGES: 4,
 } as const
 
+// A YouTube video is kept as its link (media.url), which tells the video and
+// where it starts (utils/youtube.ts): YouTube's own player plays it, on the
+// projected screen only.
 export const MEDIA_TYPES = {
   IMAGE: "image",
   VIDEO: "video",
   AUDIO: "audio",
+  YOUTUBE: "youtube",
 } as const
 
 // Where a video or a sound plays (media.playback). On the projected screen
@@ -481,7 +485,7 @@ export const MEDIA_PLAYBACK = {
 
 // The extensions a media's type is read from, lowercase and without the dot:
 // the editor picks the type as soon as an address ends with one, and a save
-// fills it in when it is missing.
+// fills it in when it is missing. A YouTube video is no file: none.
 export const MEDIA_EXTENSIONS = {
   [MEDIA_TYPES.IMAGE]: ["jpg", "jpeg", "png", "webp", "gif", "svg"],
   [MEDIA_TYPES.VIDEO]: ["mp4", "webm", "mov"],

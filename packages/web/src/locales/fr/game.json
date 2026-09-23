@@ -246,6 +246,26 @@
     "exitFullscreen": "Quitter le plein écran",
     "blocked": "Lecture automatique bloquée par le navigateur",
     "retry": "Réessayer",
-    "elapsed": "{{position}} sur {{duration}}"
+    "elapsed": "{{position}} sur {{duration}}",
+    "openOnYoutube": "Ouvrir sur YouTube",
+    "newTab": "(nouvel onglet)",
+    "youtube": {
+      "unreachable": "YouTube ne répond pas : cet ordinateur n'a pas accès à Internet, ou le réseau bloque YouTube",
+      "notFound": "Vidéo introuvable sur YouTube : supprimée, privée ou lien mal copié",
+      "notEmbeddable": "YouTube ne permet pas de lire cette vidéo hors de son site : son propriétaire l'interdit, ou elle a été supprimée ou rendue privée",
+      "embedDisabled": "Son propriétaire ne permet pas de lire cette vidéo hors de YouTube (intégration désactivée ou vidéo privée) : choisissez-en une autre",
+      "refused": "YouTube refuse le lecteur : le site du quiz ne lui transmet pas son adresse (en-tête Referer), voyez avec son administrateur",
+      "invalid": "Lien YouTube invalide : copiez l'adresse de la vidéo avec le bouton Partager de YouTube",
+      "player": "Le lecteur YouTube n'a pas pu lire cette vidéo"
+    },
+    "youtubeScreen": {
+      "unreachable": "YouTube inaccessible depuis cet ordinateur",
+      "notFound": "Vidéo introuvable sur YouTube",
+      "notEmbeddable": "YouTube ne permet pas de la lire ici",
+      "embedDisabled": "Son propriétaire ne permet pas de la lire ici",
+      "refused": "Lecteur refusé par YouTube",
+      "invalid": "Lien YouTube invalide",
+      "player": "Le lecteur YouTube n'a pas pu la lire"
+    }
   }
 }

@@ -1,5 +1,10 @@
+import { MEDIA_TYPES } from "@razzia/common/constants"
 import type { StatusDataMap } from "@razzia/common/types/game/status"
-import { MediaController } from "@razzia/web/features/game/media/controller"
+import { isVideoMedia } from "@razzia/common/utils/media"
+import {
+  type CreateDriver,
+  MediaController,
+} from "@razzia/web/features/game/media/controller"
 import { createFileDriver } from "@razzia/web/features/game/media/file-driver"
 import { toggleFullscreen } from "@razzia/web/features/game/media/fullscreen"
 import { sessionMemory } from "@razzia/web/features/game/media/memory"
@@ -8,14 +13,21 @@ import {
   hostMediaPlan,
 } from "@razzia/web/features/game/media/plan"
 import type { Status } from "@razzia/web/features/game/utils/createStatus"
+import { createYoutubeDriver } from "@razzia/web/features/game/media/youtube-driver"
 import { isTypingTarget } from "@razzia/web/features/game/utils/keys"
 import { useEffect, useSyncExternalStore } from "react"
+
+// A file's player, or YouTube's for a YouTube video.
+const createHostDriver: CreateDriver = (source, onChange) =>
+  source.kind === MEDIA_TYPES.YOUTUBE
+    ? createYoutubeDriver(source, onChange)
+    : createFileDriver(source, onChange)
 
 /**
  * The media the projected screen plays: one at a time, for the whole page, so
  * it goes on playing from one screen of its question to the next.
  */
-export const hostMedia = new MediaController(createFileDriver, sessionMemory())
+export const hostMedia = new MediaController(createHostDriver, sessionMemory())
 
 // Play and pause, full screen, from the keyboard, as on the video sites.
 export const TOGGLE_KEY = "k"
@@ -40,6 +52,7 @@ export const useHostMediaSync = (
   const plan = hostMediaPlan(status)
   const kind = plan?.source.kind
   const url = plan?.source.url
+  const start = plan?.source.start
   const autoplay = plan?.autoplay ?? false
   const label = plan?.label ?? ""
   const key =
@@ -53,12 +66,12 @@ export const useHostMediaSync = (
     }
 
     hostMedia.setLabel(label)
-    hostMedia.load(key, { kind, url })
+    hostMedia.load(key, { kind, url, start })
 
     if (autoplay) {
       hostMedia.autoplay()
     }
-  }, [key, kind, url, autoplay, label])
+  }, [key, kind, url, start, autoplay, label])
 
   // Leaving the page drops the player; the development double mount finds it
   // back where it was.
@@ -97,7 +110,7 @@ export const useHostMediaKeys = () => {
       if (key === TOGGLE_KEY) {
         event.preventDefault()
         hostMedia.toggle()
-      } else if (source?.kind === "video") {
+      } else if (source && isVideoMedia(source.kind)) {
         event.preventDefault()
         toggleFullscreen(element)
       }

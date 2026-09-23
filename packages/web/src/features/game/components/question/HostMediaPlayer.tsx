@@ -1,8 +1,11 @@
+import { MEDIA_TYPES } from "@razzia/common/constants"
+import { youtubeVideoOf, youtubeWatchUrl } from "@razzia/common/utils/youtube"
 import MediaUnavailable from "@razzia/web/components/MediaUnavailable"
 import {
   FullscreenControl,
   MediaTimeline,
   MediaToggle,
+  OpenOnYoutubeControl,
   RestartControl,
   RetryControl,
 } from "@razzia/web/features/game/components/question/HostMediaControls"
@@ -10,6 +13,10 @@ import {
   hostMedia,
   useHostMediaState,
 } from "@razzia/web/features/game/media/host-media"
+import {
+  YOUTUBE_FAILURES,
+  type YoutubeFailure,
+} from "@razzia/web/features/game/media/youtube-api"
 import {
   parkMediaElement,
   placeMediaElement,
@@ -28,10 +35,14 @@ interface Props {
 // leaves once the title (--title-h, see useTitleHeight), the controls under
 // it (--media-controls-h), the band and the dock are placed. By the answers,
 // at most the height an image gets there, never under 8rem; on a slide, the
-// sizes of a slide's image, never under 12.5rem, the smallest player a video
-// site allows.
+// sizes of a slide's image, never under 12.5rem, the smallest player YouTube
+// allows (200 px): so is YouTube's player by the answers, nearer the title
+// on a short screen (see QuestionStage).
 const SIDE_MEDIA_H =
   "[--media-h:max(8rem,min(20rem,calc(100dvh_-_20rem_-_var(--title-h,4rem)_-_var(--media-controls-h))))] lg:[--media-h:max(8rem,min(26rem,calc(100dvh_-_20rem_-_var(--title-h,4rem)_-_var(--media-controls-h))))] short:[--media-h:max(8rem,min(14rem,calc(100dvh_-_15.5rem_-_var(--title-h,4rem)_-_var(--media-controls-h))))]"
+
+const SIDE_YOUTUBE_H =
+  "[--media-h:max(12.5rem,min(20rem,calc(100dvh_-_20rem_-_var(--title-h,4rem)_-_var(--media-controls-h))))] lg:[--media-h:max(12.5rem,min(26rem,calc(100dvh_-_20rem_-_var(--title-h,4rem)_-_var(--media-controls-h))))] short:[--media-h:max(12.5rem,min(14rem,calc(100dvh_-_15rem_-_var(--title-h,4rem)_-_var(--media-controls-h))))]"
 
 const SLIDE_MEDIA_H =
   "[--media-h:max(12.5rem,min(20rem,calc(100dvh_-_20rem_-_var(--title-h,4rem)_-_var(--media-controls-h))))] lg:[--media-h:max(12.5rem,min(32rem,calc(100dvh_-_20rem_-_var(--title-h,4rem)_-_var(--media-controls-h))))] short:[--media-h:max(12.5rem,min(20rem,calc(100dvh_-_16rem_-_var(--title-h,4rem)_-_var(--media-controls-h))))]"
@@ -48,12 +59,32 @@ const TWO_ROWS = "[--media-controls-h:5.5rem]"
 // the same control of the next screen takes it (a remote, a keyboard).
 let handedFocus: { key: string; control: string } | null = null
 
+// Where opening the video on YouTube's site helps: YouTube plays it there,
+// not in a player of another site. Not when YouTube does not answer, nor for
+// a video it does not have.
+const OPENS_ON_YOUTUBE = new Set<YoutubeFailure>([
+  YOUTUBE_FAILURES.NOT_EMBEDDABLE,
+  YOUTUBE_FAILURES.EMBED_DISABLED,
+  YOUTUBE_FAILURES.REFUSED,
+  YOUTUBE_FAILURES.PLAYER,
+])
+
+const isYoutubeFailure = (value: string | null): value is YoutubeFailure =>
+  value !== null &&
+  (Object.values(YOUTUBE_FAILURES) as string[]).includes(value)
+
 /**
- * The video of the question on the projected screen, with the host's
- * controls under it, never over it: back to the start, play or pause, where
- * it is, full screen. A click on the picture plays or pauses it too. The
- * player itself belongs to hostMedia: this block only lends it its frame,
- * and the next screen of the question takes it over where it was.
+ * The video of the question on the projected screen, a file or a YouTube
+ * video, with the host's controls under it, never over it: back to the
+ * start, play or pause, where it is, full screen. A click on the picture
+ * plays or pauses a file; YouTube's player takes its own clicks (its bar).
+ * The player itself belongs to hostMedia: this block only lends it its
+ * frame, and the next screen of the question takes it over where it was.
+ * A video that does not play says why, in its place, never over the player,
+ * in a few words for the room (the editor and the live region tell how to
+ * fix it): « Réessayer », and « Ouvrir sur YouTube » when YouTube's own site
+ * would play it. The controls come first for the keyboard, under the player
+ * on screen: a Tab reaches them before YouTube's own bar.
  */
 const HostMediaPlayer = ({ url, layout }: Props) => {
   const { t } = useTranslation()
@@ -67,6 +98,20 @@ const HostMediaPlayer = ({ url, layout }: Props) => {
   const ready = element !== null
   const { blocked, failed } = state
   const slide = layout === "slide"
+  const youtubeVideo = youtubeVideoOf(url)
+  const youtube =
+    ready && state.source
+      ? state.source.kind === MEDIA_TYPES.YOUTUBE
+      : youtubeVideo !== undefined
+  const clickable = ready && !failed && !youtube
+  const failure =
+    youtube && failed && isYoutubeFailure(state.failure)
+      ? state.failure
+      : undefined
+  const opensOnYoutube =
+    youtubeVideo !== undefined &&
+    failure !== undefined &&
+    OPENS_ON_YOUTUBE.has(failure)
 
   // Taken over from the previous screen's block within the same commit,
   // which left it in the page (see stage.ts): it never stops.
@@ -134,31 +179,12 @@ const HostMediaPlayer = ({ url, layout }: Props) => {
           ),
       )}
     >
-      <div
-        onClick={
-          ready && !failed
-            ? () => {
-                hostMedia.toggle()
-              }
-            : undefined
-        }
-        className={clsx(
-          "relative aspect-video max-h-(--media-h) w-full max-w-[calc(var(--media-h)*16/9)] overflow-hidden rounded-2xl bg-black/40",
-          slide ? "mx-auto" : clsx(SIDE_MEDIA_H, sideControlsHeight),
-          ready && !failed && "cursor-pointer",
-        )}
-      >
-        <div ref={slotRef} className="size-full" />
-        {failed && (
-          <MediaUnavailable
-            kind="video"
-            className="absolute inset-0 rounded-2xl"
-          />
-        )}
-      </div>
       {failed ? (
         <div className="flex flex-wrap items-center gap-3">
           <RetryControl />
+          {opensOnYoutube && (
+            <OpenOnYoutubeControl url={youtubeWatchUrl(youtubeVideo)} />
+          )}
         </div>
       ) : (
         <div
@@ -181,6 +207,43 @@ const HostMediaPlayer = ({ url, layout }: Props) => {
           </div>
         </div>
       )}
+      {/* First on screen, after the controls for the keyboard. */}
+      <div
+        onClick={
+          clickable
+            ? () => {
+                hostMedia.toggle()
+              }
+            : undefined
+        }
+        className={clsx(
+          "relative order-first aspect-video max-h-(--media-h) w-full max-w-[calc(var(--media-h)*16/9)] overflow-hidden rounded-2xl bg-black/40",
+          slide
+            ? "mx-auto"
+            : clsx(
+                // No player left once it failed: the message and its
+                // buttons take the room.
+                youtube && !failed ? SIDE_YOUTUBE_H : SIDE_MEDIA_H,
+                sideControlsHeight,
+              ),
+          clickable && "cursor-pointer",
+        )}
+      >
+        {/* A player that failed is hidden, never covered. */}
+        <div
+          ref={slotRef}
+          className={clsx("size-full", failed && "invisible")}
+        />
+        {failed && (
+          <MediaUnavailable
+            kind="video"
+            detail={
+              failure ? t(`game:media.youtubeScreen.${failure}`) : undefined
+            }
+            className="absolute inset-0 rounded-2xl"
+          />
+        )}
+      </div>
     </div>
   )
 }

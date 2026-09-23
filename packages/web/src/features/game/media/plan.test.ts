@@ -63,6 +63,53 @@ describe("hostMediaPlan", () => {
     ).toEqual({ kind: "audio", url: "/media/son.mp3" })
   })
 
+  it("plays a YouTube video from where its link says", () => {
+    const url = "https://www.youtube.com/watch?v=wIJE-WNenXA&t=1m30s"
+
+    expect(
+      hostMediaPlan(
+        status(STATUS.SELECT_ANSWER, {
+          question: "La MSA ?",
+          media: { type: "youtube", url },
+          questionType: "slide",
+        }),
+      ),
+    ).toEqual({
+      source: { kind: "youtube", url, start: 90 },
+      autoplay: true,
+      label: "La MSA ?",
+    })
+    // A link that names no video: YouTube's player says so.
+    expect(
+      hostMediaPlan(
+        status(STATUS.SHOW_QUESTION, {
+          media: { type: "youtube", url: "https://www.youtube.com/@msa" },
+          questionType: "single",
+        }),
+      )?.source,
+    ).toEqual({
+      kind: "youtube",
+      url: "https://www.youtube.com/@msa",
+      start: 0,
+    })
+  })
+
+  it("plays a YouTube link stored as a video file as the YouTube video", () => {
+    const url = "https://youtu.be/wIJE-WNenXA"
+
+    expect(
+      hostMediaPlan(
+        status(STATUS.SELECT_ANSWER, { media: { type: "video", url } }),
+      )?.source,
+    ).toEqual({ kind: "youtube", url, start: 0 })
+    // Never a sound's.
+    expect(
+      hostMediaPlan(
+        status(STATUS.SELECT_ANSWER, { media: { type: "audio", url } }),
+      )?.source,
+    ).toEqual({ kind: "audio", url })
+  })
+
   it("has nothing to play for an image, a type alone, or another screen", () => {
     expect(
       hostMediaPlan(
@@ -73,6 +120,11 @@ describe("hostMediaPlan", () => {
     ).toBeNull()
     expect(
       hostMediaPlan(status(STATUS.SELECT_ANSWER, { media: { type: "video" } })),
+    ).toBeNull()
+    expect(
+      hostMediaPlan(
+        status(STATUS.SELECT_ANSWER, { media: { type: "youtube" } }),
+      ),
     ).toBeNull()
     expect(hostMediaPlan(status(STATUS.SELECT_ANSWER, {}))).toBeNull()
     expect(

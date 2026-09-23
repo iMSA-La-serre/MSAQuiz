@@ -1,3 +1,4 @@
+import { MEDIA_TYPES } from "@razzia/common/constants"
 import { useHostMediaState } from "@razzia/web/features/game/media/host-media"
 import { useTranslation } from "react-i18next"
 
@@ -10,15 +11,20 @@ import { useTranslation } from "react-i18next"
  */
 const HostMediaStatus = () => {
   const { t } = useTranslation()
-  const { source, blocked, failed } = useHostMediaState()
+  const { source, blocked, failed, failure } = useHostMediaState()
   let message = ""
 
   if (source && failed) {
     message = t(
-      source.kind === "video"
-        ? "game:media.videoUnavailable"
-        : "game:media.audioUnavailable",
+      source.kind === MEDIA_TYPES.AUDIO
+        ? "game:media.audioUnavailable"
+        : "game:media.videoUnavailable",
     )
+
+    // YouTube's player says why.
+    if (source.kind === MEDIA_TYPES.YOUTUBE && failure) {
+      message = `${message}. ${t(`game:media.youtube.${failure}`)}`
+    }
   } else if (source && blocked) {
     message = t("game:media.blocked")
   }

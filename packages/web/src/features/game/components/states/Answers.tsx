@@ -1,8 +1,5 @@
-import { EVENTS, MEDIA_TYPES, NO_TIME_LIMIT } from "@razzia/common/constants"
-import type {
-  AnswerPayload,
-  QuestionMediaType,
-} from "@razzia/common/types/game"
+import { EVENTS, NO_TIME_LIMIT } from "@razzia/common/constants"
+import type { AnswerPayload } from "@razzia/common/types/game"
 import type { CommonStatusDataMap } from "@razzia/common/types/game/status"
 import { isTimedMedia } from "@razzia/common/utils/media"
 import QuestionStage from "@razzia/web/features/game/components/question/QuestionStage"
@@ -74,14 +71,10 @@ const Answers = ({
   }
 
   useEffect(() => {
-    const disabledMusicMedia: QuestionMediaType[] = [
-      MEDIA_TYPES.AUDIO,
-      MEDIA_TYPES.VIDEO,
-    ]
-
     // The music plays on the host screen only: players' phones stay quiet,
-    // and a question with its own audio or video keeps the room silent.
-    if (player || disabledMusicMedia.includes(media?.type)) {
+    // and a question with its own sound or video (a YouTube video too) keeps
+    // the room silent.
+    if (player || isTimedMedia(media?.type)) {
       return
     }
 

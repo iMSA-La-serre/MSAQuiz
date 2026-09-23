@@ -24,6 +24,8 @@ interface Props {
   // The address tried again behind the block, once per mount: the picture
   // comes back as soon as it loads (see useImageFailure).
   retry?: ImageRetry
+  // Why, under the label, when the player tells (YouTube's).
+  detail?: string
 }
 
 /**
@@ -37,15 +39,17 @@ const MediaUnavailable = ({
   tone = "stage",
   placement = "center",
   retry,
+  detail,
 }: Props) => {
   const { t } = useTranslation()
   const { icon: Icon, label: labelKey } = KINDS[kind]
   const label = t(labelKey)
+  const name = detail ? `${label}. ${detail}` : label
 
   return (
     <div
       role="img"
-      aria-label={label}
+      aria-label={name}
       className={clsx(
         "flex text-center font-semibold",
         placement === "center"
@@ -68,6 +72,14 @@ const MediaUnavailable = ({
         aria-hidden
       />
       <span aria-hidden>{label}</span>
+      {detail && (
+        <span
+          aria-hidden
+          className="max-w-md px-4 text-sm font-normal text-balance lg:text-base"
+        >
+          {detail}
+        </span>
+      )}
       {retry && (
         <img src={retry.url} alt="" aria-hidden hidden onLoad={retry.onLoad} />
       )}
