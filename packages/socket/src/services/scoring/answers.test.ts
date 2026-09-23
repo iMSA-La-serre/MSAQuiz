@@ -510,3 +510,53 @@ describe("countResponses, ranking and scale", () => {
     ).toEqual({ 4: 2, 5: 1 })
   })
 })
+
+describe("parseAnswer, markers", () => {
+  const markers: Question = {
+    ...question(QUESTION_TYPES.MARKERS, ["Le hangar", "La cour", "Le portail"]),
+    solutions: [1],
+    markers: [
+      { x: 20, y: 30 },
+      { x: 55, y: 60 },
+      { x: 80, y: 15 },
+    ],
+    options: { scoringMode: "balanced" },
+  }
+  const several: Question = {
+    ...markers,
+    solutions: [0, 2],
+    options: { scoringMode: "balanced", multiple: true },
+  }
+
+  it("keeps the marker tapped", () => {
+    expect(parseAnswer(markers, { answerKeys: [2] }, [0, 1, 2])).toEqual({
+      answerIds: [2],
+    })
+  })
+
+  it("refuses several markers when only one is right", () => {
+    expect(parseAnswer(markers, { answerKeys: [0, 2] }, [0, 1, 2])).toBeNull()
+  })
+
+  it("keeps several markers when several are right", () => {
+    expect(parseAnswer(several, { answerKeys: [2, 0, 2] }, [0, 1, 2])).toEqual({
+      answerIds: [2, 0],
+    })
+  })
+
+  it("refuses an empty pick, a marker that does not exist, or a text", () => {
+    expect(parseAnswer(markers, { answerKeys: [] }, [0, 1, 2])).toBeNull()
+    expect(parseAnswer(markers, { answerKeys: [3] }, [0, 1, 2])).toBeNull()
+    expect(parseAnswer(markers, { text: "La cour" }, [0, 1, 2])).toBeNull()
+  })
+
+  it("counts the players who tapped each marker", () => {
+    expect(
+      countResponses(markers, [
+        { answerIds: [1] },
+        { answerIds: [2] },
+        { answerIds: [1] },
+      ]),
+    ).toEqual({ 1: 2, 2: 1 })
+  })
+})

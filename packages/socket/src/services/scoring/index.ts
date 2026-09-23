@@ -3,6 +3,7 @@ import type { Question, QuestionType } from "@razzia/common/types/game"
 import * as categorize from "./categorize"
 import * as estimate from "./estimate"
 import * as highlight from "./highlight"
+import * as markers from "./markers"
 import * as multi from "./multi"
 import * as ordering from "./ordering"
 import * as poll from "./poll"
@@ -41,6 +42,7 @@ export const QUESTION_SCORING: Record<QuestionType, ScoringFn> = {
   [categorize.type]: categorize.scoring,
   [ranking.type]: ranking.scoring,
   [scale.type]: scale.scoring,
+  [markers.type]: markers.scoring,
 }
 
 // Stored results may hold a type this version does not know (a later one, or

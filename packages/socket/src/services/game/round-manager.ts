@@ -15,6 +15,7 @@ import type {
   GameResult,
   PublicPlayer,
   Question,
+  QuestionMarker,
   QuestionResult,
   QuestionType,
   QuizzWithId,
@@ -36,6 +37,7 @@ import {
 } from "@razzia/common/utils/association"
 import { estimateRanges, medianOf } from "@razzia/common/utils/estimate"
 import { foundPassages } from "@razzia/common/utils/highlight"
+import { markersOf } from "@razzia/common/utils/markers"
 import {
   BUILTIN_BLOCKLIST,
   type Blocklist,
@@ -169,6 +171,14 @@ const recordedIds = (
 const publicTargets = (question: Question): { targets?: string[] } =>
   isAssociationType(question.type) ? { targets: targetsOf(question) } : {}
 
+// Where the markers sit on the image, which goes along with their labels:
+// the answers. Which of them are right stays on the server until
+// SHOW_RESPONSES.
+const publicMarkers = (question: Question): { markers?: QuestionMarker[] } =>
+  question.type === QUESTION_TYPES.MARKERS
+    ? { markers: markersOf(question) }
+    : {}
+
 // The final top goes to every player: only what a ranking row shows, never
 // the clientId that lets its holder take over a seat.
 const toPublicPlayer = ({
@@ -295,6 +305,7 @@ export class RoundManager {
     const highlightText =
       question.type === QUESTION_TYPES.HIGHLIGHT ? { text: question.text } : {}
     const associationTargets = publicTargets(question)
+    const imageMarkers = publicMarkers(question)
 
     // The answers are shown during the reading time, but never the solutions
     // (nor the accepted answers, nor the correct order): those only go to the
@@ -311,6 +322,7 @@ export class RoundManager {
       options: question.options,
       ...highlightText,
       ...associationTargets,
+      ...imageMarkers,
     })
 
     await sleep(question.cooldown)
@@ -332,6 +344,7 @@ export class RoundManager {
       options: question.options,
       ...highlightText,
       ...associationTargets,
+      ...imageMarkers,
     })
 
     await this.opts.cooldown.start(question.time)
@@ -566,6 +579,7 @@ export class RoundManager {
         publicOrder: this.publicAnswers.order,
       }),
       ...publicTargets(question),
+      ...publicMarkers(question),
       ...(words && {
         words: words.slice(0, WORDCLOUD_LIMITS.CLOUD_WORDS),
         distinctWords: words.length,

@@ -359,3 +359,56 @@ describe("statements and categorize", () => {
     ).toBe(0)
   })
 })
+
+describe("markers", () => {
+  const markers = (solutions: number[], scoringMode?: ScoringMode): Question =>
+    question({
+      type: QUESTION_TYPES.MARKERS,
+      answers: ["Le hangar", "La cour", "Le portail"],
+      solutions,
+      markers: [
+        { x: 20, y: 30 },
+        { x: 55, y: 60 },
+        { x: 80, y: 15 },
+      ],
+      ...(scoringMode && { options: { scoringMode } }),
+    })
+
+  it("gives everything for the right marker, nothing otherwise", () => {
+    expect(QUESTION_SCORING.markers(markers([1]), { answerIds: [1] })).toBe(1)
+    expect(QUESTION_SCORING.markers(markers([1]), { answerIds: [0] })).toBe(0)
+  })
+
+  it("keeps the right marker whatever the mode, a single pick being all a player may send", () => {
+    for (const mode of [
+      SCORING_MODES.STRICT,
+      SCORING_MODES.BALANCED,
+      SCORING_MODES.LENIENT,
+    ] as const) {
+      expect(
+        QUESTION_SCORING.markers(markers([1], mode), { answerIds: [1] }),
+      ).toBe(1)
+      expect(
+        QUESTION_SCORING.markers(markers([1], mode), { answerIds: [2] }),
+      ).toBe(0)
+    }
+  })
+
+  it("follows the multiple choice's scale when several markers are right", () => {
+    expect(
+      QUESTION_SCORING.markers(markers([0, 2], SCORING_MODES.BALANCED), {
+        answerIds: [0],
+      }),
+    ).toBe(0.5)
+    expect(
+      QUESTION_SCORING.markers(markers([0, 2], SCORING_MODES.BALANCED), {
+        answerIds: [0, 1],
+      }),
+    ).toBe(0)
+    expect(
+      QUESTION_SCORING.markers(markers([0, 2], SCORING_MODES.STRICT), {
+        answerIds: [0, 2],
+      }),
+    ).toBe(1)
+  })
+})

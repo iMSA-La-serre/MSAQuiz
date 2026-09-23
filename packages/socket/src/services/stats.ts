@@ -165,13 +165,14 @@ const AVERAGE_SCORE_TYPES = new Set<string>([
 
 // Types that list every answer, picked or not: all the items of an ordering,
 // of statements, of categorize or of a ranking, all the passages of a
-// highlight.
+// highlight, all the markers of an image.
 const LIST_ALL_TYPES = new Set<string>([
   QUESTION_TYPES.ORDERING,
   QUESTION_TYPES.HIGHLIGHT,
   QUESTION_TYPES.STATEMENTS,
   QUESTION_TYPES.CATEGORIZE,
   QUESTION_TYPES.RANKING,
+  QUESTION_TYPES.MARKERS,
 ])
 
 interface Tally {
@@ -193,10 +194,10 @@ interface Tally {
   skipped: number
 }
 
-// Types whose answer ids are not picked choices, and the highlight, whose
-// passages come from its text: they never share a row with another type,
-// even under the same wording. The choice types still merge, as they always
-// did.
+// Types whose answer ids are not picked choices, the highlight, whose
+// passages come from its text, and the markers, whose answers are the labels
+// of spots on an image: they never share a row with another type, even under
+// the same wording. The choice types still merge, as they always did.
 const OWN_ROW_TYPES = new Set<string>([
   QUESTION_TYPES.ORDERING,
   QUESTION_TYPES.SHORTANSWER,
@@ -207,6 +208,7 @@ const OWN_ROW_TYPES = new Set<string>([
   QUESTION_TYPES.CATEGORIZE,
   QUESTION_TYPES.RANKING,
   QUESTION_TYPES.SCALE,
+  QUESTION_TYPES.MARKERS,
 ])
 
 const groupKey = (question: QuestionResult, label: string): string =>

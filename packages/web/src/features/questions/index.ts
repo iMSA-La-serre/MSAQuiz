@@ -9,6 +9,7 @@ import type {
 import * as categorize from "@razzia/web/features/questions/categorize"
 import * as estimate from "@razzia/web/features/questions/estimate"
 import * as highlight from "@razzia/web/features/questions/highlight"
+import * as markers from "@razzia/web/features/questions/markers"
 import * as multi from "@razzia/web/features/questions/multi"
 import * as ordering from "@razzia/web/features/questions/ordering"
 import * as poll from "@razzia/web/features/questions/poll"
@@ -23,13 +24,21 @@ import * as wordcloud from "@razzia/web/features/questions/wordcloud"
 import type {
   AnswerComponentProps,
   DistributionProps,
+  QuestionMediaProps,
   ResultCellsProps,
   ResultSummaryProps,
   SolutionPickerProps,
   StatsAnswersProps,
 } from "@razzia/web/features/questions/types"
 import type { TFunction } from "i18next"
-import type { ComponentType } from "react"
+import type { ComponentType, PropsWithChildren } from "react"
+
+// What a stage provider is given: the settings players may read, and where
+// an answer goes once the type's blocks agree on one.
+interface StageProviderProps {
+  options?: QuestionOptions
+  onSubmit: (_answer: AnswerPayload) => void
+}
 
 // Answer time a new question starts from, when its type sets none.
 export const DEFAULT_ANSWER_TIME = 20
@@ -54,6 +63,12 @@ interface QuestionRegistryEntry {
   hostTopAligned?: boolean
   scoringModes?: ScoringMode[]
   AnswerComponent: ComponentType<AnswerComponentProps>
+  // The question's image with the type's own layer over it (the markers), in
+  // place of the plain media block, on every screen that shows it.
+  MediaComponent?: ComponentType<QuestionMediaProps>
+  // Wraps the whole stage: what the type's blocks share while answering (the
+  // markers tapped, which the image and the list both fill).
+  StageProvider?: ComponentType<PropsWithChildren<StageProviderProps>>
   ConfigComponent: ComponentType
   SolutionPicker: ComponentType<SolutionPickerProps>
   // The views below replace the choice rendering (letters, solutions) for
@@ -66,8 +81,9 @@ interface QuestionRegistryEntry {
   // Result window: answers block, and each player's answer and verdict.
   ResultSummary?: ComponentType<ResultSummaryProps>
   ResultCells?: ComponentType<ResultCellsProps>
-  // Whether a recorded answer earned full credit; by default, whether it
-  // holds a solution.
+  // Whether a recorded answer counts as correct: full credit on most types,
+  // any credit on markers, as their outcome; by default, whether it holds a
+  // solution.
   isCorrectRecord?: (
     _question: QuestionResult,
     _record: PlayerAnswerRecord,
@@ -116,6 +132,7 @@ export const QUESTION_REGISTRY: Record<QuestionType, QuestionRegistryEntry> = {
   categorize,
   ranking,
   scale,
+  markers,
 }
 
 export const QUESTION_TYPE_LIST = Object.keys(

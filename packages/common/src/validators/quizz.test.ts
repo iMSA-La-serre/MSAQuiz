@@ -1199,3 +1199,180 @@ describe("scale", () => {
     expect(isValid({ ...SCALE, time: -1 })).toBe(true)
   })
 })
+
+describe("markers", () => {
+  const MARKERS = {
+    type: QUESTION_TYPES.MARKERS,
+    question: "Où se trouve le point de rassemblement ?",
+    media: { type: "image", url: "https://msa.example/plan.png" },
+    answers: ["Le hangar", "La cour", "Le portail"],
+    markers: [
+      { x: 20, y: 30 },
+      { x: 55, y: 60 },
+      { x: 80, y: 15 },
+    ],
+    solutions: [1],
+    cooldown: 5,
+    time: 20,
+  }
+
+  it("keeps its labels, its markers and what it scores", () => {
+    const markers = parse({ ...MARKERS, maxPoints: 1500, penalty: 100 })
+
+    expect(markers.answers).toEqual(["Le hangar", "La cour", "Le portail"])
+    expect(markers.markers).toEqual(MARKERS.markers)
+    expect(markers.solutions).toEqual([1])
+    expect(markers.maxPoints).toBe(1500)
+    expect(markers.penalty).toBe(100)
+  })
+
+  it("stores every position as a whole percentage inside the image", () => {
+    expect(
+      parse({
+        ...MARKERS,
+        markers: [
+          { x: 20.4, y: 30.6 },
+          { x: 55, y: 60 },
+          { x: 80, y: 15 },
+        ],
+      }).markers,
+    ).toEqual([
+      { x: 20, y: 31 },
+      { x: 55, y: 60 },
+      { x: 80, y: 15 },
+    ])
+  })
+
+  it("needs an image to place the markers on", () => {
+    const { media: _image, ...noImage } = MARKERS
+
+    expect(issuesOf(noImage)).toEqual(["errors:quizz.markersImageMissing"])
+    expect(
+      issuesOf({
+        ...MARKERS,
+        media: { type: "video", url: "https://msa.example/film.mp4" },
+      }),
+    ).toEqual(["errors:quizz.markersImageMissing"])
+  })
+
+  it("counts 2 to 6 markers", () => {
+    expect(
+      issuesOf({
+        ...MARKERS,
+        answers: ["Le hangar"],
+        markers: [{ x: 20, y: 30 }],
+        solutions: [0],
+      }),
+    ).toEqual(["errors:quizz.markersCount"])
+    expect(
+      issuesOf({
+        ...MARKERS,
+        answers: ["A", "B", "C", "D", "E", "F", "G"],
+        markers: Array.from({ length: 7 }, (_, index) => ({
+          x: 10 + index * 10,
+          y: 10,
+        })),
+      }),
+    ).toEqual(["errors:quizz.markersCount"])
+  })
+
+  it("refuses a label longer than a row, or repeated", () => {
+    expect(
+      issuesOf({
+        ...MARKERS,
+        answers: ["A".repeat(41), "La cour", "Le portail"],
+      }),
+    ).toEqual(["errors:quizz.markerLabelTooLong"])
+    expect(
+      issuesOf({ ...MARKERS, answers: ["La cour", "la  cour", "Le portail"] }),
+    ).toEqual(["errors:quizz.markerLabelDuplicate"])
+  })
+
+  it("refuses a marker missing or outside the image", () => {
+    expect(
+      issuesOf({ ...MARKERS, markers: MARKERS.markers.slice(0, 2) }),
+    ).toEqual(["errors:quizz.markerPosition"])
+    expect(
+      issuesOf({
+        ...MARKERS,
+        markers: [
+          { x: 20, y: 30 },
+          { x: 101, y: 60 },
+          { x: 80, y: 15 },
+        ],
+      }),
+    ).toEqual(["errors:quizz.markerPosition"])
+  })
+
+  it("refuses two markers on the same spot, once rounded", () => {
+    expect(
+      issuesOf({
+        ...MARKERS,
+        markers: [
+          { x: 20, y: 30 },
+          { x: 55, y: 60 },
+          { x: 20.3, y: 29.8 },
+        ],
+      }),
+    ).toEqual(["errors:quizz.markerOverlap"])
+    expect(
+      isValid({
+        ...MARKERS,
+        markers: [
+          { x: 20, y: 30 },
+          { x: 21, y: 30 },
+          { x: 80, y: 15 },
+        ],
+      }),
+    ).toBe(true)
+  })
+
+  it("needs a right marker, which must exist", () => {
+    expect(issuesOf({ ...MARKERS, solutions: [] })).toEqual([
+      "errors:quizz.markersNoSolution",
+    ])
+    expect(issuesOf({ ...MARKERS, solutions: [3] })).toEqual([
+      "errors:quizz.markersSolutionRange",
+    ])
+  })
+
+  it("tells players when several markers are right, and only then", () => {
+    expect(parse({ ...MARKERS, solutions: [2, 0, 2] })).toMatchObject({
+      solutions: [0, 2],
+      options: { multiple: true, scoringMode: SCORING_MODES.BALANCED },
+    })
+    expect(
+      parse({ ...MARKERS, options: { multiple: true } }).options,
+    ).not.toHaveProperty("multiple")
+  })
+
+  it("keeps the scoring mode chosen when a single marker is right again", () => {
+    // It no longer changes anything, one right marker scoring 1 or 0 in every
+    // mode, and is there again if a second marker is ticked.
+    expect(
+      parse({
+        ...MARKERS,
+        solutions: [0],
+        options: { scoringMode: SCORING_MODES.STRICT, multiple: true },
+      }).options,
+    ).toEqual({ scoringMode: SCORING_MODES.STRICT })
+  })
+
+  it("drops the markers and the setting of the other types", () => {
+    const single = parse({
+      ...SINGLE_QUESTION,
+      markers: [{ x: 20, y: 30 }],
+      options: { multiple: true },
+    })
+
+    expect(single).not.toHaveProperty("markers")
+    expect(single.options).not.toHaveProperty("multiple")
+  })
+
+  it("needs 5 seconds at least, or no limit", () => {
+    expect(issuesOf({ ...MARKERS, time: 3 })).toEqual([
+      "errors:quizz.timeTooShort",
+    ])
+    expect(isValid({ ...MARKERS, time: -1 })).toBe(true)
+  })
+})

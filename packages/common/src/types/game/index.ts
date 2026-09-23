@@ -59,6 +59,21 @@ export interface QuestionOptions {
   // Scale: offer « Je préfère ne pas répondre » under the levels. Off when
   // absent.
   scaleSkip?: boolean
+  // Markers: several markers are right, so players pick as many as they want
+  // and validate, as on a multiple choice. Filled in on save from the markers
+  // ticked (markersMultiple); off when absent. Public: the phone needs it,
+  // and it says nothing about which markers are right.
+  multiple?: boolean
+}
+
+/**
+ * Markers: where one marker sits on the question's image, as a percentage of
+ * its width and of its height, so the screens place it whatever size the
+ * image is shown at. Its label is the answer of the same index.
+ */
+export interface QuestionMarker {
+  x: number
+  y: number
 }
 
 export interface Player {
@@ -78,7 +93,8 @@ export type PublicPlayer = Omit<Player, "clientId">
 // An answer as the server keeps it until the question closes.
 export interface Answer {
   playerId: string
-  // Choice types: picked answers (highlight: the passages tapped). Ordering
+  // Choice types: picked answers (markers: the markers tapped; highlight: the
+  // passages tapped). Ordering
   // and ranking: original indices, in the order the player chose.
   // Shortanswer: index of the accepted answer recognized, or empty.
   // Statements and categorize: the target picked for each item, in the order
@@ -135,6 +151,9 @@ export interface Question {
   // Statements and categorize: the index in `targets` of the right target of
   // each item, in the order of `answers`. Secret, never sent to a player.
   expectedTargets?: number[]
+  // Markers: where each marker sits on the question's image, in the order of
+  // `answers`, which holds their labels. Public: players tap them.
+  markers?: QuestionMarker[]
   // Per-question switch, QUESTION_TYPE_META default when absent.
   speedBonus?: boolean
 }

@@ -1030,3 +1030,66 @@ describe("aggregateQuestions, scale", () => {
     expect(stats.answerCount).toBe(2)
   })
 })
+
+describe("aggregateQuestions, markers", () => {
+  const markers = (over: Partial<QuestionResult> = {}): QuestionResult =>
+    question({
+      type: QUESTION_TYPES.MARKERS,
+      question: "Où se trouve le point de rassemblement ?",
+      media: { type: "image", url: "https://msa.example/plan.png" },
+      answers: ["Le hangar", "La cour", "Le portail"],
+      markers: [
+        { x: 20, y: 30 },
+        { x: 55, y: 60 },
+        { x: 80, y: 15 },
+      ],
+      solutions: [1],
+      ...over,
+    })
+
+  it("lists every marker with the players who tapped it", () => {
+    const [stats] = aggregateQuestions([
+      game([
+        markers({
+          playerAnswers: answers(
+            ["Alex", [1]],
+            ["Bea", [2]],
+            ["Cyd", [1]],
+            ["Dan", null],
+          ),
+        }),
+      ]),
+    ])
+
+    expect(stats).toMatchObject({
+      type: QUESTION_TYPES.MARKERS,
+      scored: true,
+      answerCount: 3,
+      missingCount: 1,
+      correctCount: 2,
+      successRate: 2 / 3,
+      answers: [
+        { label: "Le hangar", count: 0 },
+        { label: "La cour", count: 2 },
+        { label: "Le portail", count: 1 },
+      ],
+      solutionLabels: ["La cour"],
+    })
+  })
+
+  it("keeps its own row under a wording a choice question also uses", () => {
+    const stats = aggregateQuestions([
+      game([
+        markers({ playerAnswers: answers(["Alex", [1]]) }),
+        question({
+          question: "Où se trouve le point de rassemblement ?",
+          answers: ["Le hangar", "La cour", "Le portail"],
+          playerAnswers: answers(["Bea", [1]]),
+        }),
+      ]),
+    ])
+
+    expect(stats).toHaveLength(2)
+    expect(stats.map(({ type }) => type)).toContain(QUESTION_TYPES.MARKERS)
+  })
+})

@@ -3,14 +3,6 @@ import {
   NO_TIME_LIMIT,
   QUESTION_TYPE_META,
 } from "@razzia/common/constants"
-import type { ScoringMode } from "@razzia/common/types/game"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@razzia/web/components/Select"
 import Switch from "@razzia/web/components/Switch"
 import {
   defaultTimeOf,
@@ -19,15 +11,9 @@ import {
 import ConfigField from "@razzia/web/features/quizz/components/QuestionEditor/QuestionEditorConfig/ConfigField"
 import ConfigNumberInput from "@razzia/web/features/quizz/components/QuestionEditor/QuestionEditorConfig/ConfigNumberInput"
 import ConfigSection from "@razzia/web/features/quizz/components/QuestionEditor/QuestionEditorConfig/ConfigSection"
+import ScoringModeField from "@razzia/web/features/quizz/components/QuestionEditor/QuestionEditorConfig/ScoringModeField"
 import { useQuizzEditor } from "@razzia/web/features/quizz/contexts/quizz-editor-context"
-import {
-  ArrowBigDownDash,
-  Clock,
-  ListChecks,
-  Star,
-  Timer,
-  Zap,
-} from "lucide-react"
+import { ArrowBigDownDash, Clock, Star, Timer, Zap } from "lucide-react"
 import type { PropsWithChildren } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -44,10 +30,6 @@ const BaseConfig = ({ children }: PropsWithChildren) => {
   const isSpeedBonusEnabled = currentQuestion.speedBonus ?? meta.speedBonus
   const { scoringModes } = QUESTION_REGISTRY[currentQuestion.type]
   const scoringMode = currentQuestion.options?.scoringMode
-
-  const handleScoringModeChange = (mode: ScoringMode) => {
-    updateQuestion(currentIndex, { options: { scoringMode: mode } })
-  }
 
   const handleUpdateQuestion = (key: string) => (value: string | number) => {
     updateQuestion(currentIndex, { [key]: value })
@@ -73,11 +55,6 @@ const BaseConfig = ({ children }: PropsWithChildren) => {
       penalty: checked ? DEFAULT_PENALTY : undefined,
     })
   }
-
-  const scoringOptions = scoringModes?.map((mode) => ({
-    value: mode,
-    label: t(`quizz:question.config.scoringMode.${mode}`),
-  }))
 
   return (
     <>
@@ -143,30 +120,7 @@ const BaseConfig = ({ children }: PropsWithChildren) => {
           </ConfigField>
 
           {scoringModes && scoringMode && (
-            <ConfigField>
-              <ConfigField.Label
-                icon={<ListChecks className="size-4" />}
-                label={t("quizz:question.config.scoringMode")}
-              />
-              <Select
-                value={scoringMode}
-                onValueChange={handleScoringModeChange}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {scoringOptions?.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <ConfigField.Description>
-                {t(`quizz:question.config.scoringModeHint.${scoringMode}`)}
-              </ConfigField.Description>
-            </ConfigField>
+            <ScoringModeField modes={scoringModes} />
           )}
 
           {children}

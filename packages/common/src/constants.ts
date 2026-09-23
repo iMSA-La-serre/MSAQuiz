@@ -123,6 +123,25 @@ export const ASSOCIATION_LIMITS = {
   TARGET_LENGTH: 24,
 } as const
 
+// Markers: numbered spots the author places on the question's image, one per
+// answer, which carries the marker's label.
+export const MARKERS_LIMITS = {
+  MIN_MARKERS: 2,
+  // The distribution has a row per marker: six compact rows fit a 1280×650
+  // projector under the image, as the levels of a scale do under a question
+  // on two lines.
+  MAX_MARKERS: 6,
+  // Characters of each label, as counted by countInputChars: one line on the
+  // distribution rows, next to the figures, and one line on a 360 px phone
+  // row next to the number.
+  LABEL_LENGTH: 40,
+  // A position is a percentage of the image, rounded to a whole one: the
+  // screens place the markers from it, so nothing depends on the size the
+  // image is shown at.
+  MIN_PERCENT: 0,
+  MAX_PERCENT: 100,
+} as const
+
 // Scale: levels from `scaleMin` to `scaleMax`, one row each in the
 // distribution.
 export const SCALE_LIMITS = {
@@ -165,6 +184,7 @@ export const QUESTION_TYPES = {
   CATEGORIZE: "categorize",
   RANKING: "ranking",
   SCALE: "scale",
+  MARKERS: "markers",
 } as const
 
 /**
@@ -344,6 +364,19 @@ export const QUESTION_TYPE_META: Record<
     speedBonus: false,
     partialOutcome: false,
     nominative: false,
+  },
+  // Answers are the labels of the markers placed on the question's image,
+  // whose positions are in `markers`; the right ones are `solutions`, as on a
+  // single choice, or as on a multiple choice from two of them on.
+  markers: {
+    scored: true,
+    acceptsAnswers: true,
+    minAnswers: MARKERS_LIMITS.MIN_MARKERS,
+    maxAnswers: MARKERS_LIMITS.MAX_MARKERS,
+    // One tap, as on a single choice.
+    speedBonus: true,
+    partialOutcome: false,
+    nominative: true,
   },
 }
 

@@ -32,6 +32,7 @@ const Answers = ({
     options,
     text,
     targets,
+    markers,
   },
 }: Props) => {
   const { t } = useTranslation()
@@ -114,6 +115,7 @@ const Answers = ({
       options={options}
       text={text}
       targets={targets}
+      markers={markers}
       onSubmit={handleSubmit}
       isHost={!player}
     />

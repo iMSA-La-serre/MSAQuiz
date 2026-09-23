@@ -57,6 +57,25 @@ const addChoiceRows = ({ sheet, question, answered }: QuestionRows) => {
   })
 }
 
+// Markers: one row per marker, numbered as on the image, the right ones
+// ticked, with the players who tapped each.
+const addMarkersRows = ({ sheet, question, answered }: QuestionRows) => {
+  sheet.addRow({
+    answer: "Repères",
+    correct: "Correcte",
+    votes: "Choix",
+  }).font = { italic: true }
+
+  question.answers.forEach((label, markerIndex) => {
+    sheet.addRow({
+      answer: `${markerIndex + 1}. ${label}`,
+      correct: question.solutions.includes(markerIndex) ? "✓" : "",
+      votes: answered.filter((record) => record.answerIds.includes(markerIndex))
+        .length,
+    })
+  })
+}
+
 // The mean multiplier of the answers given, as a percentage.
 const addMeanScoreRow = ({ sheet, question, answered }: QuestionRows) => {
   const scoreSum = answered.reduce(
@@ -437,6 +456,8 @@ export const buildResultWorkbook = async (
       addEstimateRows(rows)
     } else if (question.type === QUESTION_TYPES.HIGHLIGHT) {
       addHighlightRows(rows)
+    } else if (question.type === QUESTION_TYPES.MARKERS) {
+      addMarkersRows(rows)
     } else if (isAssociationType(question.type)) {
       addAssociationRows(rows)
     } else {

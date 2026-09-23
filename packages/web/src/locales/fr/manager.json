@@ -17,6 +17,7 @@
     "startGame": "Démarrer la partie"
   },
   "result": {
+    "correctMarker": "Bonne réponse",
     "delete": "Supprimer le résultat",
     "deleteConfirm": "Supprimer le résultat \"{{name}}\" ? Cette action est irréversible.",
     "deleted": "Résultat supprimé",
@@ -30,8 +31,8 @@
     "matchedItem": "Juste",
     "median": "Médiane",
     "noAnswer": "Sans réponse",
-    "none": "Aucun résultat pour l'instant, terminez une partie pour voir les rapports",
     "noWord": "Aucun mot",
+    "none": "Aucun résultat pour l'instant, terminez une partie pour voir les rapports",
     "otherWords_one": "{{count}} autre mot",
     "otherWords_other": "{{count}} autres mots",
     "paginationOf": " sur ",

@@ -10,6 +10,7 @@ import {
   targetsOf,
 } from "@razzia/common/utils/association"
 import { checkEstimate } from "@razzia/common/utils/estimate"
+import { markersMultiple } from "@razzia/common/utils/markers"
 import {
   BUILTIN_BLOCKLIST,
   type Blocklist,
@@ -30,17 +31,23 @@ import {
 import { wordCountOf } from "@razzia/common/utils/wordcloud"
 import type { ScoredAnswer } from "@razzia/socket/services/scoring"
 
-// Types whose players may pick several answers at once.
+// Types whose players may pick several answers at once. Markers join them
+// when several of them are right, see severalPicks.
 const SEVERAL_PICKS = new Set<string>([
   QUESTION_TYPES.MULTI,
   QUESTION_TYPES.HIGHLIGHT,
 ])
 
+const severalPicks = (question: Question): boolean =>
+  SEVERAL_PICKS.has(question.type) ||
+  (question.type === QUESTION_TYPES.MARKERS && markersMultiple(question))
+
 // Answer ids as sent by a player, checked against the question before they
 // are stored. The scoring counts matching ids, so a repeated id would be
 // credited once per copy: duplicates are dropped, and anything a regular
 // client cannot send (unknown answer, several picks on a single choice) is
-// refused with null. A highlight's answers are its passages.
+// refused with null. A highlight's answers are its passages, a markers
+// question's its labels.
 export const parseAnswerIds = (
   question: Question,
   answerIds: unknown,
@@ -61,7 +68,7 @@ export const parseAnswerIds = (
     return null
   }
 
-  if (!SEVERAL_PICKS.has(question.type) && ids.length > 1) {
+  if (!severalPicks(question) && ids.length > 1) {
     return null
   }
 

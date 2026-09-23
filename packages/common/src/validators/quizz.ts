@@ -3,6 +3,7 @@ import {
   ESTIMATE_LIMITS,
   ESTIMATE_TOLERANCE,
   HIGHLIGHT_LIMITS,
+  MARKERS_LIMITS,
   MATCH_SCORING,
   MEDIA_TYPES,
   NO_TIME_LIMIT,
@@ -19,6 +20,7 @@ import {
 import type { Question, QuestionOptions } from "@razzia/common/types/game"
 import { isAssociationType, targetsOf } from "@razzia/common/utils/association"
 import { decimalsOf, fitsDecimals } from "@razzia/common/utils/estimate"
+import { markersOf, stackedMarker } from "@razzia/common/utils/markers"
 import {
   formatHighlight,
   highlightLength,
@@ -71,6 +73,8 @@ const optionsValidator = z.object({
   scaleLow: z.string().optional(),
   scaleHigh: z.string().optional(),
   scaleSkip: z.boolean().optional(),
+  // Markers, filled in on save from the markers ticked.
+  multiple: z.boolean().optional(),
 })
 
 // Types added after quizzes were first stored: the stricter rules below only
@@ -85,6 +89,7 @@ const NEWER_TYPES = new Set<string>([
   QUESTION_TYPES.CATEGORIZE,
   QUESTION_TYPES.RANKING,
   QUESTION_TYPES.SCALE,
+  QUESTION_TYPES.MARKERS,
 ])
 
 const MIN_TIME = 5
@@ -463,6 +468,95 @@ const checkAssociation = (
   }
 }
 
+// Markers: an image to place them on, 2 to 6 markers within it, each with a
+// label of its own, and at least one of them right.
+const checkMarkers = (
+  {
+    media,
+    answers,
+    markers = [],
+    solutions,
+  }: Pick<Question, "media" | "answers" | "markers" | "solutions">,
+  issue: IssueFn,
+) => {
+  if (media?.type !== MEDIA_TYPES.IMAGE) {
+    issue("errors:quizz.markersImageMissing", ["media"])
+  }
+
+  if (
+    answers.length < MARKERS_LIMITS.MIN_MARKERS ||
+    answers.length > MARKERS_LIMITS.MAX_MARKERS
+  ) {
+    issue("errors:quizz.markersCount", ["answers"])
+  }
+
+  answers.forEach((label, index) => {
+    // An empty string is already reported by the answers schema.
+    if (label !== "" && cleanInput(label) === "") {
+      issue("errors:quizz.answerEmpty", ["answers", index])
+    }
+
+    if (isTooLong(label, MARKERS_LIMITS.LABEL_LENGTH)) {
+      issue("errors:quizz.markerLabelTooLong", ["answers", index])
+    }
+  })
+
+  const duplicate = firstDuplicateKey(answers)
+
+  if (duplicate !== -1) {
+    issue("errors:quizz.markerLabelDuplicate", ["answers", duplicate])
+  }
+
+  const inImage = (value: number | undefined) =>
+    value !== undefined &&
+    Number.isFinite(value) &&
+    value >= MARKERS_LIMITS.MIN_PERCENT &&
+    value <= MARKERS_LIMITS.MAX_PERCENT
+
+  const misplaced = answers.findIndex((_, index) => {
+    const marker = markers.at(index)
+
+    return !inImage(marker?.x) || !inImage(marker?.y)
+  })
+
+  if (misplaced !== -1) {
+    issue("errors:quizz.markerPosition", ["markers", misplaced])
+  } else {
+    // Two markers on the same spot: only the top one could be tapped.
+    const stacked = stackedMarker(markers.slice(0, answers.length))
+
+    if (stacked !== -1) {
+      issue("errors:quizz.markerOverlap", ["markers", stacked])
+    }
+  }
+
+  if (solutions.length === 0) {
+    issue("errors:quizz.markersNoSolution", ["solutions"])
+  } else if (solutions.some((solution) => solution >= answers.length)) {
+    issue("errors:quizz.markersSolutionRange", ["solutions"])
+  }
+}
+
+// The settings of a markers question: whether several markers are right, so
+// the phone knows how many it may accept, next to the scoring mode it then
+// applies.
+const markersOptions = (
+  options: QuestionOptions | undefined,
+  several: boolean,
+): QuestionOptions | undefined => {
+  const { multiple: _ticked, ...rest } = options ?? {}
+
+  if (!several) {
+    return options && rest
+  }
+
+  return {
+    ...rest,
+    scoringMode: rest.scoringMode ?? SCORING_MODES.BALANCED,
+    multiple: true,
+  }
+}
+
 // The settings only a scale reads.
 const SCALE_OPTION_KEYS = [
   "scaleMin",
@@ -502,6 +596,11 @@ const OWNED_FIELDS: Array<{
     types: new Set([QUESTION_TYPES.SCALE]),
     fields: new Set<string>(),
     options: new Set(SCALE_OPTION_KEYS),
+  },
+  {
+    types: new Set([QUESTION_TYPES.MARKERS]),
+    fields: new Set(["markers"]),
+    options: new Set(["multiple"] satisfies Array<keyof QuestionOptions>),
   },
 ]
 
@@ -619,6 +718,9 @@ const questionValidator = z.preprocess(
       // Statements and categorize only, dropped from the other types.
       targets: z.array(z.string()).optional(),
       expectedTargets: z.array(z.number().int()).optional(),
+      // Markers only, dropped from the other types. Bounds and count are
+      // checked against the answers, see checkMarkers.
+      markers: z.array(z.object({ x: z.number(), y: z.number() })).optional(),
       speedBonus: z.boolean().optional(),
     })
     .superRefine((question, ctx) => {
@@ -632,11 +734,13 @@ const questionValidator = z.preprocess(
       // many; a type without answers (slide, shortanswer, wordcloud) has them
       // dropped; a highlight counts the passages of its text, see
       // checkHighlight, statements and categorize their items, see
-      // checkAssociation.
+      // checkAssociation, markers their labels, see checkMarkers.
       if (question.type === QUESTION_TYPES.HIGHLIGHT) {
         checkHighlight(question, issue)
       } else if (isAssociationType(question.type)) {
         checkAssociation(question, issue)
+      } else if (question.type === QUESTION_TYPES.MARKERS) {
+        checkMarkers(question, issue)
       } else if (meta.answersCount !== undefined) {
         if (count < meta.minAnswers) {
           issue("errors:quizz.tooFewAnswers", ["answers"])
@@ -750,6 +854,22 @@ const questionValidator = z.preprocess(
       // The items are stored in the correct order: no solutions to keep.
       if (question.type === QUESTION_TYPES.ORDERING) {
         return { ...question, solutions: [] }
+      }
+
+      // One marker per label, within the image; each right marker is listed
+      // once, in order, and whether there are several is stored in the
+      // options, which players read.
+      if (question.type === QUESTION_TYPES.MARKERS) {
+        const solutions = [...new Set(question.solutions)].sort((a, b) => a - b)
+
+        // The markers ticked are the one source: a stored `multiple` that no
+        // longer matches them is dropped.
+        return {
+          ...question,
+          markers: markersOf(question),
+          solutions,
+          options: markersOptions(question.options, solutions.length > 1),
+        }
       }
 
       // The levels of a scale are its settings, not answers; the end labels

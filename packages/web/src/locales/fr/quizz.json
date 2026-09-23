@@ -86,7 +86,8 @@
     "statements": "Affirmations",
     "categorize": "Catégories",
     "ranking": "Priorités",
-    "scale": "Échelle"
+    "scale": "Échelle",
+    "markers": "Repères"
   },
   "titleQuizzPlaceholder": "Titre du quiz...",
   "slideNoAnswers": "Une diapo info n'attend pas de réponses — elle affiche simplement la question et son média.",
@@ -111,7 +112,8 @@
       "statements": "Indiquez si chacune est vraie ou fausse",
       "categorize": "Choisissez la bonne catégorie de chacun",
       "ranking": "Sans bonne réponse : chacun les classe",
-      "scale": "Réponses non associées au pseudo"
+      "scale": "Réponses non associées au pseudo",
+      "markers": "Cochez le ou les repères corrects"
     },
     "placeholder": "Réponse {{letter}}",
     "remove": "Supprimer la réponse {{letter}}",
@@ -246,5 +248,22 @@
     "skipOn": "L'option « Je préfère ne pas répondre » est proposée sous les niveaux.",
     "title": "Échelle",
     "unlinked": "Les réponses ne sont pas associées au pseudo : les résultats gardent seulement qui a répondu, et combien de participants ont choisi chaque niveau."
+  },
+  "markers": {
+    "add": "Ajouter un repère",
+    "columnLabel": "Libellé",
+    "correctToggle": "Marquer le {{marker}} comme bonne réponse",
+    "crowded": "Sur un téléphone, les repères {{pairs}} se chevauchent : écartez-les pour que chacun reste facile à toucher.",
+    "crowdedPair": "{{first}} et {{second}}",
+    "empty": "Aucun repère pour l'instant : cliquez sur l'image pour en poser un.",
+    "marker": "repère {{number}} « {{label}} »",
+    "markerUnnamed": "repère {{number}}",
+    "moved": "Le {{marker}} est à {{x}} % de la largeur et {{y}} % de la hauteur",
+    "noImage": "Ajoutez une image à la question : les repères se posent dessus.",
+    "pin": "Déplacer le {{marker}}, à {{x}} % de la largeur et {{y}} % de la hauteur, avec les flèches du clavier",
+    "placeHint": "Cliquez sur l'image pour poser un repère, faites-le glisser ou utilisez les flèches du clavier pour le déplacer.",
+    "placeholder": "Repère {{number}}",
+    "remove": "Supprimer le {{marker}}",
+    "title": "Repères"
   }
 }

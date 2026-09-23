@@ -45,7 +45,7 @@ const ResultModalAnswers = () => {
   const { t } = useTranslation()
 
   const noAnswerCount = totalPlayers - answeredCount
-  const { ResultSummary, optionsLabelKey, optionsLabel } =
+  const { ResultSummary, MediaComponent, optionsLabelKey, optionsLabel } =
     QUESTION_REGISTRY[questionResult.type]
   const { options } = questionResult
   // By default, the multi scoring mode, whatever the type it was saved with.
@@ -62,7 +62,24 @@ const ResultModalAnswers = () => {
   return (
     <div className="border-accent flex flex-col border-b-2 md:flex-row">
       <div className="border-accent bg-muted/30 flex shrink-0 flex-row items-center gap-4 border-b-2 p-4 md:w-66 md:flex-col md:justify-center md:border-r-2 md:border-b-0">
-        <MediaPreview media={questionResult.media} />
+        {/* A type that draws the image itself (markers) shows its layer
+        over it, the right markers ticked: the numbers of the answers block
+        point at a spot. */}
+        {MediaComponent && questionResult.media?.type === MEDIA_TYPES.IMAGE ? (
+          <div className="w-40 shrink-0 md:w-full">
+            <MediaComponent
+              media={questionResult.media}
+              alt=""
+              variant="result"
+              answers={questionResult.answers}
+              markers={questionResult.markers}
+              correct={questionResult.solutions}
+              readOnly
+            />
+          </div>
+        ) : (
+          <MediaPreview media={questionResult.media} />
+        )}
         <div className="text-muted-foreground flex items-center gap-2 text-xs">
           <Clock className="size-3.5" />
           <span>

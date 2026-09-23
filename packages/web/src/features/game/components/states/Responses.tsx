@@ -73,6 +73,8 @@ const Responses = ({ data }: Props) => {
     }
   }, [reduceMotion])
 
+  const { DistributionList, MediaComponent, hostTopAligned } =
+    QUESTION_REGISTRY[type]
   const { scored } = QUESTION_TYPE_META[type]
   const isSlide = type === "slide"
   const hint = HINTS[type]
@@ -95,14 +97,31 @@ const Responses = ({ data }: Props) => {
     </header>
   )
 
-  // Same wrapper as the answering stage, so the image does not move.
+  // Same wrapper as the answering stage, so the image does not move. A type
+  // that draws the image itself (markers) keeps its layer over it, the right
+  // markers outlined with the rows.
   const imageBlock = image && (
     <div>
-      <StageMedia media={image} alt={question} variant="host" slide={isSlide} />
+      {MediaComponent ? (
+        <MediaComponent
+          media={image}
+          alt={question}
+          variant="host"
+          answers={answers}
+          markers={data.markers}
+          correct={showCorrect ? solutions : []}
+          readOnly
+        />
+      ) : (
+        <StageMedia
+          media={image}
+          alt={question}
+          variant="host"
+          slide={isSlide}
+        />
+      )}
     </div>
   )
-
-  const { DistributionList, hostTopAligned } = QUESTION_REGISTRY[type]
 
   // Types not answered by picking choices bring their own rows, in the same
   // frame.

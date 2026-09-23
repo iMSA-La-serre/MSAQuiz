@@ -83,7 +83,15 @@
     "scaleStart": "Une échelle commence à 0 ou à 1",
     "scaleEnd": "Une échelle se termine au plus à 8",
     "scaleLevels": "Une échelle compte de 3 à 8 niveaux",
-    "scaleLabelTooLong": "Un libellé d'extrémité ne peut pas dépasser 24 caractères"
+    "scaleLabelTooLong": "Un libellé d'extrémité ne peut pas dépasser 24 caractères",
+    "markersImageMissing": "Ajoutez une image à la question pour y poser des repères",
+    "markersCount": "Il faut de 2 à 6 repères",
+    "markerLabelTooLong": "Un libellé de repère ne peut pas dépasser 40 caractères",
+    "markerLabelDuplicate": "Deux repères ont le même libellé une fois les majuscules, les accents et la ponctuation ignorés",
+    "markerPosition": "Chaque repère doit être posé sur l'image",
+    "markerOverlap": "Deux repères sont posés au même endroit : déplacez l'un d'eux",
+    "markersNoSolution": "Cochez au moins un repère correct",
+    "markersSolutionRange": "Une bonne réponse désigne un repère qui n'existe plus"
   },
   "route": {
     "back": "Retour à l'accueil",

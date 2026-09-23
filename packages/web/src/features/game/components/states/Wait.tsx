@@ -3,6 +3,7 @@ import type { PlayerStatusDataMap } from "@razzia/common/types/game/status"
 import { isAssociationType } from "@razzia/common/utils/association"
 import Loader from "@razzia/web/components/Loader"
 import AnswerChip from "@razzia/web/features/game/components/AnswerChip"
+import MarkerChip from "@razzia/web/features/questions/markers/components/MarkerChip"
 import {
   type SentAnswer,
   useQuestionStore,
@@ -95,6 +96,19 @@ const SentAnswerTray = ({ sent }: { sent: SentAnswer }) => {
       >
         {display ?? answer.text}
       </p>
+    )
+  }
+
+  // The markers tapped, by their numbers, as the image showed them.
+  if (questionType === QUESTION_TYPES.MARKERS) {
+    return (
+      <div className={clsx(TRAY, "flex gap-2")}>
+        {[...answer.answerKeys]
+          .sort((a, b) => a - b)
+          .map((key) => (
+            <MarkerChip key={key} index={key} size="lg" />
+          ))}
+      </div>
     )
   }
 

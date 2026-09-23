@@ -766,3 +766,31 @@ describe("buildResultWorkbook, scale", () => {
     ])
   })
 })
+
+describe("buildResultWorkbook, markers", () => {
+  const MARKERS = question({
+    type: QUESTION_TYPES.MARKERS,
+    question: "Où se trouve le point de rassemblement ?",
+    media: { type: "image", url: "https://msa.example/plan.png" },
+    answers: ["Le hangar", "La cour", "Le portail"],
+    markers: [
+      { x: 20, y: 30 },
+      { x: 55, y: 60 },
+      { x: 80, y: 15 },
+    ],
+    solutions: [1],
+    playerAnswers: answers(["Alex", [1]], ["Bea", [2]], ["Cyd", null]),
+  })
+
+  it("reports the markers numbered as on the image, the right ones ticked", async () => {
+    const [, questions] = await readWorkbook(result([MARKERS]))
+
+    expect(questions.rows.slice(2, 7)).toEqual([
+      [null, "Repères", "Correcte", "Choix"],
+      [null, "1. Le hangar", "", 0],
+      [null, "2. La cour", "✓", 1],
+      [null, "3. Le portail", "", 1],
+      [null, "Sans réponse", null, 1],
+    ])
+  })
+})

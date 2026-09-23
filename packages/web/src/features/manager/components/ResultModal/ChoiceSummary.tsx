@@ -2,6 +2,7 @@ import AnswerChip from "@razzia/web/features/game/components/AnswerChip"
 import type { ResultSummaryProps } from "@razzia/web/features/questions/types"
 import clsx from "clsx"
 import { Check, X } from "lucide-react"
+import type { ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 
 interface AnswerRow {
@@ -12,9 +13,15 @@ interface AnswerRow {
   index: number | null
 }
 
+interface Props extends ResultSummaryProps {
+  // What stands in the letter chip's place, row by row: the number of a
+  // marker. The letter of the answer by default.
+  mark?: (_index: number) => ReactNode
+}
+
 // The answers block of the choice types in the result window: each answer
 // with its letter, whether it is right, and the players who picked it.
-const ChoiceSummary = ({ question, noAnswerCount }: ResultSummaryProps) => {
+const ChoiceSummary = ({ question, noAnswerCount, mark }: Props) => {
   const { t } = useTranslation()
 
   const rows: AnswerRow[] = [
@@ -38,7 +45,7 @@ const ChoiceSummary = ({ question, noAnswerCount }: ResultSummaryProps) => {
       {rows.map((row, i) => (
         <div key={i} className="contents">
           {row.index !== null ? (
-            <AnswerChip index={row.index} size="sm" />
+            (mark?.(row.index) ?? <AnswerChip index={row.index} size="sm" />)
           ) : (
             <div className="border-accent flex size-6 shrink-0 items-center justify-center rounded-md border-2 bg-white">
               <X className="text-muted-foreground size-3 stroke-4" />

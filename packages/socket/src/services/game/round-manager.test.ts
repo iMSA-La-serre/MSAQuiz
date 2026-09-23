@@ -1776,3 +1776,119 @@ describe("RoundManager, scale", () => {
     ).toBe(0)
   })
 })
+
+const MARKERS = question({
+  type: QUESTION_TYPES.MARKERS,
+  question: "Où se trouve le point de rassemblement ?",
+  media: { type: MEDIA_TYPES.IMAGE, url: "https://msa.example/plan.png" },
+  answers: ["Le hangar", "La cour", "Le portail"],
+  markers: [
+    { x: 20, y: 30 },
+    { x: 55, y: 60 },
+    { x: 80, y: 15 },
+  ],
+  solutions: [1],
+  options: { scoringMode: "balanced" },
+})
+
+describe("RoundManager, markers", () => {
+  it("sends the markers with their labels, never which one is right", async () => {
+    const game = setup([MARKERS], [player("camille"), player("yanis")])
+
+    await game.reachFirstQuestion()
+
+    const reading = game.lastBroadcast(STATUS.SHOW_QUESTION)
+
+    expect(reading).toMatchObject({
+      answers: ["Le hangar", "La cour", "Le portail"],
+      markers: MARKERS.markers,
+    })
+    expect(reading).not.toHaveProperty("solutions")
+
+    await game.openAnswers(5)
+
+    const answering = game.lastBroadcast(STATUS.SELECT_ANSWER)
+
+    expect(answering).toMatchObject({ markers: MARKERS.markers })
+    expect(answering).not.toHaveProperty("solutions")
+  })
+
+  it("scores the marker tapped and counts them all for the manager", async () => {
+    const game = setup(
+      [MARKERS],
+      [player("camille"), player("yanis"), player("ines")],
+    )
+
+    await game.reachFirstQuestion()
+    await game.openAnswers(5)
+
+    game.round.selectAnswer(socketOf("camille"), { answerKeys: [1] })
+    game.round.selectAnswer(socketOf("yanis"), { answerKeys: [2] })
+    // Several markers at once, when only one is right.
+    game.round.selectAnswer(socketOf("ines"), { answerKeys: [1, 2] })
+
+    await game.closeAnswers()
+
+    expect(game.lastSent("camille", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "correct",
+      correct: true,
+    })
+    expect(game.lastSent("yanis", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "wrong",
+    })
+    expect(game.lastSent("ines", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "noAnswer",
+    })
+
+    const responses = game.lastSent(MANAGER_ID, STATUS.SHOW_RESPONSES)
+
+    expect(responses?.responses).toEqual({ 1: 1, 2: 1 })
+    expect(responses).toMatchObject({
+      markers: MARKERS.markers,
+      solutions: [1],
+      correctCount: 1,
+      totalAnswered: 2,
+    })
+
+    game.round.showLeaderboard(game.manager)
+
+    const [saved] = game.finished[0].questions
+
+    expect(saved.playerAnswers).toEqual([
+      { playerName: "camille", answerIds: [1], score: 1 },
+      { playerName: "yanis", answerIds: [2], score: 0 },
+      { playerName: "ines", answerIds: null, score: 0 },
+    ])
+    // The result window places the numbers of its rows on the image again.
+    expect(saved.markers).toEqual(MARKERS.markers)
+  })
+
+  it("takes several markers when several are right, on the multiple choice's scale", async () => {
+    const several = {
+      ...MARKERS,
+      solutions: [0, 2],
+      options: { scoringMode: "balanced" as const, multiple: true },
+    }
+    const game = setup([several], [player("camille"), player("yanis")])
+
+    await game.reachFirstQuestion()
+    await game.openAnswers(5)
+
+    game.round.selectAnswer(socketOf("camille"), { answerKeys: [0, 2] })
+    game.round.selectAnswer(socketOf("yanis"), { answerKeys: [0] })
+
+    await game.closeAnswers()
+
+    expect(game.lastSent("camille", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "correct",
+    })
+    // Half the credit, as on a multiple choice: still a correct outcome.
+    expect(game.lastSent("yanis", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "correct",
+    })
+    expect(game.lastSent(MANAGER_ID, STATUS.SHOW_RESPONSES)).toMatchObject({
+      correctCount: 1,
+      partialCount: 1,
+    })
+  })
+})

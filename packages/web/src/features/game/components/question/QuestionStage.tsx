@@ -1,6 +1,7 @@
 import { MEDIA_TYPES } from "@razzia/common/constants"
 import type {
   AnswerPayload,
+  QuestionMarker,
   QuestionMedia,
   QuestionOptions,
   QuestionType,
@@ -20,12 +21,13 @@ import {
   ListChecks,
   ListOrdered,
   type LucideIcon,
+  MapPin,
   Scale,
   Tags,
   Vote,
 } from "lucide-react"
 import { motion, MotionConfig } from "motion/react"
-import { useEffect, useState } from "react"
+import { type ReactNode, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 interface Props {
@@ -45,6 +47,8 @@ interface Props {
   text?: string
   // Statements and categorize: what each item is matched with.
   targets?: string[]
+  // Markers: where each marker sits on the question's image.
+  markers?: QuestionMarker[]
   onSubmit: (_answer: AnswerPayload) => void
   isHost: boolean
 }
@@ -65,6 +69,8 @@ const HINTS: Partial<Record<QuestionType, { icon: LucideIcon; key: string }>> =
     ranking: { icon: ArrowDownWideNarrow, key: "game:answer.rankingHint" },
     // Not linked to the username, as a word cloud.
     scale: { icon: Link2Off, key: "game:answer.scaleHint" },
+    // Worded from the markers ticked, see answerHint.
+    markers: { icon: MapPin, key: "game:answer.markersHint" },
   }
 
 const TITLE = "font-bold text-balance text-white drop-shadow-lg"
@@ -89,6 +95,7 @@ const QuestionStage = ({
   options,
   text,
   targets,
+  markers,
   onSubmit,
   isHost,
 }: Props) => {
@@ -124,8 +131,13 @@ const QuestionStage = ({
     media?.type === MEDIA_TYPES.IMAGE ||
     media?.type === MEDIA_TYPES.VIDEO ||
     upcomingMedia === MEDIA_TYPES.VIDEO
-  const { AnswerComponent, hostTopAligned, answerHint } =
-    QUESTION_REGISTRY[questionType]
+  const {
+    AnswerComponent,
+    MediaComponent,
+    StageProvider,
+    hostTopAligned,
+    answerHint,
+  } = QUESTION_REGISTRY[questionType]
 
   // Reading: each block fades and rises in. Answering: already in place.
   const appear = (delay: number) => (isReading ? enter(delay) : {})
@@ -145,15 +157,29 @@ const QuestionStage = ({
     </motion.div>
   )
 
+  // A type that draws the image itself (markers) puts its own layer over it,
+  // in the same block.
   const mediaBlock = hasMedia && (
     <motion.div {...appear(0.1)}>
-      <StageMedia
-        media={media}
-        upcomingMedia={upcomingMedia}
-        alt={question}
-        variant={variant}
-        slide={isSlide}
-      />
+      {MediaComponent ? (
+        <MediaComponent
+          media={media}
+          alt={question}
+          variant={variant}
+          answers={answers}
+          markers={markers}
+          locked={isReading || !opened}
+          readOnly={isHost}
+        />
+      ) : (
+        <StageMedia
+          media={media}
+          upcomingMedia={upcomingMedia}
+          alt={question}
+          variant={variant}
+          slide={isSlide}
+        />
+      )}
     </motion.div>
   )
 
@@ -181,8 +207,19 @@ const QuestionStage = ({
     />
   )
 
+  // What the type's blocks share while answering (the markers tapped, which
+  // the image and the list both fill).
+  const withStage = (stage: ReactNode) =>
+    StageProvider ? (
+      <StageProvider options={options} onSubmit={onSubmit}>
+        {stage}
+      </StageProvider>
+    ) : (
+      stage
+    )
+
   if (!isHost) {
-    return (
+    return withStage(
       <MotionConfig reducedMotion="user">
         <motion.section
           initial={isReading ? "hidden" : false}
@@ -200,7 +237,7 @@ const QuestionStage = ({
             {answerList}
           </div>
         </motion.section>
-      </MotionConfig>
+      </MotionConfig>,
     )
   }
 
@@ -269,7 +306,7 @@ const QuestionStage = ({
     )
   }
 
-  return (
+  return withStage(
     <MotionConfig reducedMotion="user">
       <motion.div
         initial={isReading ? "hidden" : false}
@@ -281,7 +318,7 @@ const QuestionStage = ({
         </header>
         {renderHostBody()}
       </motion.div>
-    </MotionConfig>
+    </MotionConfig>,
   )
 }
 

@@ -1,6 +1,8 @@
 import type {
   AnswerPayload,
   PlayerAnswerRecord,
+  QuestionMarker,
+  QuestionMedia,
   QuestionOptions,
   QuestionResult,
   QuestionStats,
@@ -22,6 +24,26 @@ export interface AnswerComponentProps {
   size: "host" | "phone"
   // Taller rows with larger text (true/false on phone).
   large?: boolean
+}
+
+// The media block of a type that draws the question's image itself, with its
+// own layer over it (markers).
+export interface QuestionMediaProps {
+  media?: QuestionMedia
+  // Names the image: the question's wording, as the media block does.
+  alt: string
+  // The result window shows it smaller, next to the answers block.
+  variant: "host" | "phone" | "result"
+  // The answers the layer stands for: the markers' labels.
+  answers: string[]
+  // Markers: where each one sits on the image.
+  markers?: QuestionMarker[]
+  // Reading time: shown dimmed, no answer accepted yet.
+  locked?: boolean
+  // Host screens: shown, never answered.
+  readOnly?: boolean
+  // Distribution and result window: the right markers, once revealed.
+  correct?: number[]
 }
 
 export interface SolutionPickerProps {

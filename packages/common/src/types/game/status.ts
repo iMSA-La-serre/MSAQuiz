@@ -2,6 +2,7 @@ import type {
   EstimateRange,
   Player,
   PublicPlayer,
+  QuestionMarker,
   QuestionMedia,
   QuestionOptions,
   QuestionType,
@@ -65,6 +66,8 @@ export interface CommonStatusDataMap {
     text?: string
     // Statements and categorize: the targets, as in SELECT_ANSWER.
     targets?: string[]
+    // Markers: where each marker sits on the image, as in SELECT_ANSWER.
+    markers?: QuestionMarker[]
   }
   SELECT_ANSWER: {
     question: string
@@ -80,6 +83,9 @@ export interface CommonStatusDataMap {
     // Statements and categorize: what each item of `answers` is matched
     // with. Answer with the index of a target per item.
     targets?: string[]
+    // Markers: where each marker sits on the question's image, `answers`
+    // holding their labels. Answer with the markers tapped.
+    markers?: QuestionMarker[]
   }
   SHOW_RESULT: {
     outcome: ResultOutcome
@@ -156,6 +162,8 @@ interface ManagerExtraStatus {
     // (publicOrder[publicIndex] = index in answers), so the host can letter
     // each item as the phones did.
     publicOrder?: number[]
+    // Markers: where each marker sits on the image, as while answering.
+    markers?: QuestionMarker[]
     media?: QuestionMedia
     type: QuestionType
     // Players who submitted an answer, the base of each answer's share.
