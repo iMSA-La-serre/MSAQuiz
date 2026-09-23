@@ -1,10 +1,30 @@
-import type { QuizzMeta, QuizzWithId } from "@razzia/common/types/game"
-import { quizzValidator } from "@razzia/common/validators/quizz"
+import type {
+  QuizzError,
+  QuizzMeta,
+  QuizzWithId,
+} from "@razzia/common/types/game"
+import { mediaIssuesOf } from "@razzia/common/utils/media"
+import {
+  quizzErrorOf,
+  quizzSaveValidator,
+  quizzValidator,
+  type QuizzValidated,
+} from "@razzia/common/validators/quizz"
 import { db } from "@razzia/socket/db/client"
 import { ADMIN_USER_ID } from "@razzia/socket/db/seed"
 import { createQuizzId } from "@razzia/socket/db/quizz-id"
 import { quizzes } from "@razzia/socket/db/schema"
 import { eq } from "drizzle-orm"
+
+// A quiz refused on save, with the question it is about when it is about one.
+export class QuizzValidationError extends Error {
+  readonly quizzError: QuizzError
+
+  constructor(quizzError: QuizzError) {
+    super(quizzError.message)
+    this.quizzError = quizzError
+  }
+}
 
 export const getQuizz = (): QuizzWithId[] =>
   db
@@ -44,27 +64,21 @@ export const getQuizzById = (id: string): QuizzWithId => {
   return { id: row.id, ...result.data }
 }
 
-export const saveQuizz = (data: unknown): { id: string } => {
-  const result = quizzValidator.safeParse(data)
-
-  if (!result.success) {
-    throw new Error(result.error.issues[0].message)
-  }
-
-  const id = createQuizzId(result.data.subject)
+const insertQuizz = (quizz: QuizzValidated): { id: string } => {
+  const id = createQuizzId(quizz.subject)
 
   db.insert(quizzes)
     .values({
       id,
       ownerId: ADMIN_USER_ID,
-      subject: result.data.subject,
-      data: result.data,
+      subject: quizz.subject,
+      data: quizz,
     })
     .onConflictDoUpdate({
       target: quizzes.id,
       set: {
-        subject: result.data.subject,
-        data: result.data,
+        subject: quizz.subject,
+        data: quizz,
         updatedAt: new Date(),
       },
     })
@@ -73,11 +87,43 @@ export const saveQuizz = (data: unknown): { id: string } => {
   return { id }
 }
 
-export const updateQuizz = (id: string, data: unknown): { id: string } => {
+export const saveQuizz = (data: unknown): { id: string } => {
+  const result = quizzSaveValidator.safeParse(data)
+
+  if (!result.success) {
+    throw new QuizzValidationError(quizzErrorOf(result.error))
+  }
+
+  return insertQuizz(result.data)
+}
+
+/**
+ * A quiz file imported: an export of this instance or of another one, an old
+ * Razzia file. Read as a stored quiz is, so whatever was exported imports
+ * again as it was; the media a save would now refuse are kept, and returned
+ * with their question for the author to fix them in the editor, whose save
+ * requires it.
+ */
+export const importQuizz = (
+  data: unknown,
+): { id: string; warnings: QuizzError[] } => {
   const result = quizzValidator.safeParse(data)
 
   if (!result.success) {
-    throw new Error(result.error.issues[0].message)
+    throw new QuizzValidationError(quizzErrorOf(result.error))
+  }
+
+  return {
+    ...insertQuizz(result.data),
+    warnings: mediaIssuesOf(result.data.questions),
+  }
+}
+
+export const updateQuizz = (id: string, data: unknown): { id: string } => {
+  const result = quizzSaveValidator.safeParse(data)
+
+  if (!result.success) {
+    throw new QuizzValidationError(quizzErrorOf(result.error))
   }
 
   const { changes } = db

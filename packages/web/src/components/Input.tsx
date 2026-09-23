@@ -1,7 +1,7 @@
 import clsx from "clsx"
 import React from "react"
 
-type Props = React.InputHTMLAttributes<HTMLInputElement> & {
+type Props = React.ComponentProps<"input"> & {
   variant?: "sm" | "md"
 }
 
@@ -14,7 +14,9 @@ const Input = ({
   <input
     type={type}
     className={clsx(
-      "focus:border-primary border-accent text-foreground rounded-lg border-2 font-semibold focus:outline-none",
+      // A field marked invalid has a red border, green again while focused
+      // so the focus stays visible.
+      "focus:border-primary border-accent text-foreground aria-invalid:border-danger aria-invalid:focus:border-primary rounded-lg border-2 font-semibold focus:outline-none",
       variant === "md" && "p-2 text-lg",
       variant === "sm" && "px-3 py-2 text-sm",
       className,

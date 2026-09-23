@@ -7,7 +7,11 @@ import {
   QUESTION_TYPES,
   SCORING_MODES,
 } from "@razzia/common/constants"
-import { quizzValidator } from "@razzia/common/validators/quizz"
+import {
+  quizzErrorOf,
+  quizzSaveValidator,
+  quizzValidator,
+} from "@razzia/common/validators/quizz"
 import { describe, expect, it } from "vitest"
 
 const SINGLE_QUESTION = {
@@ -202,6 +206,11 @@ describe("example quiz", () => {
   // The first-start seed silently skips a quiz that does not validate.
   it("passes validation", () => {
     expect(quizzValidator.safeParse(EXAMPLE_QUIZZ).success).toBe(true)
+  })
+
+  // An author may edit it and save it again.
+  it("passes the rules of a save", () => {
+    expect(quizzSaveValidator.safeParse(EXAMPLE_QUIZZ).success).toBe(true)
   })
 })
 
@@ -1509,5 +1518,189 @@ describe("single choice with partial credits", () => {
       parse({ ...LEGACY_QUESTION, options: { credits: [100, 50, 0, 0] } })
         .options?.credits,
     ).toEqual([100, 50, 0, 0])
+  })
+})
+
+describe("media", () => {
+  const save = (...questions: Array<Record<string, unknown>>) =>
+    quizzSaveValidator.safeParse({ subject: "Quiz", questions })
+  const saved = (question: Record<string, unknown>) => {
+    const result = save(question)
+
+    if (!result.success) {
+      throw new Error(result.error.issues[0].message)
+    }
+
+    return result.data.questions[0]
+  }
+  const refusal = (...questions: Array<Record<string, unknown>>) => {
+    const result = save(...questions)
+
+    return result.success ? undefined : quizzErrorOf(result.error)
+  }
+  const withMedia = (media: unknown) => ({ ...SINGLE_QUESTION, media })
+  const WINDOWS_PATH = String.raw`C:\Users\maman\Videos\jeu.mp4`
+
+  it("drops a media whose address is empty, when read as when saved", () => {
+    for (const media of [{ url: "" }, { type: "image", url: "   " }, null]) {
+      expect(parse(withMedia(media))).not.toHaveProperty("media")
+      expect(saved(withMedia(media))).not.toHaveProperty("media")
+    }
+  })
+
+  it("keeps the address without the spaces around it", () => {
+    expect(
+      saved(withMedia({ type: "image", url: " https://msa.example/a.png " }))
+        .media,
+    ).toEqual({ type: "image", url: "https://msa.example/a.png" })
+  })
+
+  it("still reads a stored media the save now refuses", () => {
+    for (const url of [
+      WINDOWS_PATH,
+      "https://www.youtube.com/watch?v=aqz-KE-bpKQ",
+      "file:///C:/jeu.mp4",
+    ]) {
+      expect(parse(withMedia({ type: "video", url })).media?.url).toBe(url)
+    }
+    // No type, and an address that tells none: kept as it is.
+    expect(
+      parse(withMedia({ url: "https://msa.example/image?id=3" })).media,
+    ).toEqual({ url: "https://msa.example/image?id=3" })
+  })
+
+  it("reads a media stored without a type as the type of its file", () => {
+    // The editor once saved the address alone: the game showed nothing.
+    expect(
+      parse(withMedia({ url: "https://intranet.msa.fr/plan.png" })).media,
+    ).toEqual({ type: "image", url: "https://intranet.msa.fr/plan.png" })
+    expect(parse(withMedia({ url: "/media/film.mp4" })).media?.type).toBe(
+      "video",
+    )
+    // A video site's page is not a file: no type, as before, never a player
+    // with nothing to play.
+    expect(
+      parse(withMedia({ url: "https://www.youtube.com/watch?v=aqz-KE-bpKQ" }))
+        .media,
+    ).toEqual({ url: "https://www.youtube.com/watch?v=aqz-KE-bpKQ" })
+  })
+
+  it("reads and saves a path on the quiz's own server", () => {
+    const media = { type: "video", url: "/media/film.mp4" }
+
+    expect(parse(withMedia(media)).media).toEqual(media)
+    expect(saved(withMedia(media)).media).toEqual(media)
+  })
+
+  it("names an unknown media type in French", () => {
+    expect(
+      issuesOf(withMedia({ type: "youtube", url: "https://a.fr/x" })),
+    ).toEqual(["errors:quizz.invalidMediaType"])
+  })
+
+  it("fills in the type the address tells on save too", () => {
+    expect(
+      saved(withMedia({ url: "https://msa.example/plan.png" })).media,
+    ).toEqual({ type: "image", url: "https://msa.example/plan.png" })
+    expect(saved(withMedia({ url: "/media/son.mp3" })).media?.type).toBe(
+      "audio",
+    )
+    // A type chosen by the author stays: the sound of a video file.
+    expect(
+      saved(withMedia({ type: "audio", url: "https://msa.example/clip.mp4" }))
+        .media?.type,
+    ).toBe("audio")
+  })
+
+  it("gives a markers question the image type its address tells", () => {
+    expect(
+      saved({
+        type: QUESTION_TYPES.MARKERS,
+        question: "Où ?",
+        media: { url: "https://msa.example/plan.png" },
+        answers: ["A", "B"],
+        markers: [
+          { x: 20, y: 20 },
+          { x: 70, y: 70 },
+        ],
+        solutions: [0],
+        cooldown: 5,
+        time: 20,
+      }).media?.type,
+    ).toBe("image")
+  })
+
+  it("refuses on save what the screens cannot load, naming the question", () => {
+    expect(
+      refusal(SINGLE_QUESTION, withMedia({ type: "video", url: WINDOWS_PATH })),
+    ).toEqual({ message: "errors:quizz.mediaUrlNotWeb", questionIndex: 1 })
+    expect(
+      refusal(
+        withMedia({ type: "video", url: "https://youtu.be/aqz-KE-bpKQ" }),
+      ),
+    ).toEqual({ message: "errors:quizz.mediaPageLink", questionIndex: 0 })
+    expect(
+      refusal(
+        withMedia({ url: "https://www.youtube.com/watch?v=aqz-KE-bpKQ" }),
+      ),
+    ).toEqual({ message: "errors:quizz.mediaPageLink", questionIndex: 0 })
+    expect(
+      refusal(withMedia({ url: "https://msa.example/image?id=3" })),
+    ).toEqual({ message: "errors:quizz.mediaTypeMissing", questionIndex: 0 })
+    expect(
+      refusal(
+        withMedia({
+          type: "image",
+          url: `data:image/png;base64,${"A".repeat(700_000)}`,
+        }),
+      ),
+    ).toEqual({ message: "errors:quizz.mediaDataTooLarge", questionIndex: 0 })
+  })
+
+  it("points a missing type at the type, the rest at the address", () => {
+    const pathOf = (media: unknown) =>
+      save(withMedia(media)).error?.issues.at(-1)?.path
+
+    expect(pathOf({ url: "https://msa.example/x" })).toEqual([
+      "questions",
+      0,
+      "media",
+      "type",
+    ])
+    expect(pathOf({ type: "video", url: "file:///x.mp4" })).toEqual([
+      "questions",
+      0,
+      "media",
+      "url",
+    ])
+  })
+
+  it("names the question of any refusal, not only a media's", () => {
+    expect(
+      refusal(SINGLE_QUESTION, { ...SINGLE_QUESTION, question: "" }),
+    ).toEqual({ message: "errors:quizz.questionEmpty", questionIndex: 1 })
+
+    const noSubject = quizzSaveValidator.safeParse({
+      subject: "",
+      questions: [SINGLE_QUESTION],
+    })
+
+    expect(noSubject.success).toBe(false)
+    expect(noSubject.error && quizzErrorOf(noSubject.error)).toEqual({
+      message: "errors:quizz.subjectEmpty",
+    })
+  })
+
+  it("saves valid media as they are read", () => {
+    const quizz = {
+      subject: "Quiz",
+      questions: [
+        withMedia({ type: "image", url: "https://msa.example/a.png" }),
+        withMedia({ type: "video", url: "https://msa.example/film.mp4" }),
+        withMedia({ type: "audio", url: "https://msa.example/son.mp3" }),
+      ],
+    }
+
+    expect(quizzSaveValidator.parse(quizz)).toEqual(quizzValidator.parse(quizz))
   })
 })

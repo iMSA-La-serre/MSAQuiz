@@ -1,8 +1,11 @@
 import { EVENTS } from "@razzia/common/constants"
+import type { QuizzError } from "@razzia/common/types/game"
 import type { SocketContext } from "@razzia/socket/handlers/types"
 import {
   deleteQuizz,
   getQuizzById,
+  importQuizz,
+  QuizzValidationError,
   saveQuizz,
   updateQuizz,
 } from "@razzia/socket/repositories/quizz"
@@ -10,6 +13,22 @@ import manager, { emitConfig } from "@razzia/socket/services/manager"
 import { parseQuizzXlsx } from "@razzia/socket/services/quizz-import"
 
 const MAX_IMPORT_BYTES = 2_000_000
+
+// What the author is told: the question at fault when a save is refused over
+// one, the error key alone otherwise, as before.
+const errorPayloadOf = (
+  error: unknown,
+  fallback: string,
+): string | QuizzError => {
+  if (
+    error instanceof QuizzValidationError &&
+    error.quizzError.questionIndex !== undefined
+  ) {
+    return error.quizzError
+  }
+
+  return error instanceof Error ? error.message : fallback
+}
 
 export const quizzSocketHandlers = ({ socket }: SocketContext) => {
   socket.on(
@@ -36,9 +55,31 @@ export const quizzSocketHandlers = ({ socket }: SocketContext) => {
         emitConfig(socket)
       } catch (error) {
         console.error("Failed to save quizz:", error)
-        const message =
-          error instanceof Error ? error.message : "errors:quizz.failedToSave"
-        socket.emit(EVENTS.QUIZZ.ERROR, message)
+        socket.emit(
+          EVENTS.QUIZZ.ERROR,
+          errorPayloadOf(error, "errors:quizz.failedToSave"),
+        )
+      }
+    }),
+  )
+
+  socket.on(
+    EVENTS.QUIZZ.IMPORT,
+    manager.withAuth(socket, (data) => {
+      try {
+        const { id, warnings } = importQuizz(data)
+
+        socket.emit(
+          EVENTS.QUIZZ.SAVE_SUCCESS,
+          warnings.length > 0 ? { id, warnings } : { id },
+        )
+        emitConfig(socket)
+      } catch (error) {
+        console.error("Failed to import quizz:", error)
+        socket.emit(
+          EVENTS.QUIZZ.ERROR,
+          errorPayloadOf(error, "errors:quizz.invalidImport"),
+        )
       }
     }),
   )
@@ -46,7 +87,7 @@ export const quizzSocketHandlers = ({ socket }: SocketContext) => {
   socket.on(
     EVENTS.QUIZZ.IMPORT_XLSX,
     manager.withAuth(socket, (payload) => {
-      const importQuizz = async () => {
+      const importSpreadsheet = async () => {
         try {
           // The payload comes from the network: never trust its shape
           // (destructuring outside the try would crash the process).
@@ -73,15 +114,14 @@ export const quizzSocketHandlers = ({ socket }: SocketContext) => {
           emitConfig(socket)
         } catch (error) {
           console.error("Failed to import quizz:", error)
-          const message =
-            error instanceof Error
-              ? error.message
-              : "errors:quizz.invalidImport"
-          socket.emit(EVENTS.QUIZZ.ERROR, message)
+          socket.emit(
+            EVENTS.QUIZZ.ERROR,
+            errorPayloadOf(error, "errors:quizz.invalidImport"),
+          )
         }
       }
 
-      void importQuizz()
+      void importSpreadsheet()
     }),
   )
 
@@ -109,9 +149,10 @@ export const quizzSocketHandlers = ({ socket }: SocketContext) => {
         emitConfig(socket)
       } catch (error) {
         console.error("Failed to update quizz:", error)
-        const message =
-          error instanceof Error ? error.message : "errors:quizz.failedToUpdate"
-        socket.emit(EVENTS.QUIZZ.ERROR, message)
+        socket.emit(
+          EVENTS.QUIZZ.ERROR,
+          errorPayloadOf(error, "errors:quizz.failedToUpdate"),
+        )
       }
     }),
   )

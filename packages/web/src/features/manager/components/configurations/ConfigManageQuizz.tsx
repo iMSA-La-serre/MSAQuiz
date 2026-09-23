@@ -1,4 +1,5 @@
 import { EVENTS } from "@razzia/common/constants"
+import type { QuizzError } from "@razzia/common/types/game"
 import AlertDialog from "@razzia/web/components/AlertDialog"
 import Button from "@razzia/web/components/Button"
 import {
@@ -6,8 +7,15 @@ import {
   useSocket,
 } from "@razzia/web/features/game/contexts/socket-context"
 import { useConfig } from "@razzia/web/features/manager/contexts/config-context"
+import { quizzErrorText } from "@razzia/web/features/quizz/utils/errors"
 import { useNavigate } from "@tanstack/react-router"
-import { Download, SquarePen, Trash2, Upload } from "lucide-react"
+import {
+  Download,
+  SquarePen,
+  Trash2,
+  TriangleAlert,
+  Upload,
+} from "lucide-react"
 import { type ChangeEvent, useCallback, useRef } from "react"
 import toast from "react-hot-toast"
 import { useTranslation } from "react-i18next"
@@ -34,15 +42,52 @@ const ConfigManageQuizz = () => {
   const { t } = useTranslation()
   const pendingExportId = useRef<string | null>(null)
 
-  useEvent(EVENTS.QUIZZ.ERROR, (message) => {
-    toast.error(t(message))
+  // Here, a refusal about one question is about an imported file's.
+  useEvent(EVENTS.QUIZZ.ERROR, (error) => {
+    toast.error(quizzErrorText(t, error, "errors:quizz.inImportedQuestion"))
   })
 
+  // An import keeps the media a save would refuse (an old export): the
+  // author is told which questions to fix in the editor, where the reason
+  // shows under the media's address.
   useEvent(
     EVENTS.QUIZZ.SAVE_SUCCESS,
-    useCallback(() => {
-      toast.success(t("manager:quizz.imported"))
-    }, [t]),
+    useCallback(
+      ({ warnings }: { warnings?: QuizzError[] }) => {
+        const numbers = [
+          ...new Set(
+            (warnings ?? []).flatMap(({ questionIndex }) =>
+              questionIndex === undefined ? [] : [questionIndex + 1],
+            ),
+          ),
+        ]
+
+        if (numbers.length === 0) {
+          toast.success(t("manager:quizz.imported"))
+
+          return
+        }
+
+        toast(
+          t("manager:quizz.importedToFix", {
+            count: numbers.length,
+            list: new Intl.ListFormat("fr", { type: "conjunction" }).format(
+              numbers.map(String),
+            ),
+          }),
+          {
+            duration: 12_000,
+            icon: (
+              <TriangleAlert
+                className="text-warning size-5 shrink-0"
+                aria-hidden
+              />
+            ),
+          },
+        )
+      },
+      [t],
+    ),
   )
 
   useEvent(
@@ -103,7 +148,8 @@ const ConfigManageQuizz = () => {
     reader.onload = (event) => {
       try {
         const data: unknown = JSON.parse(event.target?.result as string)
-        socket.emit(EVENTS.QUIZZ.SAVE, data)
+        // Read as a stored quiz is: an export always imports again.
+        socket.emit(EVENTS.QUIZZ.IMPORT, data)
       } catch {
         toast.error(t("errors:quizz.invalidImport"))
       }

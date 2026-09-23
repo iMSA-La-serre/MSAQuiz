@@ -4,15 +4,25 @@ import type { QuestionMedia as QuestionMediaType } from "@razzia/common/types/ga
 interface Props {
   media?: QuestionMediaType
   alt?: string
+  // The address did not load (not found, not a media file).
+  onError?: () => void
+  // An image loaded.
+  onLoad?: () => void
 }
 
-const QuestionMedia = ({ media, alt = "" }: Props) => {
+// The editor's preview, under the media's settings: nothing plays by itself,
+// and the browser is only asked for the length of a video or a sound (preload
+// metadata) until the author presses play. 15rem high at most, so the
+// answers stay near.
+const QuestionMedia = ({ media, alt = "", onError, onLoad }: Props) => {
   if (media?.type === MEDIA_TYPES.IMAGE) {
     return (
       <img
         alt={alt}
         src={media.url}
-        className="max-h-60 w-auto rounded-md sm:max-h-100"
+        onError={onError}
+        onLoad={onLoad}
+        className="max-h-60 w-auto max-w-full rounded-md"
       />
     )
   }
@@ -20,10 +30,13 @@ const QuestionMedia = ({ media, alt = "" }: Props) => {
   if (media?.type === MEDIA_TYPES.VIDEO) {
     return (
       <video
-        className="m-4 mb-2 aspect-video max-h-60 w-auto rounded-md px-4 sm:max-h-100"
         src={media.url}
-        autoPlay
+        aria-label={alt}
         controls
+        playsInline
+        preload="metadata"
+        onError={onError}
+        className="aspect-video w-full max-w-[calc(15rem*16/9)] rounded-md bg-black"
       />
     )
   }
@@ -31,10 +44,12 @@ const QuestionMedia = ({ media, alt = "" }: Props) => {
   if (media?.type === MEDIA_TYPES.AUDIO) {
     return (
       <audio
-        className="m-4 mb-2 w-auto rounded-md"
         src={media.url}
-        autoPlay
+        aria-label={alt}
         controls
+        preload="metadata"
+        onError={onError}
+        className="w-full max-w-xl"
       />
     )
   }

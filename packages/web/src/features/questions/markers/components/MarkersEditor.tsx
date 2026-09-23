@@ -58,7 +58,7 @@ const MarkersEditor = () => {
   const markers = markersOf(currentQuestion)
   const { media } = currentQuestion
   const image = media?.type === MEDIA_TYPES.IMAGE ? media : undefined
-  const imageRef = useRef<HTMLImageElement>(null)
+  const frameRef = useRef<HTMLDivElement>(null)
   const inputs = useRef<Array<HTMLInputElement | null>>([])
   const addButton = useRef<HTMLButtonElement>(null)
   // Row whose field gets focus after an add or a delete; the add button when
@@ -118,9 +118,11 @@ const MarkersEditor = () => {
     }
   }
 
-  // Where a pointer landed on the image, as a percentage of it.
+  // Where a pointer landed on the image, as a percentage of it: measured on
+  // the frame that wraps it exactly, which keeps its size when the image
+  // does not load.
   const positionOf = (clientX: number, clientY: number): QuestionMarker => {
-    const box = imageRef.current?.getBoundingClientRect()
+    const box = frameRef.current?.getBoundingClientRect()
 
     if (!box || box.width === 0 || box.height === 0) {
       return { x: 50, y: 50 }
@@ -217,8 +219,9 @@ const MarkersEditor = () => {
             alt=""
             heightClassName="[--frame-h:14rem] [--marker-half:20px] sm:[--frame-h:20rem]"
             imageClassName="border-accent rounded-xl border-2"
-            imageRef={imageRef}
+            frameRef={frameRef}
             onRatio={setRatio}
+            tone="card"
           >
             {/* The image itself places a marker: a click puts one where the
             pointer is, a keyboard press on a free spot, to be moved from

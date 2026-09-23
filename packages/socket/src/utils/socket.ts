@@ -90,6 +90,7 @@ const CLIENT_EVENT_PAYLOADS: Record<ClientEvent, z.ZodType> = {
   // The quizz body is validated by the repository, inside the handler's
   // try/catch, so it can report which field is wrong.
   [EVENTS.QUIZZ.SAVE]: z.unknown(),
+  [EVENTS.QUIZZ.IMPORT]: z.unknown(),
   [EVENTS.QUIZZ.IMPORT_XLSX]: z.object({
     name: z.string(),
     buffer: z.unknown(),

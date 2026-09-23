@@ -14,7 +14,9 @@
     "notFound": "Aucun quiz trouvé",
     "pleaseCreate": "Veuillez d'abord créer un quiz",
     "pleaseSelect": "Veuillez sélectionner un quiz",
-    "startGame": "Démarrer la partie"
+    "startGame": "Démarrer la partie",
+    "importedToFix_one": "Quiz importé. Le média de la question {{list}} est à corriger dans l'éditeur : il serait refusé au prochain enregistrement",
+    "importedToFix_other": "Quiz importé. Les médias des questions {{list}} sont à corriger dans l'éditeur : ils seraient refusés au prochain enregistrement"
   },
   "result": {
     "correctMarker": "Bonne réponse",

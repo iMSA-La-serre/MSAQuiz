@@ -6,13 +6,18 @@ import {
   useSocket,
 } from "@razzia/web/features/game/contexts/socket-context"
 import { useQuizzEditor } from "@razzia/web/features/quizz/contexts/quizz-editor-context"
+import {
+  faultyQuestionOf,
+  quizzErrorText,
+} from "@razzia/web/features/quizz/utils/errors"
 import { useNavigate } from "@tanstack/react-router"
 import type { ChangeEvent } from "react"
 import toast from "react-hot-toast"
 import { useTranslation } from "react-i18next"
 
 const QuizzEditorHeader = () => {
-  const { quizzId, subject, setSubject, questions } = useQuizzEditor()
+  const { quizzId, subject, setSubject, questions, setCurrentIndex } =
+    useQuizzEditor()
   const { socket } = useSocket()
   const navigate = useNavigate()
   const { t } = useTranslation()
@@ -39,8 +44,15 @@ const QuizzEditorHeader = () => {
     navigate({ to: "/manager/config" })
   })
 
-  useEvent(EVENTS.QUIZZ.ERROR, (message) => {
-    toast.error(t(message))
+  // A save refused over one question names it and opens it.
+  useEvent(EVENTS.QUIZZ.ERROR, (error) => {
+    const faulty = faultyQuestionOf(error)
+
+    if (faulty !== undefined && faulty < questions.length) {
+      setCurrentIndex(faulty)
+    }
+
+    toast.error(quizzErrorText(t, error))
   })
 
   return (

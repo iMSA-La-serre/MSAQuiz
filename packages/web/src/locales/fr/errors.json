@@ -30,7 +30,6 @@
     "failedToSave": "Le quiz est incomplet, vérifiez que chaque question a un titre et au moins une bonne réponse",
     "failedToUpdate": "La mise à jour du quiz a échoué",
     "invalidImport": "Fichier d'import invalide ou vide",
-    "invalidMediaUrl": "L'URL du média doit être une URL valide",
     "noQuestions": "Un quiz doit avoir au moins une question",
     "noSolutions": "Sélectionnez au moins une bonne réponse",
     "notFound": "Quiz introuvable",
@@ -92,7 +91,14 @@
     "markerOverlap": "Deux repères sont posés au même endroit : déplacez l'un d'eux",
     "markersNoSolution": "Cochez au moins un repère correct",
     "markersSolutionRange": "Une bonne réponse désigne un repère qui n'existe plus",
-    "creditStep": "Une réponse qui n'est pas la bonne rapporte 0, 25, 50 ou 75 % des points"
+    "creditStep": "Une réponse qui n'est pas la bonne rapporte 0, 25, 50 ou 75 % des points",
+    "invalidMediaType": "Type de média non reconnu",
+    "mediaUrlNotWeb": "Collez une adresse web (https://…) vers le fichier : un fichier de votre ordinateur ne peut pas être lu par les participants",
+    "mediaDataTooLarge": "Image collée trop lourde (500 Ko au plus) : collez plutôt l'adresse web (https://…) du fichier",
+    "mediaPageLink": "Ce lien ouvre une page (YouTube, Dailymotion, partage Google Drive ou SharePoint…), pas le fichier : un lecteur ne peut pas le lire. Collez un lien direct vers le fichier (…/video.mp4) ou un lien de téléchargement",
+    "mediaTypeMissing": "Choisissez Image, Vidéo ou Audio pour le média",
+    "inQuestion": "Question {{number}} : {{message}}",
+    "inImportedQuestion": "Import refusé, question {{number}} du fichier : {{message}}"
   },
   "route": {
     "back": "Retour à l'accueil",

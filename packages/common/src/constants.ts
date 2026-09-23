@@ -49,6 +49,7 @@ export const EVENTS = {
     DATA: "quizz:data",
     SAVE: "quizz:save",
     SAVE_SUCCESS: "quizz:saveSuccess",
+    IMPORT: "quizz:import",
     IMPORT_XLSX: "quizz:importXlsx",
     UPDATE: "quizz:update",
     UPDATE_SUCCESS: "quizz:updateSuccess",
@@ -467,6 +468,22 @@ export const MEDIA_TYPES = {
   IMAGE: "image",
   VIDEO: "video",
   AUDIO: "audio",
+} as const
+
+// The extensions a media's type is read from, lowercase and without the dot:
+// the editor picks the type as soon as an address ends with one, and a save
+// fills it in when it is missing.
+export const MEDIA_EXTENSIONS = {
+  [MEDIA_TYPES.IMAGE]: ["jpg", "jpeg", "png", "webp", "gif", "svg"],
+  [MEDIA_TYPES.VIDEO]: ["mp4", "webm", "mov"],
+  [MEDIA_TYPES.AUDIO]: ["mp3", "wav", "ogg", "m4a"],
+} as const
+
+export const MEDIA_LIMITS = {
+  // Characters of an image pasted as a data: address, about 500 KB once
+  // decoded (base64 writes 3 bytes in 4 characters): the quiz goes to every
+  // phone, twice per question.
+  DATA_URL_LENGTH: 700_000,
 } as const
 
 // Seeded on first start: one question of each answerable type, so a new

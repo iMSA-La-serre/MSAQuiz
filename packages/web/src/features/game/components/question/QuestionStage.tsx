@@ -10,6 +10,7 @@ import HintChip from "@razzia/web/features/game/components/question/HintChip"
 import QuestionBand from "@razzia/web/features/game/components/question/QuestionBand"
 import StageMedia from "@razzia/web/features/game/components/question/StageMedia"
 import { enter } from "@razzia/web/features/game/utils/motion"
+import useTitleHeight from "@razzia/web/hooks/useTitleHeight"
 import { QUESTION_REGISTRY } from "@razzia/web/features/questions"
 import clsx from "clsx"
 import {
@@ -125,8 +126,11 @@ const QuestionStage = ({
 
   const variant = isHost ? "host" : "phone"
   const isSlide = questionType === "slide"
+  const slideStage = useTitleHeight(isHost && isSlide)
   const hint = HINTS[questionType]
-  const hasMedia = Boolean(media ?? upcomingMedia)
+  // A media without a type (an address saved before types were required) is
+  // never shown: no empty block for it.
+  const hasMedia = Boolean(media?.type ?? upcomingMedia)
   const hasVisualMedia =
     media?.type === MEDIA_TYPES.IMAGE ||
     media?.type === MEDIA_TYPES.VIDEO ||
@@ -158,9 +162,10 @@ const QuestionStage = ({
   )
 
   // A type that draws the image itself (markers) puts its own layer over it,
-  // in the same block.
+  // in the same block. On a slide, whose column centres its blocks, the block
+  // takes the whole width, so a video fills it (see StageMedia).
   const mediaBlock = hasMedia && (
-    <motion.div {...appear(0.1)}>
+    <motion.div {...appear(0.1)} className={clsx(isSlide && "w-full")}>
       {MediaComponent ? (
         <MediaComponent
           media={media}
@@ -244,8 +249,12 @@ const QuestionStage = ({
   const renderHostBody = () => {
     if (isSlide) {
       return (
-        <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col items-center justify-center gap-8 px-6 py-8">
+        <div
+          ref={slideStage.stageRef}
+          className="short:py-4 mx-auto flex w-full max-w-5xl flex-1 flex-col items-center justify-center gap-8 px-6 py-8"
+        >
           <motion.h2
+            ref={slideStage.titleRef}
             {...appear(0.05)}
             className={clsx(
               TITLE,

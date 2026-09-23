@@ -457,7 +457,7 @@ describe("validator errors of the existing types", () => {
           "Too big: expected number to be <=15",
         ],
         "badMedia": [
-          "errors:quizz.invalidMediaUrl",
+          "errors:quizz.mediaUrlNotWeb",
         ],
         "badTime": [
           "Too small: expected number to be >=-1",

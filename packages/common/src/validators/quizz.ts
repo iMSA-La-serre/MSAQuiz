@@ -17,11 +17,21 @@ import {
   SHORTANSWER_LIMITS,
   WORDCLOUD_LIMITS,
 } from "@razzia/common/constants"
-import type { Question, QuestionOptions } from "@razzia/common/types/game"
+import type {
+  Question,
+  QuestionOptions,
+  QuizzError,
+} from "@razzia/common/types/game"
 import { isAssociationType, targetsOf } from "@razzia/common/utils/association"
 import { isCreditStep, storedCredits } from "@razzia/common/utils/choice"
 import { decimalsOf, fitsDecimals } from "@razzia/common/utils/estimate"
 import { markersOf, stackedMarker } from "@razzia/common/utils/markers"
+import {
+  isSameServerPath,
+  MEDIA_ISSUES,
+  mediaFileTypeOf,
+  mediaIssue,
+} from "@razzia/common/utils/media"
 import {
   formatHighlight,
   highlightLength,
@@ -35,12 +45,65 @@ import {
 } from "@razzia/common/utils/text"
 import { z } from "zod"
 
+const anyUrl = z.url()
+
+// How a stored media is read: any address a save ever let through, a path on
+// the quiz's own server included. What a save requires now is stricter, see
+// quizzSaveValidator: a stored quiz never becomes unreadable.
 export const questionMediaValidator = z.object({
   type: z
-    .enum([MEDIA_TYPES.IMAGE, MEDIA_TYPES.VIDEO, MEDIA_TYPES.AUDIO])
+    .enum([MEDIA_TYPES.IMAGE, MEDIA_TYPES.VIDEO, MEDIA_TYPES.AUDIO], {
+      error: "errors:quizz.invalidMediaType",
+    })
     .optional(),
-  url: z.url("errors:quizz.invalidMediaUrl"),
+  url: z
+    .string()
+    .refine(
+      (url) => isSameServerPath(url) || anyUrl.safeParse(url).success,
+      MEDIA_ISSUES.NOT_WEB,
+    ),
 })
+
+// A media without an address is no media: clearing the field removes it, and
+// a draft or a file saved that way still opens. The address is kept without
+// the spaces around it. A media without a type (the editor once saved an
+// address alone) gets the one its file's extension tells, when read as when
+// saved, so the game shows it: the author's intent, never a quiz made
+// unreadable.
+const withCleanMedia = (question: Record<string, unknown>) => {
+  const { media, ...rest } = question
+
+  if (media === null) {
+    return rest
+  }
+
+  if (typeof media !== "object" || Array.isArray(media)) {
+    return question
+  }
+
+  const { type, url } = media as Record<string, unknown>
+
+  if (typeof url !== "string") {
+    return question
+  }
+
+  const address = url.trim()
+
+  if (address === "") {
+    return rest
+  }
+
+  const found = type === undefined ? mediaFileTypeOf(address) : undefined
+
+  return {
+    ...question,
+    media: {
+      ...media,
+      url: address,
+      ...(found === undefined ? {} : { type: found }),
+    },
+  }
+}
 
 // Shared by every type: the scoring mode is filled in whenever options are
 // given, as it always was, so stored quizzes parse to the same data.
@@ -713,7 +776,7 @@ const questionValidator = z.preprocess(
       return data
     }
 
-    const question = data as Record<string, unknown>
+    const question = withCleanMedia(data as Record<string, unknown>)
 
     if ("type" in question) {
       return withStatementTargets(
@@ -969,9 +1032,58 @@ const questionValidator = z.preprocess(
     }),
 )
 
+// Reads a stored quiz, and checks what a save sends before the rules below.
 export const quizzValidator = z.object({
   subject: z.string().min(1, "errors:quizz.subjectEmpty"),
   questions: z.array(questionValidator).min(1, "errors:quizz.noQuestions"),
 })
 
 export type QuizzValidated = z.infer<typeof quizzValidator>
+
+/**
+ * What a save from the editor accepts: the rules of quizzValidator, then
+ * those added since for new content, which stored quizzes (and the files
+ * they were exported to, see the import) are never read against. A media
+ * must be a web address, a path on the quiz's own server or a small pasted
+ * image, never a video page's link, and have a type (see mediaIssue).
+ */
+export const quizzSaveValidator = quizzValidator.superRefine(
+  ({ questions }, ctx) => {
+    questions.forEach((question, index) => {
+      // A question that failed its own checks may not be parsed.
+      const media = (question as Partial<Question> | undefined)?.media
+
+      if (typeof media?.url !== "string") {
+        return
+      }
+
+      const message = mediaIssue(media)
+
+      if (message) {
+        ctx.addIssue({
+          code: "custom",
+          message,
+          path: [
+            "questions",
+            index,
+            "media",
+            message === MEDIA_ISSUES.TYPE_MISSING ? "type" : "url",
+          ],
+        })
+      }
+    })
+  },
+)
+
+/**
+ * The first issue of a quiz refused on save, and the question it is about
+ * (0-based) when it is about one, so the editor can name and open it.
+ */
+export const quizzErrorOf = (error: z.ZodError): QuizzError => {
+  const [{ message, path }] = error.issues
+  const [field, index] = path
+
+  return field === "questions" && typeof index === "number"
+    ? { message, questionIndex: index }
+    : { message }
+}

@@ -5,15 +5,52 @@ import { scaleRangeOf } from "@razzia/common/utils/scale"
 import { wordCountOf } from "@razzia/common/utils/wordcloud"
 import AlertDialog from "@razzia/web/components/AlertDialog"
 import { type QuestionWithId } from "@razzia/web/features/quizz/contexts/quizz-editor-context"
+import useImageFailure from "@razzia/web/hooks/useImageFailure"
 import clsx from "clsx"
-import { Music, Trash2, Video } from "lucide-react"
+import { ImageOff, Music, Trash2, Video } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { twMerge } from "tailwind-merge"
 
 const SlideMedia = ({ media }: { media?: QuestionMedia }) => {
-  if (media?.type === MEDIA_TYPES.IMAGE) {
+  const { t } = useTranslation()
+  const image = media?.type === MEDIA_TYPES.IMAGE ? media : undefined
+  // Shared with the preview and the markers' frame: once the image loads in
+  // one of them (« Réessayer », a file put in place since), every one shows
+  // it.
+  const { failed, fail, retry } = useImageFailure(image?.url)
+
+  if (image) {
+    // A broken image is pointed out, in red, so the author finds it while
+    // going through the quiz. Behind it, the address is tried again.
+    if (failed) {
+      return (
+        <>
+          <ImageOff
+            role="img"
+            aria-label={t("game:media.imageUnavailable")}
+            className="text-danger-strong mx-auto size-10"
+          />
+          {retry && (
+            <img
+              src={retry.url}
+              alt=""
+              aria-hidden
+              hidden
+              onLoad={retry.onLoad}
+            />
+          )}
+        </>
+      )
+    }
+
     return (
-      <img src={media.url} className="mx-auto max-h-14 w-auto rounded-md" />
+      // Decorative, as the icons of a video or a sound.
+      <img
+        src={image.url}
+        alt=""
+        onError={fail}
+        className="mx-auto max-h-14 w-auto rounded-md"
+      />
     )
   }
 

@@ -5,6 +5,7 @@ import type {
   GameUpdateQuestion,
   Player,
   QuizzStats,
+  QuizzError,
   QuizzStatsMeta,
   QuizzWithId,
 } from "@razzia/common/types/game"
@@ -86,9 +87,16 @@ export interface ServerToClientEvents {
   [EVENTS.MANAGER.UNAUTHORIZED]: () => void
 
   // Quizz events
-  [EVENTS.QUIZZ.SAVE_SUCCESS]: (_data: { id: string }) => void
+  // After an import, the media a save would refuse, kept for the author to
+  // fix in the editor, each with its question.
+  [EVENTS.QUIZZ.SAVE_SUCCESS]: (_data: {
+    id: string
+    warnings?: QuizzError[]
+  }) => void
   [EVENTS.QUIZZ.UPDATE_SUCCESS]: (_data: { id: string }) => void
-  [EVENTS.QUIZZ.ERROR]: (_message: string) => void
+  // An error key, or, when a save is refused over one question, the key and
+  // that question.
+  [EVENTS.QUIZZ.ERROR]: (_error: string | QuizzError) => void
 
   // Results events
   [EVENTS.RESULTS.DATA]: (_result: GameResult) => void
@@ -123,6 +131,8 @@ export interface ClientToServerEvents {
   // Quizz actions
   [EVENTS.QUIZZ.GET]: (_id: string) => void
   [EVENTS.QUIZZ.SAVE]: (_quizz: unknown) => void
+  // A quiz file (an export), read as a stored quiz is.
+  [EVENTS.QUIZZ.IMPORT]: (_quizz: unknown) => void
   [EVENTS.QUIZZ.IMPORT_XLSX]: (_data: {
     name: string
     buffer: ArrayBuffer

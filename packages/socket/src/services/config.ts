@@ -4,7 +4,10 @@ import type {
   GameResultMeta,
   QuizzWithId,
 } from "@razzia/common/types/game"
-import { quizzValidator } from "@razzia/common/validators/quizz"
+import {
+  quizzSaveValidator,
+  quizzValidator,
+} from "@razzia/common/validators/quizz"
 import { normalizeFilename } from "@razzia/socket/utils/game"
 import fs from "fs"
 import { nanoid } from "nanoid"
@@ -192,7 +195,7 @@ export const getQuizz = (): QuizzWithId[] => {
 }
 
 export const updateQuizz = (id: string, data: unknown): { id: string } => {
-  const result = quizzValidator.safeParse(data)
+  const result = quizzSaveValidator.safeParse(data)
 
   if (!result.success) {
     throw new Error(result.error.issues[0].message)
@@ -287,7 +290,7 @@ export const deleteResult = (id: string): void => {
 }
 
 export const saveQuizz = (data: unknown): { id: string } => {
-  const result = quizzValidator.safeParse(data)
+  const result = quizzSaveValidator.safeParse(data)
 
   if (!result.success) {
     throw new Error(result.error.issues[0].message)

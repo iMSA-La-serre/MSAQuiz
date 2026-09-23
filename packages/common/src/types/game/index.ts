@@ -134,6 +134,13 @@ export interface QuestionMedia {
   url: string
 }
 
+// A quiz refused on save: the error key, and the question it is about
+// (0-based) when it is about one.
+export interface QuizzError {
+  message: string
+  questionIndex?: number
+}
+
 export interface Question {
   type: QuestionType
   question: string

@@ -73,6 +73,7 @@ const MarkersImage = ({
       alt={alt}
       heightClassName={sizes.frame}
       imageClassName={clsx(sizes.image, locked && "opacity-90")}
+      tone={variant === "result" ? "card" : "stage"}
     >
       {places.map((marker, index) => {
         const outlined = selected.includes(index) || correct.includes(index)

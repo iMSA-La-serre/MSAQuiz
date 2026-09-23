@@ -218,5 +218,8 @@
     "wordCount_other": "{{count}} mots"
   },
   "wordcloudAnswered": "Réponse enregistrée",
-  "wrong": "Pas cette fois"
+  "wrong": "Pas cette fois",
+  "media": {
+    "imageUnavailable": "Image indisponible"
+  }
 }

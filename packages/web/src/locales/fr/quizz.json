@@ -72,8 +72,15 @@
       "image": "Image",
       "video": "Vidéo"
     },
-    "mediaUrlPlaceholder": "Entrez l'URL...",
-    "placeholder": "Commencez à écrire votre question..."
+    "mediaUrlPlaceholder": "https://…/fichier.mp4",
+    "placeholder": "Commencez à écrire votre question...",
+    "mediaUrlLabel": "Adresse web du média",
+    "mediaType": "Type de média",
+    "removeMedia": "Retirer le média",
+    "mediaFailed": "Média introuvable ou format non lu : il faut un lien direct vers le fichier (…/photo.jpg, …/video.mp4)",
+    "mediaPreview": "Aperçu du média",
+    "mediaRemoved": "Média retiré",
+    "mediaRetry": "Réessayer"
   },
   "quizzSaved": "Quiz enregistré avec succès",
   "quizzUpdated": "Quiz mis à jour avec succès",

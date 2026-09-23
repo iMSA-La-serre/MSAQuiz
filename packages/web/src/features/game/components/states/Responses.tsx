@@ -13,6 +13,7 @@ import ResponseRow, {
 import StageMedia from "@razzia/web/features/game/components/question/StageMedia"
 import { ANSWERS_LABELS, SFX } from "@razzia/web/features/game/utils/constants"
 import { REVEAL_DELAY } from "@razzia/web/features/game/utils/motion"
+import useTitleHeight from "@razzia/web/hooks/useTitleHeight"
 import { QUESTION_REGISTRY } from "@razzia/web/features/questions"
 import { formatCredit } from "@razzia/web/features/questions/single/utils/credits"
 import clsx from "clsx"
@@ -84,6 +85,7 @@ const Responses = ({ data }: Props) => {
   } = QUESTION_REGISTRY[type]
   const { scored } = QUESTION_TYPE_META[type]
   const isSlide = type === "slide"
+  const slideStage = useTitleHeight(isSlide)
   const fixedHint = HINTS[type]
   const hint =
     distributionHint?.(t, data) ??
@@ -122,7 +124,7 @@ const Responses = ({ data }: Props) => {
   // that draws the image itself (markers) keeps its layer over it, the right
   // markers outlined with the rows.
   const imageBlock = image && (
-    <div>
+    <div className={clsx(isSlide && "w-full")}>
       {MediaComponent ? (
         <MediaComponent
           media={image}
@@ -190,8 +192,12 @@ const Responses = ({ data }: Props) => {
     // Nobody answers a slide: title and image at the slide-stage sizes.
     if (isSlide) {
       return (
-        <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col items-center justify-center gap-8 px-6 py-8">
+        <div
+          ref={slideStage.stageRef}
+          className="short:py-4 mx-auto flex w-full max-w-5xl flex-1 flex-col items-center justify-center gap-8 px-6 py-8"
+        >
           <h2
+            ref={slideStage.titleRef}
             className={clsx(
               TITLE,
               "text-center text-3xl md:text-5xl xl:text-6xl",

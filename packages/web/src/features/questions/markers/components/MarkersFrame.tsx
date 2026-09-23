@@ -1,4 +1,6 @@
 import type { QuestionMarker } from "@razzia/common/types/game"
+import MediaUnavailable from "@razzia/web/components/MediaUnavailable"
+import useImageFailure from "@razzia/web/hooks/useImageFailure"
 import clsx from "clsx"
 import {
   type CSSProperties,
@@ -48,10 +50,14 @@ interface Props {
   // width of the screen's chips, see markerStyle.
   heightClassName: string
   imageClassName?: string
-  // The editor reads where a click landed on the picture.
-  imageRef?: RefObject<HTMLImageElement | null>
+  // The editor reads where a click landed on the picture: the box that wraps
+  // it exactly, the same whether the image loaded or not.
+  frameRef?: RefObject<HTMLDivElement | null>
   // The editor learns the picture's shape, to place markers as a phone will.
   onRatio?: (_ratio: number) => void
+  // An image that does not load leaves a neutral block in its place, on the
+  // game's background or on a white card (the editor, the result window).
+  tone?: "stage" | "card"
   // The markers, placed against the picture.
   children: ReactNode
 }
@@ -68,8 +74,9 @@ const MarkersFrame = ({
   alt,
   heightClassName,
   imageClassName,
-  imageRef,
+  frameRef,
   onRatio,
+  tone = "stage",
   children,
 }: Props) => {
   // Kept with the image it belongs to: the next question may show another
@@ -78,6 +85,8 @@ const MarkersFrame = ({
   const ratio = learned?.url === url ? learned.ratio : RATIOS.get(url)
   const ownRef = useRef<HTMLImageElement>(null)
   const shown = ratio ?? FALLBACK_RATIO
+  // An image that does not load: its frame stays, with the markers over it.
+  const { failed, fail, retry } = useImageFailure(url)
 
   const learn = (image: HTMLImageElement) => {
     const found = ratioOf(image)
@@ -104,32 +113,35 @@ const MarkersFrame = ({
     }
   }, [ratio, onRatio])
 
-  const setRefs = (image: HTMLImageElement | null) => {
-    ownRef.current = image
-
-    if (imageRef) {
-      imageRef.current = image
-    }
-  }
-
   return (
     <div className={clsx("flex w-full justify-center", heightClassName)}>
       <div
+        ref={frameRef}
         className="relative"
         style={{
           width: `min(100%, calc(var(--frame-h) * ${shown}))`,
           aspectRatio: shown,
         }}
       >
-        <img
-          ref={setRefs}
-          alt={alt}
-          src={url}
-          onLoad={(event: SyntheticEvent<HTMLImageElement>) => {
-            learn(event.currentTarget)
-          }}
-          className={clsx("block size-full", imageClassName)}
-        />
+        {failed ? (
+          <MediaUnavailable
+            tone={tone}
+            placement="bottom"
+            retry={retry}
+            className={clsx("size-full", imageClassName)}
+          />
+        ) : (
+          <img
+            ref={ownRef}
+            alt={alt}
+            src={url}
+            onLoad={(event: SyntheticEvent<HTMLImageElement>) => {
+              learn(event.currentTarget)
+            }}
+            onError={fail}
+            className={clsx("block size-full", imageClassName)}
+          />
+        )}
         {children}
       </div>
     </div>

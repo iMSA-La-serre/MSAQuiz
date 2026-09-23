@@ -1,18 +1,37 @@
 import { MEDIA_TYPES, NO_TIME_LIMIT } from "@razzia/common/constants"
 import type { QuestionMedia } from "@razzia/common/types/game"
+import MediaUnavailable from "@razzia/web/components/MediaUnavailable"
 import ChoiceSummary from "@razzia/web/features/manager/components/ResultModal/ChoiceSummary"
 import { useResultModal } from "@razzia/web/features/manager/contexts/result-modal-context"
 import { QUESTION_REGISTRY } from "@razzia/web/features/questions"
 import { scoringModeLabelKey } from "@razzia/web/features/questions/options"
+import useImageFailure from "@razzia/web/hooks/useImageFailure"
 import { Clock, ImageOff, Music, Video } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
+// An image that does not load says so, in the block of the same size as a
+// question without media, as a markers question's image does.
 const MediaPreview = ({ media }: { media?: QuestionMedia }) => {
+  const { failed, fail, retry } = useImageFailure(
+    media?.type === MEDIA_TYPES.IMAGE ? media.url : undefined,
+  )
+
+  if (failed) {
+    return (
+      <MediaUnavailable
+        tone="card"
+        retry={retry}
+        className="h-16 w-24 shrink-0 gap-1 rounded-lg px-1 text-xs md:h-38 md:w-full md:text-sm"
+      />
+    )
+  }
+
   if (media?.type === MEDIA_TYPES.IMAGE) {
     return (
       <img
         src={media.url}
         alt=""
+        onError={fail}
         className="h-16 w-auto rounded-md object-contain md:h-full"
       />
     )
