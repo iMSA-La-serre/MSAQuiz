@@ -8,9 +8,9 @@ import {
   X,
 } from "lucide-react"
 
-// Recorded: an answer to a question with no right answer (word cloud), with
-// the icon of the phone's « Réponse enregistrée », not the tick of a right
-// answer.
+// Recorded: an answer to a question with no right answer (poll, word
+// cloud), with the icon of the phone's « Réponse enregistrée », not the tick
+// of a right answer.
 export type Verdict = "correct" | "partial" | "wrong" | "noAnswer" | "recorded"
 
 const STYLES: Record<Verdict, { icon: LucideIcon; className: string }> = {
@@ -27,7 +27,8 @@ interface Props {
 }
 
 // The verdict cell of a player's row in the result window, for the types
-// that bring their own cells (the choice types keep theirs).
+// that bring their own cells, and for the choice types' partly right,
+// recorded or missing answers (their right and wrong ones keep theirs).
 const ResultVerdict = ({ verdict, label }: Props) => {
   const { icon: Icon, className } = STYLES[verdict]
 

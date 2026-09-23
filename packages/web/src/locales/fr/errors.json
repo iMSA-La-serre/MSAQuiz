@@ -91,7 +91,8 @@
     "markerPosition": "Chaque repère doit être posé sur l'image",
     "markerOverlap": "Deux repères sont posés au même endroit : déplacez l'un d'eux",
     "markersNoSolution": "Cochez au moins un repère correct",
-    "markersSolutionRange": "Une bonne réponse désigne un repère qui n'existe plus"
+    "markersSolutionRange": "Une bonne réponse désigne un repère qui n'existe plus",
+    "creditStep": "Une réponse qui n'est pas la bonne rapporte 0, 25, 50 ou 75 % des points"
   },
   "route": {
     "back": "Retour à l'accueil",

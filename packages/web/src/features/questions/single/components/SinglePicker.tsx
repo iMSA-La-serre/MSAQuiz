@@ -1,4 +1,5 @@
 import { ANSWERS_LABELS } from "@razzia/web/features/game/utils/constants"
+import { creditsForSolutions } from "@razzia/web/features/questions/single/utils/credits"
 import type { SolutionPickerProps } from "@razzia/web/features/questions/types"
 import { useQuizzEditor } from "@razzia/web/features/quizz/contexts/quizz-editor-context"
 import clsx from "clsx"
@@ -6,10 +7,26 @@ import { Check } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
 // A single-choice question may accept several answers, so each answer gets a
-// checkbox; the last ticked box cannot be unticked.
+// checkbox; the last ticked box cannot be unticked. With partial credit, a
+// right answer earns all the points and an answer unticked none, until the
+// author gives it a credit.
 const SingleSolutionPicker = ({ index, isSelected }: SolutionPickerProps) => {
   const { currentQuestion, currentIndex, updateQuestion } = useQuizzEditor()
   const { t } = useTranslation()
+
+  const setSolutions = (solutions: number[]) => {
+    const { options } = currentQuestion
+
+    updateQuestion(currentIndex, {
+      solutions,
+      ...(options?.credits !== undefined && {
+        options: {
+          ...options,
+          credits: creditsForSolutions(currentQuestion, solutions),
+        },
+      }),
+    })
+  }
 
   const handleToggle = () => {
     const current = currentQuestion.solutions
@@ -17,14 +34,12 @@ const SingleSolutionPicker = ({ index, isSelected }: SolutionPickerProps) => {
     if (current.includes(index)) {
       const next = current.filter((s) => s !== index)
 
-      updateQuestion(currentIndex, {
-        solutions: next.length > 0 ? next : [index],
-      })
+      setSolutions(next.length > 0 ? next : [index])
 
       return
     }
 
-    updateQuestion(currentIndex, { solutions: [...current, index] })
+    setSolutions([...current, index])
   }
 
   return (

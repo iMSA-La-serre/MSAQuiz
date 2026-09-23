@@ -102,6 +102,7 @@
     "scaleWithheld": "Trop peu de réponses pour afficher la répartition",
     "unrecognized": "Non reconnues",
     "unscored": "Non noté",
-    "wordsWithheld": "Trop peu de réponses pour afficher les mots"
+    "wordsWithheld": "Trop peu de réponses pour afficher les mots",
+    "creditSummary": "{{count}} bonne(s) réponse(s) · score moyen {{rate}}"
   }
 }

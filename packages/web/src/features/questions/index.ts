@@ -6,6 +6,7 @@ import type {
   QuestionType,
   ScoringMode,
 } from "@razzia/common/types/game"
+import type { ManagerStatusDataMap } from "@razzia/common/types/game/status"
 import * as categorize from "@razzia/web/features/questions/categorize"
 import * as estimate from "@razzia/web/features/questions/estimate"
 import * as highlight from "@razzia/web/features/questions/highlight"
@@ -31,6 +32,7 @@ import type {
   StatsAnswersProps,
 } from "@razzia/web/features/questions/types"
 import type { TFunction } from "i18next"
+import type { LucideIcon } from "lucide-react"
 import type { ComponentType, PropsWithChildren } from "react"
 
 // What a stage provider is given: the settings players may read, and where
@@ -91,7 +93,10 @@ interface QuestionRegistryEntry {
   // Result window: translation key of the setting shown next to the time;
   // by default, the multi scoring mode. `optionsLabel` gives the text itself
   // when it holds figures (a tolerance).
-  optionsLabelKey?: (_options: QuestionOptions | undefined) => string | null
+  optionsLabelKey?: (
+    _options: QuestionOptions | undefined,
+    _question: QuestionResult,
+  ) => string | null
   optionsLabel?: (
     _t: TFunction,
     _options: QuestionOptions | undefined,
@@ -112,6 +117,21 @@ interface QuestionRegistryEntry {
     _t: TFunction,
     _answer: AnswerPayload,
     _options: QuestionOptions | undefined,
+  ) => string | undefined
+  // Host screen after the question, for the types keeping the choice rows:
+  // the hint above them when it depends on the settings (several answers on
+  // a poll), in place of the type's fixed one. Only where the answering
+  // screen had a hint too, or the rows would move.
+  distributionHint?: (
+    _t: TFunction,
+    _data: ManagerStatusDataMap["SHOW_RESPONSES"],
+  ) => { icon: LucideIcon; text: string } | undefined
+  // Same screen: a note under the rows, out of the flow, at the other end
+  // from the missing answers, when it depends on the settings (partial
+  // credits on a single choice). Unlike a hint, it moves nothing.
+  distributionAside?: (
+    _t: TFunction,
+    _data: ManagerStatusDataMap["SHOW_RESPONSES"],
   ) => string | undefined
   // Statistics: the answers list of a question card.
   StatsAnswers?: ComponentType<StatsAnswersProps>

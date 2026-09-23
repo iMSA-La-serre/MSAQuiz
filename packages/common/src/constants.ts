@@ -169,6 +169,13 @@ export const SCALE_DEFAULTS = { START: 1, END: 5 } as const
 // The targets of a statements question, imposed.
 export const STATEMENT_TARGETS = ["Vrai", "Faux"] as const
 
+// Single choice with partial credit (options.credits): the share of the
+// points, in percent, an answer that is not right may earn. A right answer
+// always earns all of them, FULL_CREDIT.
+export const CREDIT_STEPS = [0, 25, 50, 75] as const
+
+export const FULL_CREDIT = 100
+
 export const QUESTION_TYPES = {
   SINGLE: "single",
   MULTI: "multi",
@@ -202,7 +209,9 @@ export const QUESTION_TYPES = {
  * who scores gets the base points whatever the time or answer order.
  *
  * `partialOutcome` reports a multiplier strictly between 0 and 1 as a
- * "partial" outcome instead of "correct".
+ * "partial" outcome instead of "correct". A single choice does too, question
+ * by question, once some of its other answers earn part of the points
+ * (partialOutcomeOf).
  *
  * `nominative` keeps each player's answer in the history. Without it, the
  * history keeps whether each player answered and, at the question level, a
@@ -222,6 +231,7 @@ export const QUESTION_TYPE_META: Record<
     nominative: boolean
   }
 > = {
+  // With `options.credits`, the other answers may earn part of the points.
   single: {
     scored: true,
     acceptsAnswers: true,
@@ -250,6 +260,7 @@ export const QUESTION_TYPE_META: Record<
     partialOutcome: false,
     nominative: true,
   },
+  // With `options.multiple`, players tick several answers, then validate.
   poll: {
     scored: false,
     acceptsAnswers: true,

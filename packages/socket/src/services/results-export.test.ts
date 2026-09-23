@@ -794,3 +794,82 @@ describe("buildResultWorkbook, markers", () => {
     ])
   })
 })
+
+describe("buildResultWorkbook, poll with several answers", () => {
+  it("counts every answer ticked, then the players who answered", async () => {
+    const [, questions] = await readWorkbook(
+      result([
+        question({
+          type: QUESTION_TYPES.POLL,
+          question: "Quels formats vous conviennent ?",
+          answers: ["Présentiel", "Distanciel", "Hybride"],
+          solutions: [],
+          options: { scoringMode: SCORING_MODES.BALANCED, multiple: true },
+          playerAnswers: answers(["Alex", [0, 2]], ["Bea", [2]], ["Cyd", null]),
+        }),
+      ]),
+    )
+
+    expect(questions.rows.slice(2, 7)).toEqual([
+      [null, "Présentiel", "", 1],
+      [null, "Distanciel", "", 0],
+      [null, "Hybride", "", 2],
+      [null, "Ont répondu", null, 2],
+      [null, "Sans réponse", null, 1],
+    ])
+  })
+})
+
+describe("buildResultWorkbook, single choice with partial credits", () => {
+  it("gives the credit of the partly right answers and the mean score", async () => {
+    const [, questions] = await readWorkbook(
+      result([
+        question({
+          question: "Combien de caisses régionales compte la MSA ?",
+          answers: ["12", "35", "50", "101"],
+          solutions: [1],
+          options: {
+            scoringMode: SCORING_MODES.BALANCED,
+            credits: [50, 100, 0, 0],
+          },
+          playerAnswers: [
+            { playerName: "Alex", answerIds: [1], score: 1 },
+            { playerName: "Bea", answerIds: [0], score: 0.5 },
+            { playerName: "Cyd", answerIds: [3], score: 0 },
+          ],
+        }),
+      ]),
+    )
+
+    expect(questions.rows.slice(2, 8)).toEqual([
+      [null, "12", "50\u00a0%", 1],
+      [null, "35", "✓", 1],
+      [null, "50", "", 0],
+      [null, "101", "", 1],
+      [null, "Score moyen", null, 0.5],
+      [null, "Sans réponse", null, 0],
+    ])
+  })
+
+  it("reports a single choice whose credits are all 0 as any other", async () => {
+    const [, questions] = await readWorkbook(
+      result([
+        question({
+          options: {
+            scoringMode: SCORING_MODES.BALANCED,
+            credits: [100, 0, 0, 0],
+          },
+          playerAnswers: answers(["Alex", [0]], ["Bea", [1]], ["Cyd", null]),
+        }),
+      ]),
+    )
+
+    expect(questions.rows.slice(2, 7)).toEqual([
+      [null, "Paris", "✓", 1],
+      [null, "Lyon", "", 1],
+      [null, "Marseille", "", 0],
+      [null, "Nice", "", 0],
+      [null, "Sans réponse", null, 1],
+    ])
+  })
+})

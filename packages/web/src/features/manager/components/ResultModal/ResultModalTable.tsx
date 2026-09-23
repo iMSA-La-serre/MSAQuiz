@@ -1,13 +1,69 @@
 import AnswerChip from "@razzia/web/features/game/components/AnswerChip"
+import ResultVerdict from "@razzia/web/features/manager/components/ResultModal/ResultVerdict"
 import { useResultModal } from "@razzia/web/features/manager/contexts/result-modal-context"
+import {
+  type ChoiceVerdict,
+  choiceVerdict,
+} from "@razzia/web/features/manager/utils/records"
 import { QUESTION_REGISTRY } from "@razzia/web/features/questions"
+import { formatCredit } from "@razzia/web/features/questions/single/utils/credits"
 import { Check, X } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
 const ResultModalTable = () => {
   const { questionResult, getPlayerPoints } = useResultModal()
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { ResultCells } = QUESTION_REGISTRY[questionResult.type]
+
+  // A single choice with partial credits: a wrong answer earning part of the
+  // points reads « En partie juste », as the phone said, with its share. A
+  // poll: « Réponse enregistrée », as the other unscored types, never
+  // « Incorrect ».
+  const verdictCell = (result: ChoiceVerdict) => {
+    switch (result.verdict) {
+      case "partial":
+        return (
+          <ResultVerdict
+            verdict="partial"
+            label={t("manager:result.verdict.partial", {
+              percent: formatCredit(i18n.language, result.credit),
+            })}
+          />
+        )
+
+      case "recorded":
+        return (
+          <ResultVerdict
+            verdict="recorded"
+            label={t("manager:result.verdict.recorded")}
+          />
+        )
+
+      case "noAnswer":
+        return (
+          <ResultVerdict
+            verdict="noAnswer"
+            label={t("manager:result.verdict.noAnswer")}
+          />
+        )
+
+      case "correct":
+        return (
+          <span className="text-success-strong flex items-center gap-1">
+            <Check className="size-4 stroke-4" />{" "}
+            {t("manager:result.table.correct")}
+          </span>
+        )
+
+      case "wrong":
+        return (
+          <span className="text-danger flex items-center gap-1">
+            <X className="size-4 stroke-4" />{" "}
+            {t("manager:result.table.incorrect")}
+          </span>
+        )
+    }
+  }
 
   return (
     <table className="w-full text-sm">
@@ -26,9 +82,6 @@ const ResultModalTable = () => {
       <tbody className="divide-muted divide-y-2">
         {questionResult.playerAnswers.map((pa, i) => {
           const hasAnswer = pa.answerIds !== null && pa.answerIds.length > 0
-          const isCorrect =
-            pa.answerIds?.some((id) => questionResult.solutions.includes(id)) ??
-            false
 
           // Types not answered by picking choices bring their own cells.
           if (ResultCells) {
@@ -66,17 +119,7 @@ const ResultModalTable = () => {
                 )}
               </td>
               <td className="px-4 py-2.5">
-                {isCorrect ? (
-                  <span className="text-success-strong flex items-center gap-1">
-                    <Check className="size-4 stroke-4" />{" "}
-                    {t("manager:result.table.correct")}
-                  </span>
-                ) : (
-                  <span className="text-danger flex items-center gap-1">
-                    <X className="size-4 stroke-4" />{" "}
-                    {t("manager:result.table.incorrect")}
-                  </span>
-                )}
+                {verdictCell(choiceVerdict(questionResult, pa))}
               </td>
               <td className="text-foreground px-4 py-2.5 text-right font-semibold">
                 {getPlayerPoints(pa.playerName)}

@@ -5,6 +5,7 @@ import type {
 import { usePlayerStore } from "@razzia/web/features/game/stores/player"
 import { SFX } from "@razzia/web/features/game/utils/constants"
 import { EASE_OUT_QUART, enter } from "@razzia/web/features/game/utils/motion"
+import { formatCredit } from "@razzia/web/features/questions/single/utils/credits"
 import clsx from "clsx"
 import {
   type LucideIcon,
@@ -80,6 +81,7 @@ const Result = ({
     placed,
     found,
     matched,
+    credit,
   },
 }: Props) => {
   const updatePoints = usePlayerStore((state) => state.updatePoints)
@@ -213,6 +215,13 @@ const Result = ({
               {t("game:result.matched", {
                 count: matched.count,
                 total: matched.total,
+              })}
+            </p>
+          )}
+          {credit !== undefined && (
+            <p className="mt-2 text-lg leading-snug font-semibold text-balance">
+              {t("game:result.credit", {
+                percent: formatCredit(i18n.language, credit),
               })}
             </p>
           )}

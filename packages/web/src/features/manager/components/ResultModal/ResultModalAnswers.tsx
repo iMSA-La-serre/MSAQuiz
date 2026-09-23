@@ -3,6 +3,7 @@ import type { QuestionMedia } from "@razzia/common/types/game"
 import ChoiceSummary from "@razzia/web/features/manager/components/ResultModal/ChoiceSummary"
 import { useResultModal } from "@razzia/web/features/manager/contexts/result-modal-context"
 import { QUESTION_REGISTRY } from "@razzia/web/features/questions"
+import { scoringModeLabelKey } from "@razzia/web/features/questions/options"
 import { Clock, ImageOff, Music, Video } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
@@ -49,12 +50,9 @@ const ResultModalAnswers = () => {
     QUESTION_REGISTRY[questionResult.type]
   const { options } = questionResult
   // By default, the multi scoring mode, whatever the type it was saved with.
-  const defaultOptionsKey = options?.scoringMode
-    ? `quizz:question.config.scoringMode.${options.scoringMode}`
-    : null
   const optionsKey = optionsLabelKey
-    ? optionsLabelKey(options)
-    : defaultOptionsKey
+    ? optionsLabelKey(options, questionResult)
+    : scoringModeLabelKey(options)
   const optionsText = optionsLabel
     ? optionsLabel(t, options)
     : optionsKey && t(optionsKey)

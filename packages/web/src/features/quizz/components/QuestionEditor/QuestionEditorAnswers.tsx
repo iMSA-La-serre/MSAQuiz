@@ -1,8 +1,11 @@
 import { QUESTION_TYPE_META, QUESTION_TYPES } from "@razzia/common/constants"
 import type { QuestionType } from "@razzia/common/types/game"
+import { pollMultiple } from "@razzia/common/utils/choice"
 import AnswerChip from "@razzia/web/features/game/components/AnswerChip"
 import { ANSWERS_LABELS } from "@razzia/web/features/game/utils/constants"
 import { QUESTION_REGISTRY } from "@razzia/web/features/questions"
+import CreditPicker from "@razzia/web/features/questions/single/components/CreditPicker"
+import { creditsWithout } from "@razzia/web/features/questions/single/utils/credits"
 import { useQuizzEditor } from "@razzia/web/features/quizz/contexts/quizz-editor-context"
 import clsx from "clsx"
 import { Plus, Presentation, Trash2 } from "lucide-react"
@@ -34,9 +37,12 @@ const HINT_KEYS: Record<QuestionType, string> = {
 }
 
 // Chip, field, correct-answer box, delete button. Below sm the rows use two
-// columns and the box and the delete button wrap to a second line.
+// columns and the box and the delete button wrap to a second line. With
+// partial credit, the box and the menu of the credit share a wider column,
+// as a categorize item's category.
 const COLUMNS = {
   scored: "sm:grid-cols-[2rem_minmax(0,1fr)_8rem_2.25rem]",
+  credits: "sm:grid-cols-[2rem_minmax(0,1fr)_11rem_2.25rem]",
   poll: "sm:grid-cols-[2rem_minmax(0,1fr)_2.25rem]",
   fixed: "sm:grid-cols-[2rem_minmax(0,1fr)_8rem]",
 }
@@ -80,6 +86,12 @@ const QuestionEditorAnswers = () => {
   // which one is correct.
   const hasFixedAnswers = answersCount !== undefined
   const isRadioGroup = questionType === QUESTION_TYPES.TRUEFALSE
+  // A single choice with partial credit: a credit next to each box.
+  const credits =
+    questionType === QUESTION_TYPES.SINGLE
+      ? currentQuestion.options?.credits
+      : undefined
+  const hasCredits = credits !== undefined
 
   // Types not answered by picking choices bring their own block. Keyed by
   // question, so nothing typed in it carries over to the next one.
@@ -104,8 +116,18 @@ const QuestionEditorAnswers = () => {
 
   if (hasFixedAnswers) {
     columns = COLUMNS.fixed
+  } else if (hasCredits) {
+    columns = COLUMNS.credits
   } else if (scored) {
     columns = COLUMNS.scored
+  }
+
+  let hintKey = HINT_KEYS[questionType]
+
+  if (hasCredits) {
+    hintKey = "quizz:answers.hint.singleCredits"
+  } else if (pollMultiple(currentQuestion)) {
+    hintKey = "quizz:answers.hint.pollMultiple"
   }
 
   const updateAnswer = (index: number, value: string) => {
@@ -138,6 +160,13 @@ const QuestionEditorAnswers = () => {
     updateQuestion(currentIndex, {
       answers: nextAnswers,
       solutions: nextSolutions.length > 0 ? nextSolutions : fallback,
+      // The credits follow their answers.
+      ...(credits && {
+        options: {
+          ...currentQuestion.options,
+          credits: creditsWithout(credits, index),
+        },
+      }),
     })
   }
 
@@ -148,6 +177,19 @@ const QuestionEditorAnswers = () => {
 
   const renderCells = (answer: string, index: number) => {
     const letter = ANSWERS_LABELS[index]
+    const solutionCell = scored && (
+      // A label, so a tap on the visible « Bonne réponse » below sm toggles
+      // the box too.
+      <label className="flex cursor-pointer items-center justify-center gap-2">
+        <span
+          aria-hidden
+          className="text-muted-foreground text-xs font-semibold sm:hidden"
+        >
+          {t("quizz:answers.columnCorrect")}
+        </span>
+        <SolutionPicker index={index} isSelected={solutions.includes(index)} />
+      </label>
+    )
 
     return (
       <>
@@ -164,21 +206,15 @@ const QuestionEditorAnswers = () => {
           onChange={(event) => updateAnswer(index, event.target.value)}
         />
         <div className="col-span-2 flex items-center justify-end gap-3 sm:contents">
-          {scored && (
-            // A label, so a tap on the visible « Bonne réponse » below sm
-            // toggles the box too.
-            <label className="flex cursor-pointer items-center justify-center gap-2">
-              <span
-                aria-hidden
-                className="text-muted-foreground text-xs font-semibold sm:hidden"
-              >
-                {t("quizz:answers.columnCorrect")}
-              </span>
-              <SolutionPicker
-                index={index}
-                isSelected={solutions.includes(index)}
-              />
-            </label>
+          {hasCredits ? (
+            <div className="flex items-center gap-2">
+              {solutionCell}
+              <div className="w-28 sm:w-auto sm:flex-1">
+                <CreditPicker index={index} />
+              </div>
+            </div>
+          ) : (
+            solutionCell
           )}
           {!hasFixedAnswers && (
             <button
@@ -216,9 +252,7 @@ const QuestionEditorAnswers = () => {
             })}
           </span>
         </div>
-        <p className="text-muted-foreground text-sm">
-          {t(HINT_KEYS[questionType])}
-        </p>
+        <p className="text-muted-foreground text-sm">{t(hintKey)}</p>
       </header>
 
       <div

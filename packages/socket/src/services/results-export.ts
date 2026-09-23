@@ -10,6 +10,7 @@ import {
   rightTargetOf,
   targetsOf,
 } from "@razzia/common/utils/association"
+import { partialCredits, pollMultiple } from "@razzia/common/utils/choice"
 import {
   estimateRanges,
   formatEstimate,
@@ -45,12 +46,28 @@ interface QuestionRows {
   answered: AnsweredRecord[]
 }
 
-// Choice types: one row per answer, the correct ones ticked.
+// A credit as French writes it, « 50 % », with a no-break space, whatever
+// the locale data of the server.
+const creditText = (credit: number): string => `${credit}\u00a0%`
+
+// Choice types: one row per answer, the correct ones ticked, and on a single
+// choice with partial credits, the others with the credit they earn.
 const addChoiceRows = ({ sheet, question, answered }: QuestionRows) => {
+  const credits = partialCredits(question)
+
   question.answers.forEach((label, answerIndex) => {
+    const credit = credits?.at(answerIndex) ?? 0
+    let correct = ""
+
+    if (question.solutions.includes(answerIndex)) {
+      correct = "✓"
+    } else if (credit > 0) {
+      correct = creditText(credit)
+    }
+
     sheet.addRow({
       answer: label,
-      correct: question.solutions.includes(answerIndex) ? "✓" : "",
+      correct,
       votes: answered.filter((record) => record.answerIds.includes(answerIndex))
         .length,
     })
@@ -462,6 +479,17 @@ export const buildResultWorkbook = async (
       addAssociationRows(rows)
     } else {
       addChoiceRows(rows)
+
+      // Partly right answers: how close the room came.
+      if (partialCredits(question)) {
+        addMeanScoreRow(rows)
+      }
+
+      // Each player may tick several answers: the votes add up to more than
+      // the players who answered.
+      if (pollMultiple(question)) {
+        questions.addRow({ answer: "Ont répondu", votes: answered.length })
+      }
     }
 
     questions.addRow({

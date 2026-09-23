@@ -5,6 +5,7 @@ import {
 } from "@razzia/common/constants"
 import type { QuestionType } from "@razzia/common/types/game"
 import type { ManagerStatusDataMap } from "@razzia/common/types/game/status"
+import { partialCredits } from "@razzia/common/utils/choice"
 import QuestionBand from "@razzia/web/features/game/components/question/QuestionBand"
 import ResponseRow, {
   ResponseList,
@@ -13,6 +14,7 @@ import StageMedia from "@razzia/web/features/game/components/question/StageMedia
 import { ANSWERS_LABELS, SFX } from "@razzia/web/features/game/utils/constants"
 import { REVEAL_DELAY } from "@razzia/web/features/game/utils/motion"
 import { QUESTION_REGISTRY } from "@razzia/web/features/questions"
+import { formatCredit } from "@razzia/web/features/questions/single/utils/credits"
 import clsx from "clsx"
 import { ListChecks, type LucideIcon, Vote } from "lucide-react"
 import { MotionConfig, useReducedMotion } from "motion/react"
@@ -50,7 +52,7 @@ const Responses = ({ data }: Props) => {
     totalAnswered,
     totalPlayers,
   } = data
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const reduceMotion = useReducedMotion()
   const [revealed, setRevealed] = useState(false)
   const [sfxReveal] = useSound(SFX.SHOW_SOUND, { volume: 0.2 })
@@ -73,11 +75,30 @@ const Responses = ({ data }: Props) => {
     }
   }, [reduceMotion])
 
-  const { DistributionList, MediaComponent, hostTopAligned } =
-    QUESTION_REGISTRY[type]
+  const {
+    DistributionList,
+    MediaComponent,
+    hostTopAligned,
+    distributionHint,
+    distributionAside,
+  } = QUESTION_REGISTRY[type]
   const { scored } = QUESTION_TYPE_META[type]
   const isSlide = type === "slide"
-  const hint = HINTS[type]
+  const fixedHint = HINTS[type]
+  const hint =
+    distributionHint?.(t, data) ??
+    (fixedHint && { icon: fixedHint.icon, text: t(fixedHint.key) })
+  // A single choice with partial credits: the answers earning part of the
+  // points are labelled with their credit, where a right answer is labelled
+  // « Bonne réponse », without its outline.
+  const credits = partialCredits(data)
+  const creditOf = (index: number): string | undefined => {
+    const credit = credits?.at(index) ?? 0
+
+    return credit > 0 && !solutions.includes(index)
+      ? formatCredit(i18n.language, credit)
+      : undefined
+  }
   const image = media?.type === MEDIA_TYPES.IMAGE ? media : undefined
   const dense = answers.some((answer) => answer.length > DENSE_LENGTH)
   const showCorrect = revealed || Boolean(reduceMotion)
@@ -129,29 +150,39 @@ const Responses = ({ data }: Props) => {
     <DistributionList data={data} revealed={showCorrect} />
   ) : (
     <ResponseList
-      hint={hint && { icon: hint.icon, text: t(hint.key) }}
+      hint={hint}
+      aside={distributionAside?.(t, data)}
       unanswered={unanswered}
       rows={answers.length}
     >
-      {answers.map((answer, index) => (
-        <ResponseRow
-          key={index}
-          index={index}
-          text={answer}
-          // Answers nobody picked have no entry.
-          count={index in responses ? responses[index] : 0}
-          total={totalAnswered}
-          label={(figures) =>
-            t("game:responses.rowLabel", {
-              letter: ANSWERS_LABELS[index % ANSWERS_LABELS.length],
-              ...figures,
-            })
-          }
-          correct={scored && solutions.includes(index)}
-          revealed={showCorrect}
-          dense={dense}
-        />
-      ))}
+      {answers.map((answer, index) => {
+        const credit = creditOf(index)
+        const letter = ANSWERS_LABELS[index % ANSWERS_LABELS.length]
+
+        return (
+          <ResponseRow
+            key={index}
+            index={index}
+            text={answer}
+            // Answers nobody picked have no entry.
+            count={index in responses ? responses[index] : 0}
+            total={totalAnswered}
+            label={(figures) =>
+              credit === undefined
+                ? t("game:responses.rowLabel", { letter, ...figures })
+                : t("game:responses.creditRowLabel", {
+                    letter,
+                    credit,
+                    ...figures,
+                  })
+            }
+            correct={scored && solutions.includes(index)}
+            answerLabel={credit}
+            revealed={showCorrect}
+            dense={dense}
+          />
+        )
+      })}
     </ResponseList>
   )
 

@@ -61,6 +61,50 @@ describe("single", () => {
   })
 })
 
+describe("single with partial credits", () => {
+  const credited = (credits: number[], solutions = [1]) =>
+    question({ solutions, options: { credits } })
+  const score = (
+    credits: number[],
+    answerIds: number[],
+    solutions?: number[],
+  ) => QUESTION_SCORING.single(credited(credits, solutions), { answerIds })
+
+  it("gives a wrong answer the share of its credit", () => {
+    expect(score([50, 100, 25, 0], [0])).toBe(0.5)
+    expect(score([50, 100, 25, 0], [2])).toBe(0.25)
+    expect(score([50, 100, 25, 75], [3])).toBe(0.75)
+  })
+
+  it("gives a right answer all the points, whatever is stored", () => {
+    expect(score([50, 0, 25, 0], [1])).toBe(1)
+    expect(score([50, 100, 25, 0], [3], [1, 3])).toBe(1)
+  })
+
+  it("gives nothing for an answer without credit, or several answers", () => {
+    expect(score([50, 100, 25, 0], [3])).toBe(0)
+    expect(score([50, 100, 25, 0], [0, 2])).toBe(0)
+    expect(score([50, 100, 25, 0], [])).toBe(0)
+  })
+
+  it("reads a credit that is not a step as none", () => {
+    expect(score([30, 100, 25, 0], [0])).toBe(0)
+  })
+
+  it("never gives a true/false question partial credit", () => {
+    expect(
+      QUESTION_SCORING.truefalse(
+        question({
+          type: QUESTION_TYPES.TRUEFALSE,
+          answers: ["Vrai", "Faux"],
+          options: { credits: [100, 50] },
+        }),
+        { answerIds: [1] },
+      ),
+    ).toBe(0)
+  })
+})
+
 describe("multi, strict mode", () => {
   const score = (solutions: number[], answerIds: number[]) =>
     scoreMulti(SCORING_MODES.STRICT, solutions, answerIds)

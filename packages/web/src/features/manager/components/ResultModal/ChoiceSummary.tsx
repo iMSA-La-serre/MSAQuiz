@@ -1,4 +1,7 @@
+import { QUESTION_TYPE_META } from "@razzia/common/constants"
+import { partialCredits } from "@razzia/common/utils/choice"
 import AnswerChip from "@razzia/web/features/game/components/AnswerChip"
+import { formatCredit } from "@razzia/web/features/questions/single/utils/credits"
 import type { ResultSummaryProps } from "@razzia/web/features/questions/types"
 import clsx from "clsx"
 import { Check, X } from "lucide-react"
@@ -9,6 +12,9 @@ interface AnswerRow {
   label: string
   count: number
   isCorrect: boolean
+  // Single choice with partial credits: the share of the points a wrong
+  // answer earns, in percent, when above 0.
+  credit?: number
   // Answer position, null for the "no answer" row.
   index: number | null
 }
@@ -20,18 +26,27 @@ interface Props extends ResultSummaryProps {
 }
 
 // The answers block of the choice types in the result window: each answer
-// with its letter, whether it is right, and the players who picked it.
+// with its letter, whether it is right, or the credit it earns on a single
+// choice with partial credits, and the players who picked it. A poll has no
+// right answer: neither tick nor cross.
 const ChoiceSummary = ({ question, noAnswerCount, mark }: Props) => {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const credits = partialCredits(question)
+  const { scored } = QUESTION_TYPE_META[question.type]
 
   const rows: AnswerRow[] = [
-    ...question.answers.map((label, ai) => ({
-      label,
-      count: question.playerAnswers.filter((pa) => pa.answerIds?.includes(ai))
-        .length,
-      isCorrect: question.solutions.includes(ai),
-      index: ai,
-    })),
+    ...question.answers.map((label, ai) => {
+      const credit = credits?.at(ai) ?? 0
+
+      return {
+        label,
+        count: question.playerAnswers.filter((pa) => pa.answerIds?.includes(ai))
+          .length,
+        isCorrect: question.solutions.includes(ai),
+        ...(credit > 0 && { credit }),
+        index: ai,
+      }
+    }),
     {
       label: t("manager:result.noAnswer"),
       count: noAnswerCount,
@@ -61,9 +76,15 @@ const ChoiceSummary = ({ question, noAnswerCount, mark }: Props) => {
           </span>
 
           <div className="shrink-0">
-            {row.isCorrect ? (
+            {scored && row.isCorrect && (
               <Check className="text-success size-5 stroke-4" />
-            ) : (
+            )}
+            {scored && !row.isCorrect && row.credit !== undefined && (
+              <span className="text-foreground text-xs font-semibold whitespace-nowrap tabular-nums">
+                {formatCredit(i18n.language, row.credit)}
+              </span>
+            )}
+            {scored && !row.isCorrect && row.credit === undefined && (
               <X
                 className={clsx(
                   "size-5 stroke-4",

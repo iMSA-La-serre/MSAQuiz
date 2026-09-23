@@ -28,7 +28,8 @@ export type Status = (typeof STATUS)[keyof typeof STATUS]
 // noAnswer, the unscored ones (poll, word cloud, ranking, scale) give voted
 // or noVote. Partial only comes from the types with
 // QUESTION_TYPE_META.partialOutcome (ordering, highlight, statements,
-// categorize): some credit, not all of it.
+// categorize), and from a single choice with partial credit
+// (partialOutcomeOf): some credit, not all of it.
 export type ResultOutcome =
   "correct" | "partial" | "wrong" | "noAnswer" | "voted" | "noVote"
 
@@ -60,7 +61,9 @@ export interface CommonStatusDataMap {
     totalPlayer: number
     // Public, as in SELECT_ANSWER: the answer area is laid out as it will be
     // (the fields of a word cloud, the unit and bounds of an estimate, the
-    // levels of a scale).
+    // levels of a scale, several answers on a poll). Never the credits of a
+    // single choice, nor the scoring mode stored with them: absent, as on a
+    // single choice without credits (publicOptions).
     options?: QuestionOptions
     // Highlight: the text, as in SELECT_ANSWER.
     text?: string
@@ -77,6 +80,8 @@ export interface CommonStatusDataMap {
     time: number
     totalPlayer: number
     questionType: QuestionType
+    // Public, see SHOW_QUESTION: a poll with `multiple` takes several
+    // answers.
     options?: QuestionOptions
     // Highlight: the text, its passages between [brackets] being `answers`.
     text?: string
@@ -110,6 +115,9 @@ export interface CommonStatusDataMap {
     // Statements and categorize, partial outcome only: the items the player
     // matched with their right target, out of how many.
     matched?: { count: number; total: number }
+    // Single choice with partial credit, partial outcome only: the share of
+    // the points the answer earned, in percent.
+    credit?: number
   }
   WAIT: { text: string }
   FINISHED: {
@@ -124,7 +132,8 @@ interface ManagerExtraStatus {
   SHOW_ROOM: { text: string; inviteCode?: string }
   SHOW_RESPONSES: {
     question: string
-    // Keyed by index. Choice types: votes per answer. Ordering: players who
+    // Keyed by index. Choice types: votes per answer (on a poll with several
+    // answers, each answer ticked counts). Ordering: players who
     // put item i (original index, `answers` being in the correct order) at
     // its place. Shortanswer: inputs recognized per accepted answer.
     // Statements and categorize: players who matched item i with its right
@@ -142,7 +151,9 @@ interface ManagerExtraStatus {
     targets?: string[]
     expectedTargets?: number[]
     // Estimate: the right value, only ever sent to the manager, and the
-    // question's settings (unit, decimals, bounds, tolerance).
+    // question's settings (unit, decimals, bounds, tolerance). Poll: whether
+    // it took several answers. Single: the credits of its answers, only ever
+    // sent to the manager.
     expected?: number
     options?: QuestionOptions
     // Estimate: the values sent, counted by range around the right value

@@ -16,6 +16,7 @@ import {
   matchedItems,
   rightTargetOf,
 } from "@razzia/common/utils/association"
+import { partialCredits, partialOutcomeOf } from "@razzia/common/utils/choice"
 import { medianOf, toleranceSide } from "@razzia/common/utils/estimate"
 import { placedItems } from "@razzia/common/utils/ordering"
 import { rankOrder, rankPoints } from "@razzia/common/utils/ranking"
@@ -62,22 +63,38 @@ export const recordScore = (
 /**
  * Whether a recorded answer counts as correct in the statistics. The types
  * that existed before partial credit keep their rule, any credit; the others
- * need full credit.
+ * need full credit, and so does a single choice with partial credits, whose
+ * partly right answers the phones did not call right.
  */
 export const isCorrectRecord = (
   question: QuestionResult,
   record: AnsweredRecord,
 ): boolean => {
-  const { scored, partialOutcome } = QUESTION_TYPE_META[question.type]
-
-  if (!scored) {
+  if (!QUESTION_TYPE_META[question.type].scored) {
     return false
   }
 
   const score = recordScore(question, record)
 
-  return partialOutcome ? score === 1 : score > 0
+  return partialOutcomeOf(question) ? score === 1 : score > 0
 }
+
+/**
+ * The answers of a single choice with partial credits that are not right but
+ * earn part of the points, with their credit in percent. Empty otherwise.
+ */
+export const creditedLabels = (
+  question: QuestionResult,
+): Array<{ label: string; credit: number }> =>
+  (partialCredits(question) ?? []).flatMap((credit, index) => {
+    const label = question.answers.at(index)
+
+    return label !== undefined &&
+      credit > 0 &&
+      !question.solutions.includes(index)
+      ? [{ label, credit }]
+      : []
+  })
 
 // Wording of the correct answers. Shortanswer: every accepted answer is one.
 // Statements and categorize: the right target of each item, in the order of
@@ -155,7 +172,8 @@ const answerLabels = (
 }
 
 // Types whose statistics give the mean multiplier: a partial answer is not
-// counted correct, the mean tells how close the answers came.
+// counted correct, the mean tells how close the answers came. A single choice
+// with partial credits gives it too, see newTally.
 const AVERAGE_SCORE_TYPES = new Set<string>([
   QUESTION_TYPES.ORDERING,
   QUESTION_TYPES.HIGHLIGHT,
@@ -177,8 +195,8 @@ const LIST_ALL_TYPES = new Set<string>([
 
 interface Tally {
   stats: QuestionStats
-  // Ordering, highlight, statements and categorize: sum of the multipliers,
-  // for the mean.
+  // Ordering, highlight, statements and categorize, and a single choice with
+  // partial credits: sum of the multipliers, for the mean.
   scoreSum: number
   // Wordcloud: the words of every game, counted together at the end, and
   // whether a game kept none (too few authors).
@@ -216,12 +234,14 @@ const groupKey = (question: QuestionResult, label: string): string =>
 
 const newTally = (question: QuestionResult, label: string): Tally => {
   const solutionLabels = solutionLabelsOf(question)
+  const credits = creditedLabels(question)
   // Listed even when nobody picks them: seeing the expected answer next to
   // the chosen ones is the whole point. Ordering lists every item, highlight
-  // every passage.
+  // every passage; a single choice the answers earning part of the points
+  // after the right ones.
   const listed = LIST_ALL_TYPES.has(question.type)
     ? question.answers
-    : solutionLabels
+    : [...solutionLabels, ...credits.map((entry) => entry.label)]
 
   return {
     stats: {
@@ -237,7 +257,10 @@ const newTally = (question: QuestionResult, label: string): Tally => {
       // Games come most recent first, so the first one seen carries the
       // wording to show.
       solutionLabels,
-      ...(AVERAGE_SCORE_TYPES.has(question.type) && { averageScore: null }),
+      ...((AVERAGE_SCORE_TYPES.has(question.type) || credits.length > 0) && {
+        averageScore: null,
+      }),
+      ...(credits.length > 0 && { credits }),
       ...(question.type === QUESTION_TYPES.SHORTANSWER && {
         unrecognizedCount: 0,
       }),
@@ -341,7 +364,7 @@ const countRecord = (
     stats.correctCount += 1
   }
 
-  if (AVERAGE_SCORE_TYPES.has(question.type)) {
+  if (stats.averageScore !== undefined) {
     tally.scoreSum += recordScore(question, record)
   }
 

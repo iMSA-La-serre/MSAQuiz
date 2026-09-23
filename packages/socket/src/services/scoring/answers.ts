@@ -9,6 +9,7 @@ import {
   matchedItems,
   targetsOf,
 } from "@razzia/common/utils/association"
+import { pollMultiple } from "@razzia/common/utils/choice"
 import { checkEstimate } from "@razzia/common/utils/estimate"
 import { markersMultiple } from "@razzia/common/utils/markers"
 import {
@@ -32,7 +33,8 @@ import { wordCountOf } from "@razzia/common/utils/wordcloud"
 import type { ScoredAnswer } from "@razzia/socket/services/scoring"
 
 // Types whose players may pick several answers at once. Markers join them
-// when several of them are right, see severalPicks.
+// when several of them are right, a poll when its author allows it, see
+// severalPicks.
 const SEVERAL_PICKS = new Set<string>([
   QUESTION_TYPES.MULTI,
   QUESTION_TYPES.HIGHLIGHT,
@@ -40,7 +42,8 @@ const SEVERAL_PICKS = new Set<string>([
 
 const severalPicks = (question: Question): boolean =>
   SEVERAL_PICKS.has(question.type) ||
-  (question.type === QUESTION_TYPES.MARKERS && markersMultiple(question))
+  (question.type === QUESTION_TYPES.MARKERS && markersMultiple(question)) ||
+  pollMultiple(question)
 
 // Answer ids as sent by a player, checked against the question before they
 // are stored. The scoring counts matching ids, so a repeated id would be
@@ -315,11 +318,11 @@ const rightItems = (flags: boolean[]): number[] =>
 
 /**
  * Tally shown with SHOW_RESPONSES, keyed by index. Choice types: votes per
- * answer. Ordering: players who put item i (original index) at its place.
- * Statements and categorize: players who matched item i with its right
- * target. Ranking: players who put item i first. Scale: players who picked
- * each level, and those who preferred not to answer at the index past the
- * last level. Shortanswer: inputs recognized per accepted answer. Wordcloud
+ * answer, each answer ticked on a poll with several. Ordering: players who
+ * put item i (original index) at its place. Statements and categorize:
+ * players who matched item i with its right target. Ranking: players who put
+ * item i first. Scale: players who picked each level, and those who
+ * preferred not to answer at the index past the last level. Shortanswer: inputs recognized per accepted answer. Wordcloud
  * and estimate: nothing, their words and values are counted apart
  * (countWords, estimateRanges).
  */

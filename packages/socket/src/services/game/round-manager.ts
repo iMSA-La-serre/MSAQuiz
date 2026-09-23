@@ -35,6 +35,11 @@ import {
   isAssociationType,
   targetsOf,
 } from "@razzia/common/utils/association"
+import {
+  partialCredits,
+  partialOutcomeOf,
+  publicOptions,
+} from "@razzia/common/utils/choice"
 import { estimateRanges, medianOf } from "@razzia/common/utils/estimate"
 import { foundPassages } from "@razzia/common/utils/highlight"
 import { markersOf } from "@razzia/common/utils/markers"
@@ -110,7 +115,8 @@ const TYPE_RESULT_MESSAGES: Partial<
 // Scored types that existed before partial credit: their outcome keeps
 // following the points earned. The others follow the multiplier alone, so a
 // recognized answer worth 0 points (maxPoints 0, speed bonus run out) is still
-// correct and never penalized.
+// correct and never penalized. So does a single choice with partial credits,
+// whose partly right answers must not read as right.
 const POINTS_OUTCOME_TYPES = new Set<QuestionType>([
   QUESTION_TYPES.SINGLE,
   QUESTION_TYPES.MULTI,
@@ -119,14 +125,15 @@ const POINTS_OUTCOME_TYPES = new Set<QuestionType>([
 
 // How the round ended for one player.
 const roundOutcome = (
-  type: QuestionType,
+  question: Question,
   {
     answered,
     score,
     points,
   }: { answered: boolean; score: number; points: number },
 ): ResultOutcome => {
-  const { scored, partialOutcome } = QUESTION_TYPE_META[type]
+  const { scored } = QUESTION_TYPE_META[question.type]
+  const partialOutcome = partialOutcomeOf(question)
 
   // Unscored types (poll, wordcloud, ranking, scale): confirm the vote, or
   // flag the missing one, never claim a vote that was not cast.
@@ -138,7 +145,7 @@ const roundOutcome = (
     return "noAnswer"
   }
 
-  if (POINTS_OUTCOME_TYPES.has(type)) {
+  if (POINTS_OUTCOME_TYPES.has(question.type) && !partialOutcome) {
     return points > 0 ? "correct" : "wrong"
   }
 
@@ -308,8 +315,8 @@ export class RoundManager {
     const imageMarkers = publicMarkers(question)
 
     // The answers are shown during the reading time, but never the solutions
-    // (nor the accepted answers, nor the correct order): those only go to the
-    // manager with SHOW_RESPONSES.
+    // (nor the accepted answers, nor the correct order, nor the credits of a
+    // single choice): those only go to the manager with SHOW_RESPONSES.
     this.opts.broadcast(STATUS.SHOW_QUESTION, {
       question: question.question,
       media: imageMedia,
@@ -319,7 +326,7 @@ export class RoundManager {
       questionType: question.type,
       time: question.time,
       totalPlayer: this.opts.players.count(),
-      options: question.options,
+      options: publicOptions(question.options),
       ...highlightText,
       ...associationTargets,
       ...imageMarkers,
@@ -341,7 +348,7 @@ export class RoundManager {
       time: question.time,
       totalPlayer: this.opts.players.count(),
       questionType: question.type,
-      options: question.options,
+      options: publicOptions(question.options),
       ...highlightText,
       ...associationTargets,
       ...imageMarkers,
@@ -369,7 +376,7 @@ export class RoundManager {
       const answer = this.playersAnswers.find((a) => a.playerId === player.id)
       const score = answer ? scoring(question, answer) : 0
       const points = Math.round((answer?.points ?? 0) * score)
-      const outcome = roundOutcome(question.type, {
+      const outcome = roundOutcome(question, {
         answered: Boolean(answer),
         score,
         points,
@@ -440,6 +447,18 @@ export class RoundManager {
         : [],
     )
 
+    // Single choice with partial credits, partial outcome only: the share of
+    // the points the answer earned, shown on the player's result card.
+    const credits = new Map(
+      partialCredits(question)
+        ? rounds.flatMap(({ player, score, outcome }) =>
+            outcome === "partial"
+              ? [[player.id, Math.round(score * 100)] as const]
+              : [],
+          )
+        : [],
+    )
+
     const sortedPlayers = rounds
       .map(({ player, answer, points, outcome }) => {
         const credited = outcome === "correct" || outcome === "partial"
@@ -481,6 +500,7 @@ export class RoundManager {
         const placed = placedCounts.get(player.id)
         const found = foundCounts.get(player.id)
         const matched = matchedCounts.get(player.id)
+        const credit = credits.get(player.id)
 
         this.opts.send(player.id, STATUS.SHOW_RESULT, {
           outcome,
@@ -497,6 +517,7 @@ export class RoundManager {
           }),
           ...(found && { found }),
           ...(matched && { matched }),
+          ...(credit !== undefined && { credit }),
         })
       })
     }

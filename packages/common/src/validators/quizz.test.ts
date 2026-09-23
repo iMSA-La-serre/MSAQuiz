@@ -1376,3 +1376,138 @@ describe("markers", () => {
     expect(isValid({ ...MARKERS, time: -1 })).toBe(true)
   })
 })
+
+describe("poll with several answers", () => {
+  const POLL = { ...SINGLE_QUESTION, type: QUESTION_TYPES.POLL }
+
+  it("keeps the setting of the author", () => {
+    expect(parse({ ...POLL, options: { multiple: true } }).options).toEqual({
+      scoringMode: SCORING_MODES.BALANCED,
+      multiple: true,
+    })
+  })
+
+  it("drops it when off, as before polls could take several", () => {
+    expect(parse({ ...POLL, options: { multiple: false } }).options).toEqual({
+      scoringMode: SCORING_MODES.BALANCED,
+    })
+    expect(parse(POLL)).not.toHaveProperty("options")
+  })
+
+  it("keeps the rules of a poll: no solutions, 2 to 4 answers", () => {
+    const poll = parse({
+      ...POLL,
+      solutions: [0, 1],
+      options: { multiple: true },
+    })
+
+    expect(poll.solutions).toEqual([])
+    expect(
+      issuesOf({ ...POLL, answers: ["A"], options: { multiple: true } }),
+    ).toEqual(["errors:quizz.tooFewAnswers"])
+  })
+
+  it("drops the setting from a single or a multiple choice", () => {
+    expect(
+      parse({ ...SINGLE_QUESTION, options: { multiple: true } }).options,
+    ).toEqual({ scoringMode: SCORING_MODES.BALANCED })
+    expect(
+      parse({
+        ...SINGLE_QUESTION,
+        type: QUESTION_TYPES.MULTI,
+        options: { multiple: true },
+      }).options,
+    ).toEqual({ scoringMode: SCORING_MODES.BALANCED })
+  })
+})
+
+describe("single choice with partial credits", () => {
+  const CREDITED = {
+    ...SINGLE_QUESTION,
+    solutions: [1],
+    options: { credits: [50, 100, 0, 25] },
+  }
+
+  it("keeps a credit per answer, a right answer earning 100", () => {
+    expect(parse(CREDITED).options).toEqual({
+      scoringMode: SCORING_MODES.BALANCED,
+      credits: [50, 100, 0, 25],
+    })
+  })
+
+  it("fills in the right answers and the missing credits, drops the extra ones", () => {
+    expect(
+      parse({ ...CREDITED, solutions: [1, 3], options: { credits: [75, 0] } })
+        .options?.credits,
+    ).toEqual([75, 100, 0, 100])
+    expect(
+      parse({ ...CREDITED, options: { credits: [25, 100, 0, 0, 50, 75] } })
+        .options?.credits,
+    ).toEqual([25, 100, 0, 0])
+  })
+
+  it("keeps credits that are all 0: the author turned partial credit on", () => {
+    expect(
+      parse({ ...CREDITED, options: { credits: [0, 100, 0, 0] } }).options
+        ?.credits,
+    ).toEqual([0, 100, 0, 0])
+  })
+
+  it("refuses a credit that is not a step, or a full one for a wrong answer", () => {
+    expect(
+      issuesOf({ ...CREDITED, options: { credits: [30, 100, 0, 0] } }),
+    ).toEqual(["errors:quizz.creditStep"])
+    expect(
+      issuesOf({ ...CREDITED, options: { credits: [100, 100, 0, -25] } }),
+    ).toEqual(["errors:quizz.creditStep", "errors:quizz.creditStep"])
+    expect(isValid({ ...CREDITED, options: { credits: ["50"] } })).toBe(false)
+  })
+
+  it("leaves a single choice without credits as it was", () => {
+    expect(parse(SINGLE_QUESTION)).not.toHaveProperty("options")
+    expect(
+      parse({ ...SINGLE_QUESTION, options: { scoringMode: "strict" } }).options,
+    ).toEqual({ scoringMode: SCORING_MODES.STRICT })
+  })
+
+  it("drops the credits of the other types, unchecked", () => {
+    for (const type of [
+      QUESTION_TYPES.MULTI,
+      QUESTION_TYPES.POLL,
+      QUESTION_TYPES.MARKERS,
+    ]) {
+      expect(
+        parse({
+          ...SINGLE_QUESTION,
+          type,
+          ...(type === QUESTION_TYPES.MARKERS && {
+            media: { type: "image", url: "https://example.org/plan.png" },
+            markers: [
+              { x: 10, y: 10 },
+              { x: 30, y: 30 },
+              { x: 50, y: 50 },
+              { x: 70, y: 70 },
+            ],
+          }),
+          options: { credits: [30, "x"] },
+        }).options,
+        type,
+      ).not.toHaveProperty("credits")
+    }
+    expect(
+      parse({
+        ...SINGLE_QUESTION,
+        type: QUESTION_TYPES.TRUEFALSE,
+        answers: ["Vrai", "Faux"],
+        options: { credits: [100, 50] },
+      }).options,
+    ).not.toHaveProperty("credits")
+  })
+
+  it("keeps the credits of a legacy question read as a single choice", () => {
+    expect(
+      parse({ ...LEGACY_QUESTION, options: { credits: [100, 50, 0, 0] } })
+        .options?.credits,
+    ).toEqual([100, 50, 0, 0])
+  })
+})

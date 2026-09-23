@@ -72,6 +72,65 @@ describe("parseAnswerIds", () => {
   })
 })
 
+describe("parseAnswer, poll with several answers", () => {
+  const poll = {
+    ...question(QUESTION_TYPES.POLL),
+    solutions: [],
+    options: { scoringMode: "balanced", multiple: true },
+  } satisfies Question
+  const identity = [0, 1, 2, 3]
+
+  it("keeps every answer ticked, once each", () => {
+    expect(parseAnswer(poll, { answerKeys: [2, 0, 2] }, identity)).toEqual({
+      answerIds: [2, 0],
+    })
+    expect(parseAnswer(poll, { answerKeys: [3] }, identity)).toEqual({
+      answerIds: [3],
+    })
+  })
+
+  it("refuses an empty pick, an unknown answer or a text", () => {
+    expect(parseAnswer(poll, { answerKeys: [] }, identity)).toBeNull()
+    expect(parseAnswer(poll, { answerKeys: [0, 4] }, identity)).toBeNull()
+    expect(parseAnswer(poll, { text: "A" }, identity)).toBeNull()
+  })
+
+  it("counts each answer ticked", () => {
+    expect(
+      countResponses(poll, [
+        { answerIds: [0, 2] },
+        { answerIds: [0] },
+        { answerIds: [1, 2, 3] },
+      ]),
+    ).toEqual({ 0: 2, 1: 1, 2: 2, 3: 1 })
+  })
+
+  it("keeps one answer on a poll without the setting", () => {
+    expect(
+      parseAnswer(
+        { ...poll, options: { scoringMode: "balanced" } },
+        { answerKeys: [0, 1] },
+        identity,
+      ),
+    ).toBeNull()
+  })
+})
+
+describe("parseAnswer, single choice with partial credits", () => {
+  it("still takes one answer only", () => {
+    const single = {
+      ...question(QUESTION_TYPES.SINGLE),
+      solutions: [1],
+      options: { scoringMode: "balanced", credits: [50, 100, 25, 0] },
+    } satisfies Question
+
+    expect(parseAnswer(single, { answerKeys: [0] }, [0, 1, 2, 3])).toEqual({
+      answerIds: [0],
+    })
+    expect(parseAnswer(single, { answerKeys: [0, 1] }, [0, 1, 2, 3])).toBeNull()
+  })
+})
+
 describe("parseAnswer, choice types", () => {
   const identity = [0, 1, 2, 3]
 

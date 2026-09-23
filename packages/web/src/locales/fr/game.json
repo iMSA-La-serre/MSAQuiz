@@ -14,6 +14,7 @@
     "orderingHint": "Touchez les éléments dans l'ordre",
     "passageLabel": "Passage {{letter}} : {{passage}}",
     "pollHint": "Sondage : pas de bonne réponse",
+    "pollHintMultiple": "Sondage : plusieurs choix",
     "rankingEmpty": "Numérotez toutes les propositions",
     "rankingHint": "Classez par ordre de priorité",
     "scaleEmpty": "Choisissez un niveau",
@@ -160,9 +161,13 @@
     "shortanswerSummary_one": "{{count}} bonne réponse sur {{total}}",
     "shortanswerSummary_other": "{{count}} bonnes réponses sur {{total}}",
     "unrecognized": "Non reconnues",
-    "unrecognizedRowLabel": "Non reconnues : {{count}} sur {{total}} ({{percent}})"
+    "unrecognizedRowLabel": "Non reconnues : {{count}} sur {{total}} ({{percent}})",
+    "pollMultipleHint": "Sondage : plusieurs choix · en % des répondants",
+    "creditHint": "Crédit partiel selon la réponse",
+    "creditRowLabel": "{{letter}} : {{count}} sur {{total}} ({{percent}}), crédit de {{credit}} des points"
   },
   "result": {
+    "credit": "Cette réponse rapporte {{percent}} des points",
     "extra_one": "{{count}} en trop",
     "extra_other": "{{count}} en trop",
     "found_one": "{{count}} passage trouvé sur {{total}}",

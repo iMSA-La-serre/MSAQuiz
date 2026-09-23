@@ -22,7 +22,7 @@ export interface MultiQuestionOptions {
   scoringMode: ScoringMode
 }
 
-// Public: sent to players along with the question.
+// Public: sent to players along with the question, `credits` aside.
 export interface QuestionOptions {
   // Multi and highlight, which has no lenient mode (stored as balanced). The
   // validator fills it in (balanced) whenever options are given, whatever
@@ -63,7 +63,16 @@ export interface QuestionOptions {
   // and validate, as on a multiple choice. Filled in on save from the markers
   // ticked (markersMultiple); off when absent. Public: the phone needs it,
   // and it says nothing about which markers are right.
+  // Poll: set by the author, players tick as many answers as they want and
+  // validate, as on a multiple choice (pollMultiple). Off when absent.
   multiple?: boolean
+  // Single: the share of the points each answer earns, in percent, in the
+  // order of `answers`: 100 for a right answer, one of CREDIT_STEPS for the
+  // others. Absent, or with no other answer above 0, the question plays as a
+  // single choice always did (partialCredits). The one secret setting: it
+  // goes to the manager with SHOW_RESPONSES, never to a player
+  // (publicOptions).
+  credits?: number[]
 }
 
 /**
@@ -290,11 +299,17 @@ export interface QuestionStats {
   // `answers`, in the same order. Ordering and estimate: empty, see
   // `estimate` for the latter.
   solutionLabels: string[]
-  // Ordering, highlight, statements and categorize: mean multiplier over the
-  // answers given, null if none. `correctCount` counts the exact orders, the
-  // answers with every passage to spot and no other, the answers with every
-  // item matched.
+  // Ordering, highlight, statements and categorize, and a single choice with
+  // partial credit: mean multiplier over the answers given, null if none.
+  // `correctCount` counts the exact orders, the answers with every passage to
+  // spot and no other, the answers with every item matched, the right
+  // answers of a single choice (not the partly right ones).
   averageScore?: number | null
+  // Single choice with partial credit: the answers that are not right but
+  // earn part of the points, with their credit in percent, from the most
+  // recent game. They are listed in `answers` too, even when nobody picked
+  // them.
+  credits?: Array<{ label: string; credit: number }>
   // Shortanswer: inputs that matched no accepted answer.
   unrecognizedCount?: number
   // Wordcloud: no word to list because no game kept its words, too few

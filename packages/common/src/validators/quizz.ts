@@ -19,6 +19,7 @@ import {
 } from "@razzia/common/constants"
 import type { Question, QuestionOptions } from "@razzia/common/types/game"
 import { isAssociationType, targetsOf } from "@razzia/common/utils/association"
+import { isCreditStep, storedCredits } from "@razzia/common/utils/choice"
 import { decimalsOf, fitsDecimals } from "@razzia/common/utils/estimate"
 import { markersOf, stackedMarker } from "@razzia/common/utils/markers"
 import {
@@ -73,8 +74,11 @@ const optionsValidator = z.object({
   scaleLow: z.string().optional(),
   scaleHigh: z.string().optional(),
   scaleSkip: z.boolean().optional(),
-  // Markers, filled in on save from the markers ticked.
+  // Markers, filled in on save from the markers ticked; poll, set by the
+  // author.
   multiple: z.boolean().optional(),
+  // Single. Checked against the answers below.
+  credits: z.array(z.number()).optional(),
 })
 
 // Types added after quizzes were first stored: the stricter rules below only
@@ -537,6 +541,36 @@ const checkMarkers = (
   }
 }
 
+// Single: the credit of each answer that is not right, one of CREDIT_STEPS.
+// A right answer earns 100 whatever is stored, and an entry past the last
+// answer is dropped on save.
+const checkCredits = (
+  {
+    answers,
+    solutions,
+    options,
+  }: Pick<Question, "answers" | "solutions" | "options">,
+  issue: IssueFn,
+) => {
+  options?.credits?.forEach((credit, index) => {
+    if (
+      index < answers.length &&
+      !solutions.includes(index) &&
+      !isCreditStep(credit)
+    ) {
+      issue("errors:quizz.creditStep", ["options", "credits", index])
+    }
+  })
+}
+
+// The settings of a poll: several answers only when the author allows them,
+// `multiple` being dropped otherwise, as before polls could take several.
+const pollOptions = ({
+  multiple,
+  ...rest
+}: QuestionOptions): QuestionOptions =>
+  multiple === true ? { ...rest, multiple } : rest
+
 // The settings of a markers question: whether several markers are right, so
 // the phone knows how many it may accept, next to the scoring mode it then
 // applies.
@@ -600,7 +634,19 @@ const OWNED_FIELDS: Array<{
   {
     types: new Set([QUESTION_TYPES.MARKERS]),
     fields: new Set(["markers"]),
+    options: new Set<string>(),
+  },
+  // Several answers at once: a markers question with several right markers,
+  // a poll whose author allows them.
+  {
+    types: new Set([QUESTION_TYPES.MARKERS, QUESTION_TYPES.POLL]),
+    fields: new Set<string>(),
     options: new Set(["multiple"] satisfies Array<keyof QuestionOptions>),
+  },
+  {
+    types: new Set([QUESTION_TYPES.SINGLE]),
+    fields: new Set<string>(),
+    options: new Set(["credits"] satisfies Array<keyof QuestionOptions>),
   },
 ]
 
@@ -781,6 +827,10 @@ const questionValidator = z.preprocess(
         checkScale(question, issue)
       }
 
+      if (question.type === QUESTION_TYPES.SINGLE) {
+        checkCredits(question, issue)
+      }
+
       if (question.type === QUESTION_TYPES.SHORTANSWER) {
         checkAccepted(question.accepted ?? [], issue)
       }
@@ -885,6 +935,21 @@ const questionValidator = z.preprocess(
         }
       }
 
+      // One credit per answer, a right one earning 100, as the screens read
+      // them.
+      if (
+        question.type === QUESTION_TYPES.SINGLE &&
+        question.options?.credits !== undefined
+      ) {
+        return {
+          ...question,
+          options: {
+            ...question.options,
+            credits: storedCredits(question) ?? [],
+          },
+        }
+      }
+
       if (meta.scored) {
         return question
       }
@@ -893,6 +958,8 @@ const questionValidator = z.preprocess(
       // have no answers.
       return {
         ...question,
+        ...(question.type === QUESTION_TYPES.POLL &&
+          question.options && { options: pollOptions(question.options) }),
         answers:
           meta.acceptsAnswers && meta.maxAnswers > 0 ? question.answers : [],
         solutions: [],

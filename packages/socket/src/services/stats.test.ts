@@ -1093,3 +1093,109 @@ describe("aggregateQuestions, markers", () => {
     expect(stats.map(({ type }) => type)).toContain(QUESTION_TYPES.MARKERS)
   })
 })
+
+describe("aggregateQuestions, single choice with partial credits", () => {
+  const credited = (over: Partial<QuestionResult> = {}): QuestionResult =>
+    question({
+      options: {
+        scoringMode: SCORING_MODES.BALANCED,
+        credits: [100, 50, 0, 0],
+      },
+      ...over,
+    })
+
+  it("counts full credit only as correct, and gives the mean score", () => {
+    const [stats] = aggregateQuestions([
+      game([
+        credited({
+          playerAnswers: [
+            { playerName: "Alex", answerIds: [0], score: 1 },
+            { playerName: "Bea", answerIds: [1], score: 0.5 },
+            { playerName: "Cyd", answerIds: [2], score: 0 },
+            { playerName: "Dan", answerIds: null, score: 0 },
+          ],
+        }),
+      ]),
+    ])
+
+    expect(stats).toMatchObject({
+      answerCount: 3,
+      missingCount: 1,
+      correctCount: 1,
+      successRate: 1 / 3,
+      averageScore: 0.5,
+      credits: [{ label: "Lyon", credit: 50 }],
+      solutionLabels: ["Paris"],
+    })
+  })
+
+  it("lists the partly right answers even when nobody picked them", () => {
+    const [stats] = aggregateQuestions([
+      game([
+        credited({
+          playerAnswers: [{ playerName: "Alex", answerIds: [0], score: 1 }],
+        }),
+      ]),
+    ])
+
+    expect(stats.answers).toEqual([
+      { label: "Paris", count: 1 },
+      { label: "Lyon", count: 0 },
+    ])
+  })
+
+  it("scores an answer again when no multiplier was saved", () => {
+    const [stats] = aggregateQuestions([
+      game([credited({ playerAnswers: answers(["Alex", [1]], ["Bea", [3]]) })]),
+    ])
+
+    expect(stats).toMatchObject({ correctCount: 0, averageScore: 0.25 })
+  })
+
+  it("keeps a single choice without partial credit as it was", () => {
+    const [stats] = aggregateQuestions([
+      game([
+        credited({
+          options: {
+            scoringMode: SCORING_MODES.BALANCED,
+            credits: [100, 0, 0, 0],
+          },
+          playerAnswers: answers(["Alex", [0]], ["Bea", [1]]),
+        }),
+      ]),
+    ])
+
+    expect(stats).not.toHaveProperty("averageScore")
+    expect(stats).not.toHaveProperty("credits")
+    expect(stats.answers).toEqual([
+      { label: "Paris", count: 1 },
+      { label: "Lyon", count: 1 },
+    ])
+  })
+})
+
+describe("aggregateQuestions, poll with several answers", () => {
+  it("counts every answer ticked, out of the players who answered", () => {
+    const [stats] = aggregateQuestions([
+      game([
+        question({
+          type: QUESTION_TYPES.POLL,
+          solutions: [],
+          options: { scoringMode: SCORING_MODES.BALANCED, multiple: true },
+          playerAnswers: answers(["Alex", [0, 1]], ["Bea", [1]], ["Cyd", null]),
+        }),
+      ]),
+    ])
+
+    expect(stats).toMatchObject({
+      scored: false,
+      answerCount: 2,
+      missingCount: 1,
+      successRate: null,
+      answers: [
+        { label: "Paris", count: 1 },
+        { label: "Lyon", count: 2 },
+      ],
+    })
+  })
+})

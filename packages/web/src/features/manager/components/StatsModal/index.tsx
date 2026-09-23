@@ -1,5 +1,6 @@
 import type { QuestionStats, QuizzStats } from "@razzia/common/types/game"
 import { QUESTION_REGISTRY } from "@razzia/web/features/questions"
+import { formatCredit } from "@razzia/web/features/questions/single/utils/credits"
 import { formatRate, rateColor } from "@razzia/web/features/manager/utils/stats"
 import clsx from "clsx"
 import { Check, X } from "lucide-react"
@@ -12,7 +13,7 @@ interface Props {
 }
 
 const QuestionCard = ({ question }: { question: QuestionStats }) => {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { labelKey, StatsAnswers } = QUESTION_REGISTRY[question.type]
   const share = (count: number) =>
     question.answerCount === 0 ? 0 : (count / question.answerCount) * 100
@@ -51,10 +52,24 @@ const QuestionCard = ({ question }: { question: QuestionStats }) => {
       {/* Types not answered by picking choices bring their own list. */}
       {StatsAnswers && <StatsAnswers question={question} />}
 
+      {/* A single choice with partial credits: the right answers, and how
+      close the others came. */}
+      {!StatsAnswers && question.averageScore !== undefined && (
+        <p className="text-muted-foreground mt-2 text-xs">
+          {t("manager:stats.creditSummary", {
+            count: question.correctCount,
+            rate: formatRate(question.averageScore),
+          })}
+        </p>
+      )}
+
       {!StatsAnswers && question.answers.length > 0 && (
         <ul className="mt-2 space-y-1">
           {question.answers.map((answer) => {
             const isSolution = question.solutionLabels.includes(answer.label)
+            const credit = question.credits?.find(
+              (entry) => entry.label === answer.label,
+            )?.credit
 
             return (
               <li
@@ -71,6 +86,11 @@ const QuestionCard = ({ question }: { question: QuestionStats }) => {
                 >
                   {isSolution && <Check className="size-3 shrink-0" />}
                   {answer.label}
+                  {!isSolution && credit !== undefined && (
+                    <span className="text-foreground shrink-0 font-semibold tabular-nums">
+                      · {formatCredit(i18n.language, credit)}
+                    </span>
+                  )}
                 </span>
                 <span className="bg-muted h-1.5 w-24 shrink-0 overflow-hidden rounded-full">
                   <span

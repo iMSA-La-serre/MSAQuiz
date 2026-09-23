@@ -1892,3 +1892,230 @@ describe("RoundManager, markers", () => {
     })
   })
 })
+
+describe("RoundManager, poll with several answers", () => {
+  const POLL: Question = {
+    ...question({ type: QUESTION_TYPES.POLL, solutions: [] }),
+    options: { scoringMode: "balanced", multiple: true },
+  }
+
+  it("tells the phones, counts every answer ticked and scores nothing", async () => {
+    const game = setup(
+      [POLL],
+      [player("camille"), player("yanis"), player("ines")],
+    )
+
+    await game.reachFirstQuestion()
+
+    expect(game.lastBroadcast(STATUS.SHOW_QUESTION)?.options).toEqual(
+      POLL.options,
+    )
+
+    await game.openAnswers(5)
+
+    expect(game.lastBroadcast(STATUS.SELECT_ANSWER)?.options).toEqual(
+      POLL.options,
+    )
+
+    game.round.selectAnswer(socketOf("camille"), { answerKeys: [0, 2] })
+    game.round.selectAnswer(socketOf("yanis"), { answerKeys: [2] })
+    await game.closeAnswers()
+
+    expect(game.lastSent("camille", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "voted",
+      message: "game:pollAnswered",
+      points: 0,
+    })
+    expect(game.lastSent("ines", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "noVote",
+    })
+
+    const responses = game.lastSent(MANAGER_ID, STATUS.SHOW_RESPONSES)
+
+    // Each answer ticked counts, out of the players who answered.
+    expect(responses).toMatchObject({
+      responses: { 0: 1, 2: 2 },
+      totalAnswered: 2,
+      options: POLL.options,
+    })
+    expect(responses).not.toHaveProperty("correctCount")
+
+    game.round.showLeaderboard(game.manager)
+
+    expect(game.finished[0].questions[0].playerAnswers).toEqual([
+      { playerName: "camille", answerIds: [0, 2], score: 0 },
+      { playerName: "yanis", answerIds: [2], score: 0 },
+      { playerName: "ines", answerIds: null, score: 0 },
+    ])
+  })
+})
+
+describe("RoundManager, single choice with partial credits", () => {
+  const CREDITED = question({
+    solutions: [1],
+    options: { scoringMode: "balanced", credits: [50, 100, 25, 0] },
+    speedBonus: false,
+    penalty: 100,
+  })
+
+  it("never sends the credits to a player", async () => {
+    const game = setup([CREDITED], [player("camille"), player("yanis")])
+
+    await game.reachFirstQuestion()
+    await game.openAnswers(5)
+    game.round.selectAnswer(socketOf("camille"), { answerKeys: [0] })
+    await game.closeAnswers()
+
+    const toPlayers = [
+      ...game.broadcasts,
+      ...game.sent.filter(({ target }) => target !== MANAGER_ID),
+    ]
+
+    // Not even the scoring mode the validator filled in with the credits:
+    // a single choice without credits has no settings.
+    expect(game.lastBroadcast(STATUS.SHOW_QUESTION)?.options).toBeUndefined()
+    expect(game.lastBroadcast(STATUS.SELECT_ANSWER)?.options).toBeUndefined()
+    expect(JSON.stringify(toPlayers)).not.toContain("credits")
+    // The manager gets them with the distribution.
+    expect(
+      game.lastSent(MANAGER_ID, STATUS.SHOW_RESPONSES)?.options?.credits,
+    ).toEqual([50, 100, 25, 0])
+  })
+
+  it("asks the question as a single choice without credits does", async () => {
+    const { options: _credits, ...plain } = CREDITED
+    const statuses = [STATUS.SHOW_QUESTION, STATUS.SELECT_ANSWER] as const
+    const played = async (asked: Question) => {
+      const game = setup([asked], [player("camille")])
+
+      await game.reachFirstQuestion()
+      await game.openAnswers(5)
+
+      return statuses.map((name) => game.lastBroadcast(name))
+    }
+
+    const withCredits = await played(CREDITED)
+
+    expect(withCredits.every(Boolean)).toBe(true)
+    expect(withCredits).toEqual(await played(plain))
+  })
+
+  it("gives a wrong answer its credit, as a partial outcome never penalized", async () => {
+    const game = setup(
+      [CREDITED, question()],
+      [
+        player("camille"),
+        player("yanis"),
+        player("ines", 500),
+        player("samir"),
+      ],
+    )
+
+    await game.reachFirstQuestion()
+    await game.openAnswers(5)
+    game.round.selectAnswer(socketOf("camille"), { answerKeys: [1] })
+    game.round.selectAnswer(socketOf("yanis"), { answerKeys: [0] })
+    game.round.selectAnswer(socketOf("ines"), { answerKeys: [3] })
+    await game.closeAnswers()
+
+    expect(game.lastSent("camille", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "correct",
+      correct: true,
+      message: "game:correct",
+      points: 1000,
+    })
+    expect(game.lastSent("camille", STATUS.SHOW_RESULT)).not.toHaveProperty(
+      "credit",
+    )
+    expect(game.lastSent("yanis", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "partial",
+      correct: true,
+      message: "game:partial",
+      points: 500,
+      credit: 50,
+    })
+    // No credit: wrong, and penalized.
+    expect(game.lastSent("ines", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "wrong",
+      points: -100,
+      myPoints: 400,
+    })
+    expect(game.lastSent(MANAGER_ID, STATUS.SHOW_RESPONSES)).toMatchObject({
+      responses: { 0: 1, 1: 1, 3: 1 },
+      correctCount: 1,
+      partialCount: 1,
+      totalAnswered: 3,
+    })
+
+    // Only full credit keeps a run of correct answers going.
+    expect(
+      game
+        .roster()
+        .map(({ username, correctInARow }) => [username, correctInARow]),
+    ).toEqual(
+      expect.arrayContaining([
+        ["camille", 1],
+        ["yanis", 0],
+      ]),
+    )
+
+    await game.reachNextQuestion()
+    await game.openAnswers(5)
+    await game.closeAnswers()
+    game.round.showLeaderboard(game.manager)
+
+    const [saved] = game.finished[0].questions
+
+    expect(saved.options?.credits).toEqual([50, 100, 25, 0])
+    expect(saved.playerAnswers).toEqual(
+      expect.arrayContaining([
+        { playerName: "yanis", answerIds: [0], score: 0.5 },
+        { playerName: "ines", answerIds: [3], score: 0 },
+      ]),
+    )
+  })
+
+  it("plays as a single choice when no wrong answer earns anything", async () => {
+    const game = setup(
+      [
+        question({
+          options: { scoringMode: "balanced", credits: [0, 100, 0, 0] },
+        }),
+      ],
+      [player("camille"), player("yanis")],
+    )
+
+    await game.reachFirstQuestion()
+    await game.openAnswers(5)
+    game.round.selectAnswer(socketOf("camille"), { answerKeys: [1] })
+    game.round.selectAnswer(socketOf("yanis"), { answerKeys: [0] })
+    await game.closeAnswers()
+
+    expect(game.lastSent("camille", STATUS.SHOW_RESULT)?.outcome).toBe(
+      "correct",
+    )
+    expect(game.lastSent("yanis", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "wrong",
+      points: 0,
+    })
+    expect(game.lastSent(MANAGER_ID, STATUS.SHOW_RESPONSES)).toMatchObject({
+      correctCount: 1,
+      partialCount: 0,
+    })
+  })
+
+  it("keeps the outcome of a single choice without credits: points decide", async () => {
+    // A right answer worth no points reads wrong, as it always did.
+    const game = setup([question({ maxPoints: 0 })], [player("camille")])
+
+    await game.reachFirstQuestion()
+    await game.openAnswers(5)
+    game.round.selectAnswer(socketOf("camille"), { answerKeys: [1] })
+    await game.closeAnswers()
+
+    expect(game.lastSent("camille", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "wrong",
+      points: 0,
+    })
+  })
+})

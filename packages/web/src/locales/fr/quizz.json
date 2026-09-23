@@ -58,7 +58,12 @@
       "scaleRange": "Niveaux",
       "scaleRangeHint": "Valeurs proposées sur le téléphone",
       "scaleSkip": "Je préfère ne pas répondre",
-      "scaleSkipHint": "Ajoute une option pour répondre sans choisir de niveau"
+      "scaleSkipHint": "Ajoute une option pour répondre sans choisir de niveau",
+      "pollMultiple": "Plusieurs choix possibles",
+      "pollMultipleHint": "Les participants cochent une ou plusieurs réponses, puis valident",
+      "pollMultipleShort": "Plusieurs choix",
+      "credits": "Crédit partiel",
+      "creditsHint": "Les autres réponses peuvent rapporter 25, 50 ou 75 % des points, à choisir dans la colonne « Bonne réponse »"
     },
     "deleteQuestion": "Supprimer la question",
     "deleteQuestionConfirm": "Êtes-vous sûr de vouloir supprimer cette question ?",
@@ -99,6 +104,7 @@
     "columnCorrect": "Bonne réponse",
     "correctToggle": "Marquer la réponse {{letter}} comme bonne réponse",
     "count": "{{count}} sur {{max}}",
+    "creditLabel": "Crédit de la réponse {{letter}}",
     "hint": {
       "multi": "Cochez toutes les bonnes réponses",
       "poll": "Sondage : aucune bonne réponse à cocher",
@@ -113,7 +119,9 @@
       "categorize": "Choisissez la bonne catégorie de chacun",
       "ranking": "Sans bonne réponse : chacun les classe",
       "scale": "Réponses non associées au pseudo",
-      "markers": "Cochez le ou les repères corrects"
+      "markers": "Cochez le ou les repères corrects",
+      "pollMultiple": "Sondage : plusieurs choix possibles",
+      "singleCredits": "Cochez la ou les réponses acceptées, créditez les autres"
     },
     "placeholder": "Réponse {{letter}}",
     "remove": "Supprimer la réponse {{letter}}",
