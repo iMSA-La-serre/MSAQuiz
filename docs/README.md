@@ -7,6 +7,7 @@ This folder covers the basic setup (config, quizzes, branding) as well as more a
 - [Branding](branding.md): optional custom theming via `config/branding/`.
 - [Sounds](sounds.md): register of every sound effect, its origin and licence.
 - [Reverse Proxy](reverse-proxy.md): running MSAQuiz behind Traefik, Nginx, Caddy, or another reverse proxy.
+- [Load test](load-test.md): how many players a running server takes before it lags.
 - [WebSocket Protocol](websocket-protocol.md): the player-facing event protocol, for building custom clients (e.g. a physical buzzer).
 
 Back to the [main README](../README.md).

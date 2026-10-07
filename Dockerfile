@@ -76,6 +76,8 @@ COPY docker/supervisord.conf /etc/supervisord.conf
 COPY --from=builder /app/LICENSE /app/LICENSE
 COPY --from=builder /app/packages/web/dist /app/web
 COPY --from=builder /app/packages/socket/dist/index.cjs /app/socket/index.cjs
+# Test de charge (docs/load-test.md) : node /app/socket/load-test.cjs
+COPY --from=builder /app/packages/socket/dist/load-test.cjs /app/socket/load-test.cjs
 COPY --from=builder /app/packages/socket/src/db/migrations /app/socket/migrations
 COPY --from=builder /app/socket-deps /app/socket/node_modules
 

@@ -10,7 +10,15 @@
 // The host never shows the final leaderboard: the game is left before its
 // end, so no result is saved and the statistics stay clean.
 //
+// The probe's round trip with no player in the game is the network's share of
+// it: a step is judged on what it adds, so a test run over a VPN is judged on
+// the server alone.
+//
 //   pnpm load-test --url http://localhost:3001 --players 50,100,200
+//
+// The Docker image ships it bundled, next to the server:
+//
+//   node /app/socket/load-test.cjs --url http://localhost:3000
 //
 // See `--help` for every option.
 
@@ -29,7 +37,8 @@ Joue une vraie partie par palier de joueurs et mesure la latence du serveur.
 
 Options :
   --url <url>          Serveur à tester (défaut http://localhost:3001).
-                       Conteneur ou serveur de prod : http://<hôte>:3000
+                       Dans le conteneur : http://localhost:3000
+                       À distance : https://<domaine de l'application>
   --players <n,n,...>  Paliers de joueurs (défaut 25,50,100,200,400)
   --quiz <id>          Identifiant du quiz joué (défaut : le premier)
   --questions <n>      Questions jouées par palier (défaut 3)
@@ -39,12 +48,16 @@ Options :
   --no-stop            Continuer les paliers suivants après un échec
   --out <fichier>      Écrire le détail des mesures en JSON
 
-Mot de passe animateur : variable MANAGER_PASSWORD, sinon lu dans
-config/game.json (test local uniquement).`
+Mot de passe animateur : variable MANAGER_PASSWORD, sinon lu dans game.json
+(dossier CONFIG_PATH, config/ du dépôt, ou /app/config dans le conteneur).
+
+La latence de la sonde avant l'arrivée des joueurs est celle du réseau : les
+seuils portent sur ce que chaque palier y ajoute.`
 
 // Thresholds of a step. Server RTT is the probe's game:clock round trip; the
 // spread is the time between the first and the last player getting the same
 // status; the answer delay is from sending an answer to its acknowledgement.
+// RTT and answer delay count above the network's own round trip.
 const LIMITS = {
   ok: { rtt: 100, answer: 250, spread: 300 },
   degraded: { rtt: 300, answer: 1000, spread: 1000 },
@@ -65,6 +78,10 @@ const { values: args } = parseArgs({
   },
 })
 
+// The HTTP polling transport calls url.parse(): its deprecation warning, in
+// the middle of the report, would only puzzle the reader.
+process.noDeprecation = true
+
 if (args.help) {
   console.log(HELP)
   process.exit(0)
@@ -76,24 +93,39 @@ const MAX_QUESTIONS = Number.parseInt(args.questions, 10)
 const JOIN_RATE = Number.parseInt(args["join-rate"], 10)
 const THINK_MS = Number.parseInt(args.think, 10)
 const PROBE_EVERY_MS = 100
+const BASELINE_MS = 2000
 
 const readPassword = (): string => {
   if (process.env.MANAGER_PASSWORD) {
     return process.env.MANAGER_PASSWORD
   }
 
-  const file = resolve(import.meta.dirname, "../../../config/game.json")
+  // Where the server finds it (services/config.ts): CONFIG_PATH, the repo's
+  // config folder from packages/socket, or the image's volume, which
+  // `docker compose exec` runs without CONFIG_PATH.
+  const dirs = [
+    process.env.CONFIG_PATH,
+    resolve(process.cwd(), "../../config"),
+    "/app/config",
+  ]
 
-  try {
-    const config = JSON.parse(fs.readFileSync(file, "utf-8")) as {
-      managerPassword?: string
+  for (const dir of dirs) {
+    if (!dir) {
+      continue
     }
 
-    if (config.managerPassword) {
-      return config.managerPassword
+    try {
+      const file = resolve(dir, "game.json")
+      const config = JSON.parse(fs.readFileSync(file, "utf-8")) as {
+        managerPassword?: string
+      }
+
+      if (config.managerPassword) {
+        return config.managerPassword
+      }
+    } catch {
+      // Next folder.
     }
-  } catch {
-    // Falls through to the error below.
   }
 
   console.error(
@@ -217,6 +249,8 @@ interface StepResult {
   joined: number
   joinSeconds: number
   questionsPlayed: number
+  // The probe's round trip before any player came.
+  network: { p50: number; p95: number }
   rtt: { p50: number; p95: number; max: number }
   answer: { sent: number; acked: number; p50: number; p95: number; max: number }
   spread: { worst: number; worstStatus: string }
@@ -307,8 +341,11 @@ const runStep = async (playerCount: number): Promise<StepResult> => {
 
   const host = await startHost()
 
-  // The probe joins no game: it only asks the server for the time.
+  // The probe joins no game: it only asks the server for the time. Before
+  // any player comes, its round trip is the network's alone.
   const probe = connect(randomUUID())
+  const idleRtts: number[] = []
+  let idle = true
   const probeTimer = setInterval(() => {
     if (!probe.connected) {
       return
@@ -316,11 +353,21 @@ const runStep = async (playerCount: number): Promise<StepResult> => {
 
     const sentAt = now()
     probe.emit(EVENTS.GAME.CLOCK, Date.now(), () => {
-      if (measuring) {
+      if (idle) {
+        idleRtts.push(now() - sentAt)
+      } else if (measuring) {
         rtts.push(now() - sentAt)
       }
     })
   }, PROBE_EVERY_MS)
+
+  await wait(BASELINE_MS)
+  idle = false
+
+  const baseline = {
+    p50: idleRtts.length ? percentile(idleRtts, 50) : 0,
+    p95: idleRtts.length ? percentile(idleRtts, 95) : 0,
+  }
 
   // ── Players ──
   const bots: Socket[] = []
@@ -560,9 +607,10 @@ const runStep = async (playerCount: number): Promise<StepResult> => {
     missedStatuses > 0 ||
     questionsPlayed === 0
 
+  // What the step adds to the network's own round trip.
   const within = (limit: { rtt: number; answer: number; spread: number }) =>
-    rtt.p95 <= limit.rtt &&
-    (Number.isNaN(answer.p95) || answer.p95 <= limit.answer) &&
+    rtt.p95 - baseline.p95 <= limit.rtt &&
+    (Number.isNaN(answer.p95) || answer.p95 - baseline.p95 <= limit.answer) &&
     worstSpread <= limit.spread
 
   let verdict: StepResult["verdict"] = "KO"
@@ -578,6 +626,7 @@ const runStep = async (playerCount: number): Promise<StepResult> => {
     joined,
     joinSeconds,
     questionsPlayed,
+    network: baseline,
     rtt,
     answer,
     spread: { worst: worstSpread, worstStatus },
@@ -596,6 +645,7 @@ const printStep = (r: StepResult) => {
     [
       `  joueurs connectés   ${r.joined}/${r.players} en ${r.joinSeconds.toFixed(1)} s`,
       `  questions jouées    ${r.questionsPlayed}`,
+      `  réseau seul         p50 ${ms(r.network.p50)} ms · p95 ${ms(r.network.p95)} ms (sonde avant l'arrivée des joueurs)`,
       `  latence serveur     p50 ${ms(r.rtt.p50)} ms · p95 ${ms(r.rtt.p95)} ms · max ${ms(r.rtt.max)} ms`,
       `  réponse → accusé    p50 ${ms(r.answer.p50)} ms · p95 ${ms(r.answer.p95)} ms · max ${ms(r.answer.max)} ms (${r.answer.acked}/${r.answer.sent})`,
       `  écart de diffusion  ${ms(r.spread.worst)} ms au pire (question:statut ${r.spread.worstStatus})`,
@@ -656,6 +706,7 @@ const main = async () => {
     console.table(
       results.map((r) => ({
         joueurs: r.players,
+        "réseau seul p95 (ms)": Math.round(r.network.p95),
         "latence p95 (ms)": Math.round(r.rtt.p95),
         "réponse p95 (ms)": Number.isNaN(r.answer.p95)
           ? "-"
