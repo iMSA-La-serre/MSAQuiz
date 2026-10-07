@@ -10,6 +10,7 @@
     "start": "pnpm -r --parallel run start",
     "test": "vitest run",
     "test:watch": "vitest",
+    "load-test": "pnpm --filter socket load-test",
     "clean": "pnpm -r exec rm -rf dist node_modules",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",

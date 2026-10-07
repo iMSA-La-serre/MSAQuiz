@@ -5,6 +5,7 @@
     "dev": "tsx watch src/index.ts",
     "build": "node esbuild.config.js",
     "start": "node dist/index.cjs",
+    "load-test": "tsx scripts/load-test.ts",
     "db:generate": "drizzle-kit generate",
     "db:studio": "drizzle-kit studio"
   },
@@ -26,6 +27,7 @@
     "@types/node": "^26.0.1",
     "drizzle-kit": "^0.31.10",
     "esbuild": "^0.28.1",
+    "socket.io-client": "^4.8.3",
     "tsx": "^4.22.4"
   }
 }
