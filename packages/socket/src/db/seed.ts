@@ -4,14 +4,18 @@ import { db } from "@razzia/socket/db/client"
 import { createQuizzId } from "@razzia/socket/db/quizz-id"
 import { quizzes, users } from "@razzia/socket/db/schema"
 
-/** Propriétaire par défaut des quiz, en attendant le SSO / les comptes. */
+/**
+ * Compte administrateur créé au premier démarrage, et propriétaire des quiz
+ * enregistrés avant les comptes. Son identifiant de connexion est « admin » ;
+ * son premier mot de passe vient de game.json (services/manager.ts).
+ */
 export const ADMIN_USER_ID = "admin"
 
 export const seedDatabase = () => {
   db.insert(users)
     .values({
       id: ADMIN_USER_ID,
-      email: "admin@msaquiz.local",
+      email: ADMIN_USER_ID,
       name: "Admin",
       role: "admin",
     })

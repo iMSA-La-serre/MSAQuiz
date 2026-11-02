@@ -80,6 +80,23 @@ describe("isValidClientEvent", () => {
     expect(isValidClientEvent(EVENTS.RESULTS.EXPORT, "r")).toBe(true)
   })
 
+  it("takes an identifier and a password to sign in, bounded", () => {
+    const signIn = (payload: unknown) =>
+      isValidClientEvent(EVENTS.MANAGER.AUTH, payload)
+
+    expect(signIn({ login: "admin", password: "secret" })).toBe(true)
+    // The shared password alone, as clients sent it before accounts.
+    expect(signIn("secret")).toBe(false)
+    expect(signIn({ login: "admin" })).toBe(false)
+    expect(signIn({ login: "admin", password: "x".repeat(1025) })).toBe(false)
+    expect(
+      isValidClientEvent(EVENTS.MANAGER.CHANGE_PASSWORD, { newPassword: "p" }),
+    ).toBe(true)
+    expect(
+      isValidClientEvent(EVENTS.USERS.UPDATE, { id: "u", disabled: "yes" }),
+    ).toBe(false)
+  })
+
   it("follows the declared types for an optional game id", () => {
     expect(isValidClientEvent(EVENTS.MANAGER.START_GAME, {})).toBe(true)
     expect(

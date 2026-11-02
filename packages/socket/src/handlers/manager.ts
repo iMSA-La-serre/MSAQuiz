@@ -1,9 +1,15 @@
 import { EVENTS } from "@razzia/common/constants"
 import type { SocketContext } from "@razzia/socket/handlers/types"
-import { getGameConfig } from "@razzia/socket/services/config"
 import manager, { emitConfig } from "@razzia/socket/services/manager"
 
 export const managerSocketHandlers = ({ socket }: SocketContext) => {
+  // Hashing a password is asynchronous: its failures are caught here, where
+  // guardSocket would miss them.
+  const reportFailure = (error: unknown) => {
+    console.error("Manager sign-in failed:", error)
+    socket.emit(EVENTS.MANAGER.ERROR_MESSAGE, "errors:manager.failed")
+  }
+
   socket.on(
     EVENTS.MANAGER.GET_CONFIG,
     manager.withAuth(socket, () => {
@@ -15,33 +21,11 @@ export const managerSocketHandlers = ({ socket }: SocketContext) => {
     manager.logout(socket)
   })
 
-  socket.on(EVENTS.MANAGER.AUTH, (password) => {
-    try {
-      const config = getGameConfig()
+  socket.on(EVENTS.MANAGER.AUTH, ({ login, password }) => {
+    manager.login(socket, login, password).catch(reportFailure)
+  })
 
-      if (config.managerPassword === "PASSWORD") {
-        socket.emit(
-          EVENTS.MANAGER.ERROR_MESSAGE,
-          "errors:manager.passwordNotConfigured",
-        )
-
-        return
-      }
-
-      if (password !== config.managerPassword) {
-        socket.emit(
-          EVENTS.MANAGER.ERROR_MESSAGE,
-          "errors:manager.invalidPassword",
-        )
-
-        return
-      }
-
-      manager.login(socket)
-      emitConfig(socket)
-    } catch (error) {
-      console.error("Failed to read game config:", error)
-      socket.emit(EVENTS.MANAGER.ERROR_MESSAGE, "errors:failedToReadConfig")
-    }
+  socket.on(EVENTS.MANAGER.CHANGE_PASSWORD, (data) => {
+    manager.changePassword(socket, data).catch(reportFailure)
   })
 }

@@ -1,4 +1,5 @@
 import {
+  AUTH_LIMITS,
   EVENTS,
   MEDIA_SYNC,
   SHORTANSWER_LIMITS,
@@ -18,6 +19,9 @@ type ClientEvent = Exclude<keyof ClientToServerEvents, "disconnect">
 const MAX_ANSWER_KEYS = 100
 
 const id = z.string()
+// A password typed to sign in: longer than any accepted one, so a password
+// set before the length rule still goes through, but bounded before hashing.
+const typedPassword = z.string().max(1024)
 const gameMessage = z.object({ gameId: z.string() })
 const optionalGameMessage = z.object({ gameId: z.string().optional() })
 
@@ -76,7 +80,14 @@ const selectedAnswer = z.union([
 // are still validated where they are used.
 const CLIENT_EVENT_PAYLOADS: Record<ClientEvent, z.ZodType> = {
   [EVENTS.GAME.CREATE]: id,
-  [EVENTS.MANAGER.AUTH]: z.string(),
+  [EVENTS.MANAGER.AUTH]: z.object({
+    login: z.string().max(AUTH_LIMITS.EMAIL_LENGTH),
+    password: typedPassword,
+  }),
+  [EVENTS.MANAGER.CHANGE_PASSWORD]: z.object({
+    currentPassword: typedPassword.optional(),
+    newPassword: typedPassword,
+  }),
   [EVENTS.MANAGER.RECONNECT]: gameMessage,
   [EVENTS.MANAGER.LEAVE]: gameMessage,
   [EVENTS.MANAGER.KICK_PLAYER]: gameMessage.extend({ playerId: z.string() }),
@@ -121,6 +132,20 @@ const CLIENT_EVENT_PAYLOADS: Record<ClientEvent, z.ZodType> = {
   [EVENTS.RESULTS.EXPORT]: id,
   [EVENTS.STATS.LIST]: z.unknown(),
   [EVENTS.STATS.GET]: id,
+  [EVENTS.USERS.LIST]: z.unknown(),
+  // The account's fields are checked by the handler, which tells the
+  // administrator which one is wrong.
+  [EVENTS.USERS.CREATE]: z.object({
+    name: z.string(),
+    email: z.string(),
+    role: z.string(),
+  }),
+  [EVENTS.USERS.UPDATE]: z.object({
+    id,
+    role: z.string().optional(),
+    disabled: z.boolean().optional(),
+  }),
+  [EVENTS.USERS.RESET_PASSWORD]: id,
 }
 
 export const isValidClientEvent = (event: unknown, payload: unknown) =>

@@ -5,12 +5,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 
 // One table of rows, as the quizzes table holds them: enough of drizzle's
 // chains for the repository.
-const rows = vi.hoisted(() => new Map<string, { id: string; data: unknown }>())
+const rows = vi.hoisted(
+  () => new Map<string, { id: string; data: unknown; ownerId?: string }>(),
+)
 
 vi.mock("@razzia/socket/db/client", () => {
-  const upsert = (row: { id: string; data: unknown }) => ({
+  const upsert = (row: { id: string; data: unknown; ownerId: string }) => ({
     onConflictDoUpdate: () => ({
-      run: () => rows.set(row.id, { id: row.id, data: row.data }),
+      run: () =>
+        rows.set(row.id, { id: row.id, data: row.data, ownerId: row.ownerId }),
     }),
   })
 
@@ -45,7 +48,10 @@ vi.mock("@razzia/socket/db/client", () => {
 })
 vi.mock("@razzia/socket/db/seed", () => ({ ADMIN_USER_ID: "admin" }))
 vi.mock("@razzia/socket/services/manager", () => ({
-  default: { withAuth: (_socket: unknown, handler: unknown) => handler },
+  default: {
+    withAuth: (_socket: unknown, handler: unknown) => handler,
+    getUser: () => ({ id: "camille" }),
+  },
   emitConfig: () => undefined,
 }))
 vi.mock("@razzia/socket/services/quizz-import", () => ({
@@ -279,6 +285,18 @@ describe("quizz handlers", () => {
       },
     ])
     expect(rows.size).toBe(0)
+  })
+
+  it("records the signed-in account as the owner", () => {
+    const { send } = connect()
+
+    send(EVENTS.QUIZZ.SAVE, { subject: "Quiz", questions: [QUESTION] })
+    send(EVENTS.QUIZZ.IMPORT, { subject: "Import", questions: [QUESTION] })
+
+    expect([...rows.values()].map(({ ownerId }) => ownerId)).toEqual([
+      "camille",
+      "camille",
+    ])
   })
 
   it("keeps the editor's save strict", () => {

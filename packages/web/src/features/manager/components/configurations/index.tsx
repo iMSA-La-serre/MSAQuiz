@@ -8,10 +8,16 @@ import ConfigResults from "@razzia/web/features/manager/components/configuration
 import ConfigSelectQuizz from "@razzia/web/features/manager/components/configurations/ConfigSelectQuizz"
 import ConfigStats from "@razzia/web/features/manager/components/configurations/ConfigStats"
 import ConfigTabButton from "@razzia/web/features/manager/components/configurations/ConfigTabButton"
+import PasswordModal from "@razzia/web/features/manager/components/PasswordModal"
+import UsersModal from "@razzia/web/features/manager/components/UsersModal"
 import { ConfigProvider } from "@razzia/web/features/manager/contexts/config-context"
-import { LogOut } from "lucide-react"
-import { useState } from "react"
+import { clearSessionToken } from "@razzia/web/features/manager/utils/account"
+import { KeyRound, LogOut, Users } from "lucide-react"
+import { useCallback, useState } from "react"
 import { useTranslation } from "react-i18next"
+
+const headerButton =
+  "text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded-sm p-1.5"
 
 const tabs = [
   {
@@ -38,6 +44,7 @@ interface Props {
 
 const Configurations = ({ data }: Props) => {
   const [selectedTab, setSelectedTab] = useState(0)
+  const [modal, setModal] = useState<"password" | "users" | null>(null)
   const { reset } = useManagerStore()
   const { socket } = useSocket()
   const { t } = useTranslation()
@@ -47,21 +54,45 @@ const Configurations = ({ data }: Props) => {
     setSelectedTab(index)
   }
 
+  const closeModal = useCallback(() => setModal(null), [])
+
   const handleLogout = () => {
     socket.emit(EVENTS.MANAGER.LOGOUT)
+    clearSessionToken()
     reset()
   }
 
   return (
     <ConfigProvider data={data}>
       <Card className="max-h-[80svh] w-full max-w-md">
-        <div className="mb-4 flex items-center justify-between">
-          <p className="text-lg font-semibold">
-            {t("manager:configurationsTitle")}
-          </p>
-          <div className="flex items-center gap-2">
+        <div className="mb-4 flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-lg font-semibold">
+              {t("manager:configurationsTitle")}
+            </p>
+            <p className="text-muted-foreground truncate text-xs">
+              {t("manager:account.signedInAs", { name: data.user.name })}
+            </p>
+          </div>
+          <div className="flex shrink-0 items-center gap-1">
+            {data.user.role === "admin" && (
+              <button
+                className={headerButton}
+                onClick={() => setModal("users")}
+                title={t("manager:users.title")}
+              >
+                <Users className="size-4" />
+              </button>
+            )}
             <button
-              className="text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded-sm p-1.5"
+              className={headerButton}
+              onClick={() => setModal("password")}
+              title={t("manager:account.changePassword")}
+            >
+              <KeyRound className="size-4" />
+            </button>
+            <button
+              className={headerButton}
               onClick={handleLogout}
               title={t("manager:logout")}
             >
@@ -85,6 +116,8 @@ const Configurations = ({ data }: Props) => {
           <TabComponent />
         </div>
       </Card>
+      {modal === "users" && <UsersModal onClose={closeModal} />}
+      {modal === "password" && <PasswordModal onClose={closeModal} />}
     </ConfigProvider>
   )
 }

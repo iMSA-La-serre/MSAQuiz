@@ -6,22 +6,28 @@ The host never shows the final leaderboard: each game is left before its end, so
 
 ## Running it
 
-**In the container**, the server's own capacity, with no network in between. The image ships the test as a single file next to the server, and it reads the manager password from the config volume:
+The bot host signs in with a manager account: its identifier in `MANAGER_LOGIN` (`admin` by default) and its password in `MANAGER_PASSWORD`. The password must not be a temporary one: sign in once in the interface to change it first. Typing it with `read -rs` keeps it out of the shell history:
 
 ```sh
-docker compose exec msaquiz node /app/socket/load-test.cjs --url http://localhost:3000 --players 25,50,100,150
+read -rs MANAGER_PASSWORD && export MANAGER_PASSWORD
 ```
 
-(`msaquiz` is the Compose service name; check yours with `docker compose ps`.)
+**In the container**, the server's own capacity, with no network in between. The image ships the test as a single file next to the server:
+
+```sh
+docker compose exec -e MANAGER_PASSWORD msaquiz node /app/socket/load-test.cjs --url http://localhost:3000 --players 25,50,100,150
+```
+
+(`msaquiz` is the Compose service name; check yours with `docker compose ps`. Add `-e MANAGER_LOGIN=…` for another account than `admin`.)
 
 **From another machine**, what a participant goes through: network, reverse proxy, HTTPS. Copy the file out of the container (`docker ps` gives its name), then run it with Node 18 or later, nothing else to install:
 
 ```sh
 docker cp <container>:/app/socket/load-test.cjs .
-MANAGER_PASSWORD='…' node load-test.cjs --url https://quiz.example.com --players 25,50,100,150
+node load-test.cjs --url https://quiz.example.com --players 25,50,100,150
 ```
 
-On Windows PowerShell, set the password with `$env:MANAGER_PASSWORD='…'` first.
+On Windows PowerShell, set the account with `$env:MANAGER_LOGIN='…'` and `$env:MANAGER_PASSWORD='…'` first.
 
 **From the repo**, against a local server (`pnpm dev:socket`, or the built one with `pnpm --filter socket start`):
 
@@ -30,8 +36,6 @@ pnpm load-test --players 25,50,100,200
 ```
 
 `--help` lists every option: the quiz played (`--quiz`, the first one by default), the number of questions per step, how many players connect per second, how long a player takes to answer, and a JSON report (`--out`).
-
-The manager password comes from `MANAGER_PASSWORD`, or else from `game.json` in `CONFIG_PATH`, the repo's `config/` folder, or `/app/config` in the container.
 
 ## Before running it on a live server
 

@@ -4,6 +4,13 @@ import { createContext, useContext, type ReactNode } from "react"
 const ConfigContext = createContext<ManagerConfig>({
   quizz: [],
   results: [],
+  user: {
+    id: "",
+    name: "",
+    email: "",
+    role: "creator",
+    mustChangePassword: false,
+  },
 })
 
 interface Props {

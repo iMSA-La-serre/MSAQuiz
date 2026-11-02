@@ -7,6 +7,7 @@ import { quizzSocketHandlers } from "@razzia/socket/handlers/quizz"
 import { resultsSocketHandlers } from "@razzia/socket/handlers/results"
 import { statsSocketHandlers } from "@razzia/socket/handlers/stats"
 import type { SocketHandler } from "@razzia/socket/handlers/types"
+import { usersSocketHandlers } from "@razzia/socket/handlers/users"
 import { initConfig } from "@razzia/socket/services/config"
 import Registry from "@razzia/socket/services/registry"
 import { guardSocket } from "@razzia/socket/utils/socket"
@@ -32,6 +33,7 @@ const socketHandlers: SocketHandler[] = [
   gameSocketHandlers,
   resultsSocketHandlers,
   statsSocketHandlers,
+  usersSocketHandlers,
 ]
 
 io.on("connection", (socket) => {

@@ -6,6 +6,7 @@ import {
   useSocket,
 } from "@razzia/web/features/game/contexts/socket-context"
 import { useManagerStore } from "@razzia/web/features/game/stores/manager"
+import { clearSessionToken } from "@razzia/web/features/manager/utils/account"
 import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router"
 import { useEffect } from "react"
 
@@ -29,6 +30,11 @@ function RouteComponent() {
   })
 
   useEvent(EVENTS.MANAGER.UNAUTHORIZED, () => {
+    clearSessionToken()
+    navigate({ to: "/manager" })
+  })
+
+  useEvent(EVENTS.MANAGER.PASSWORD_CHANGE_REQUIRED, () => {
     navigate({ to: "/manager" })
   })
 
