@@ -132,6 +132,7 @@ The script only writes to the terminal. To keep a trace of who deployed what and
 
 ## Limits worth knowing
 
+- **A page already open keeps the version it loaded** until it is reloaded. Browsers ask for the page again at each visit (nginx sends `Cache-Control: no-cache`), but a tab opened before the deployment runs the previous code. Reload it (F5) before checking a change.
 - **Environment variables** (defaults match this server): `SERVICE`, `CONTAINER`, `COMPOSE_DIR`, `DATA_DIR`, `REPO_DIR`, `BRANCH`, `IMAGE`, `BACKUP_DIR`, `KEEP_BACKUPS`, `HEALTH_TIMEOUT`, `BACKUP_TIMEOUT`, `MIN_FREE_GB`, `LOCK_FILE`, plus `FORCE=1`.
 - `DATA_DIR` is only the **host** side of the volume. The container paths (`/app/config/msaquiz.db`, `/app/socket/node_modules`) are hardcoded in the script, so changing `CONFIG_PATH` on the service would break the backup.
 - `MIN_FREE_GB` defaults to 5 GB, which is a floor, not the cost of a cold build. Measure one with `docker system df` before and after, then raise it above that.
