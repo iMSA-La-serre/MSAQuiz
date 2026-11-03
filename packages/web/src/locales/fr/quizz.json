@@ -128,9 +128,9 @@
     "count": "{{count}} sur {{max}}",
     "creditLabel": "Crédit de la réponse {{letter}}",
     "hint": {
-      "multi": "Cochez toutes les bonnes réponses",
+      "multi": "Cochez toutes les bonnes réponses, deux au moins",
       "poll": "Sondage : aucune bonne réponse à cocher",
-      "single": "Cochez la ou les réponses acceptées",
+      "single": "Choisissez la bonne réponse",
       "truefalse": "Choisissez la bonne réponse",
       "ordering": "Saisissez-les dans le bon ordre",
       "shortanswer": "Majuscules et accents ignorés",
@@ -143,7 +143,7 @@
       "scale": "Réponses non associées au pseudo",
       "markers": "Cochez le ou les repères corrects",
       "pollMultiple": "Sondage : plusieurs choix possibles",
-      "singleCredits": "Cochez la ou les réponses acceptées, créditez les autres"
+      "singleCredits": "Choisissez la bonne réponse, créditez les autres"
     },
     "placeholder": "Réponse {{letter}}",
     "remove": "Supprimer la réponse {{letter}}",

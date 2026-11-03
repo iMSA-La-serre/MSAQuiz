@@ -1088,13 +1088,41 @@ const checkSavedPlayback = (input: unknown, ctx: z.RefinementCtx) => {
 }
 
 /**
+ * The mode of a choice question and its right answers must agree: one for a
+ * single choice, which players answer with one tap, two at least for a
+ * multiple choice, or it is a single choice. A stored single choice that
+ * accepts several answers, as the editor once let it, still plays as it
+ * did: its next save asks for one.
+ */
+export const choiceSolutionsIssue = (
+  question: Pick<Question, "type" | "solutions"> | undefined,
+): string | null => {
+  if (
+    question?.type === QUESTION_TYPES.SINGLE &&
+    question.solutions.length > 1
+  ) {
+    return "errors:quizz.singleOneSolution"
+  }
+
+  if (
+    question?.type === QUESTION_TYPES.MULTI &&
+    question.solutions.length < 2
+  ) {
+    return "errors:quizz.multiTwoSolutions"
+  }
+
+  return null
+}
+
+/**
  * What a save from the editor accepts: the rules of quizzValidator, then
  * those added since for new content, which stored quizzes (and the files
  * they were exported to, see the import) are never read against. A media
  * must be a web address, a path on the quiz's own server or a small pasted
  * image, never a video page's link (a YouTube video's link is a YouTube
  * media), and have a type (see mediaIssue); where a video or a sound plays
- * must be one the game knows.
+ * must be one the game knows. A single choice has one right answer, a
+ * multiple choice two at least (see choiceSolutionsIssue).
  */
 export const quizzSaveValidator = z
   .unknown()
@@ -1102,6 +1130,16 @@ export const quizzSaveValidator = z
   .pipe(quizzValidator)
   .superRefine(({ questions }, ctx) => {
     questions.forEach((question, index) => {
+      const solutionsIssue = choiceSolutionsIssue(question)
+
+      if (solutionsIssue) {
+        ctx.addIssue({
+          code: "custom",
+          message: solutionsIssue,
+          path: ["questions", index, "solutions"],
+        })
+      }
+
       // A question that failed its own checks may not be parsed.
       const media = (question as Partial<Question> | undefined)?.media
 

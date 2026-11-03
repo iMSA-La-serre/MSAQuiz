@@ -1,4 +1,4 @@
-import { QUESTION_TYPE_META } from "@razzia/common/constants"
+import { QUESTION_TYPE_META, QUESTION_TYPES } from "@razzia/common/constants"
 import type { QuestionType } from "@razzia/common/types/game"
 import { isAssociationType } from "@razzia/common/utils/association"
 import {
@@ -78,6 +78,9 @@ const QuestionEditorConfig = () => {
         updates.solutions = []
       } else if (solutions.length === 0) {
         updates.solutions = [0]
+      } else if (nextType === QUESTION_TYPES.SINGLE && solutions.length > 1) {
+        // A single choice has one right answer: the first of those ticked.
+        updates.solutions = [Math.min(...solutions)]
       }
     }
 

@@ -3,8 +3,12 @@ import type { SolutionPickerProps } from "@razzia/web/features/questions/types"
 import { useQuizzEditor } from "@razzia/web/features/quizz/contexts/quizz-editor-context"
 import clsx from "clsx"
 import { Check } from "lucide-react"
+import toast from "react-hot-toast"
 import { useTranslation } from "react-i18next"
 
+// A multiple choice has two right answers at least: with one, it would be a
+// single choice. A box is not unticked below two; to change one of them, the
+// author ticks the new one first.
 const MultiSolutionPicker = ({ index, isSelected }: SolutionPickerProps) => {
   const { currentQuestion, currentIndex, updateQuestion } = useQuizzEditor()
   const { t } = useTranslation()
@@ -12,14 +16,21 @@ const MultiSolutionPicker = ({ index, isSelected }: SolutionPickerProps) => {
   const handleToggle = () => {
     const current = currentQuestion.solutions
 
-    if (current.includes(index)) {
-      const next = current.filter((s) => s !== index)
-      updateQuestion(currentIndex, {
-        solutions: next.length > 0 ? next : [index],
-      })
-    } else {
+    if (!current.includes(index)) {
       updateQuestion(currentIndex, { solutions: [...current, index] })
+
+      return
     }
+
+    if (current.length <= 2) {
+      toast.error(t("errors:quizz.multiTwoSolutions"))
+
+      return
+    }
+
+    updateQuestion(currentIndex, {
+      solutions: current.filter((s) => s !== index),
+    })
   }
 
   return (

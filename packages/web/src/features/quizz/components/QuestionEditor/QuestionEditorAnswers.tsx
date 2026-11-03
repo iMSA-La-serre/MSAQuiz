@@ -1,6 +1,7 @@
 import { QUESTION_TYPE_META, QUESTION_TYPES } from "@razzia/common/constants"
 import type { QuestionType } from "@razzia/common/types/game"
 import { pollMultiple } from "@razzia/common/utils/choice"
+import { choiceSolutionsIssue } from "@razzia/common/validators/quizz"
 import AnswerChip from "@razzia/web/features/game/components/AnswerChip"
 import { ANSWERS_LABELS } from "@razzia/web/features/game/utils/constants"
 import { QUESTION_REGISTRY } from "@razzia/web/features/questions"
@@ -85,7 +86,10 @@ const QuestionEditorAnswers = () => {
   // Types with a fixed set of answers (true/false) only let the author pick
   // which one is correct.
   const hasFixedAnswers = answersCount !== undefined
-  const isRadioGroup = questionType === QUESTION_TYPES.TRUEFALSE
+  // One right answer: true/false, and a single choice.
+  const isRadioGroup =
+    questionType === QUESTION_TYPES.TRUEFALSE ||
+    questionType === QUESTION_TYPES.SINGLE
   // A single choice with partial credit: a credit next to each box.
   const credits =
     questionType === QUESTION_TYPES.SINGLE
@@ -111,6 +115,10 @@ const QuestionEditorAnswers = () => {
   const { answers, solutions } = currentQuestion
   const canAdd = answers.length < MAX_ANSWERS
   const canRemove = answers.length > MIN_ANSWERS
+  // A multiple choice left with one right answer (just switched from a
+  // single choice, an answer removed): its hint turns into a warning, which
+  // a save would refuse.
+  const isSolutionsIssue = choiceSolutionsIssue(currentQuestion) !== null
 
   let columns = COLUMNS.poll
 
@@ -252,7 +260,16 @@ const QuestionEditorAnswers = () => {
             })}
           </span>
         </div>
-        <p className="text-muted-foreground text-sm">{t(hintKey)}</p>
+        <p
+          className={clsx(
+            "text-sm",
+            isSolutionsIssue
+              ? "text-danger font-semibold"
+              : "text-muted-foreground",
+          )}
+        >
+          {t(hintKey)}
+        </p>
       </header>
 
       <div

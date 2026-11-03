@@ -1813,3 +1813,45 @@ describe("media", () => {
     ).toEqual({ type: "image", url: "https://msa.example/a.png" })
   })
 })
+
+describe("right answers of a choice question", () => {
+  const save = (question: Record<string, unknown>) =>
+    quizzSaveValidator.safeParse({ subject: "Quiz", questions: [question] })
+  const refusal = (question: Record<string, unknown>) => {
+    const result = save(question)
+
+    return result.error && quizzErrorOf(result.error)
+  }
+
+  it("takes one right answer for a single choice", () => {
+    expect(save(SINGLE_QUESTION).success).toBe(true)
+    expect(refusal({ ...SINGLE_QUESTION, solutions: [0, 2] })).toEqual({
+      message: "errors:quizz.singleOneSolution",
+      questionIndex: 0,
+    })
+  })
+
+  it("takes two right answers at least for a multiple choice", () => {
+    const multi = { ...SINGLE_QUESTION, type: QUESTION_TYPES.MULTI }
+
+    expect(save({ ...multi, solutions: [0, 2] }).success).toBe(true)
+    expect(save({ ...multi, solutions: [0, 1, 2, 3] }).success).toBe(true)
+    expect(refusal({ ...multi, solutions: [1] })).toEqual({
+      message: "errors:quizz.multiTwoSolutions",
+      questionIndex: 0,
+    })
+  })
+
+  it("still reads a stored single choice that accepts several answers", () => {
+    const stored = quizzValidator.safeParse({
+      subject: "Quiz",
+      questions: [{ ...SINGLE_QUESTION, solutions: [0, 2] }],
+    })
+
+    expect(stored.success).toBe(true)
+    expect(stored.data?.questions[0]).toMatchObject({
+      type: QUESTION_TYPES.SINGLE,
+      solutions: [0, 2],
+    })
+  })
+})
