@@ -365,6 +365,11 @@ class Game {
     this.round.showLeaderboard(socket)
   }
 
+  // The host ends the game before its last question (see RoundManager).
+  end(socket: Socket) {
+    this.round.endGame(socket)
+  }
+
   // The video that plays on every device
 
   // The host alone moves it (see MediaSync.control).

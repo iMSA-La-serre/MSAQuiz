@@ -47,6 +47,12 @@
   "confirm": "Valider",
   "correct": "Bonne réponse",
   "correctInARow": "{{count}} bonnes réponses d'affilée",
+  "endGame": {
+    "button": "Terminer le quiz",
+    "confirm": "Terminer le quiz",
+    "description": "Tout le monde passe au classement final, avec les points déjà gagnés. La question en cours ne compte pas. Les questions jouées restent dans les résultats.",
+    "title": "Terminer le quiz maintenant ?"
+  },
   "estimate": {
     "aboveMax": "Au plus {{max}}",
     "belowMin": "Au moins {{min}}",

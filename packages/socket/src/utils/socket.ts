@@ -84,6 +84,7 @@ const CLIENT_EVENT_PAYLOADS: Record<ClientEvent, z.ZodType> = {
   [EVENTS.MANAGER.ABORT_QUIZ]: optionalGameMessage,
   [EVENTS.MANAGER.NEXT_QUESTION]: optionalGameMessage,
   [EVENTS.MANAGER.SHOW_LEADERBOARD]: optionalGameMessage,
+  [EVENTS.MANAGER.END_GAME]: optionalGameMessage,
   // A position in seconds, finite: the game checks who sends it.
   [EVENTS.MANAGER.MEDIA_CONTROL]: gameMessage.extend({
     playing: z.boolean(),

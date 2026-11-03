@@ -402,6 +402,108 @@ describe("RoundManager results", () => {
   })
 })
 
+describe("RoundManager, ended by the host", () => {
+  const finishedCount = (game: ReturnType<typeof setup>) =>
+    game.sent.filter(({ name }) => name === STATUS.FINISHED).length
+
+  it("ranks the points won so far, the question under way left out", async () => {
+    const game = setup(
+      [question(), question(), question()],
+      [player("camille"), player("yanis")],
+    )
+
+    await game.reachFirstQuestion()
+    await game.openAnswers(5)
+    game.round.selectAnswer(socketOf("yanis"), { answerKeys: [1] })
+    await game.closeAnswers()
+    game.round.showLeaderboard(game.manager)
+    await game.reachNextQuestion()
+    await game.openAnswers(5)
+    // Right, but the host ends the game before the results: no points.
+    game.round.selectAnswer(socketOf("camille"), { answerKeys: [1] })
+    game.round.endGame(game.manager)
+    await vi.advanceTimersByTimeAsync(60_000)
+
+    expect(game.lastSent("yanis", STATUS.FINISHED)).toMatchObject({
+      rank: 1,
+      totalPlayers: 2,
+    })
+    expect(game.lastSent("camille", STATUS.FINISHED)).toMatchObject({
+      rank: 2,
+      totalPlayers: 2,
+    })
+    expect(
+      game
+        .lastSent(MANAGER_ID, STATUS.FINISHED)
+        ?.top.map(({ username, points }) => [username, points > 0]),
+    ).toEqual([
+      ["yanis", true],
+      ["camille", false],
+    ])
+    expect(game.finished).toHaveLength(1)
+    expect(game.finished[0].questions).toHaveLength(1)
+    expect(game.finished[0].players.map(({ username }) => username)).toEqual([
+      "yanis",
+      "camille",
+    ])
+    // The question's flow stopped there: no results, no next question.
+    expect(
+      game.sent.filter(({ name }) => name === STATUS.SHOW_RESPONSES),
+    ).toHaveLength(1)
+    expect(
+      game.broadcasts.filter(({ name }) => name === STATUS.SHOW_PREPARED),
+    ).toHaveLength(2)
+  })
+
+  it("leaves no result when no question was answered", async () => {
+    const game = setup([question()], [player("camille"), player("yanis")])
+
+    await game.reachFirstQuestion()
+    game.round.endGame(game.manager)
+    await vi.advanceTimersByTimeAsync(60_000)
+
+    expect(game.finished).toHaveLength(0)
+    expect(game.lastSent("camille", STATUS.FINISHED)).toMatchObject({
+      totalPlayers: 2,
+    })
+    expect(game.lastSent("yanis", STATUS.FINISHED)).toMatchObject({
+      totalPlayers: 2,
+    })
+    expect(game.lastBroadcast(STATUS.SELECT_ANSWER)).toBeUndefined()
+  })
+
+  it("ends during the countdown before the first question", async () => {
+    const game = setup([question()], [player("camille")])
+
+    void game.round.start(game.manager)
+    await vi.advanceTimersByTimeAsync(1000)
+    game.round.endGame(game.manager)
+    await vi.advanceTimersByTimeAsync(60_000)
+
+    expect(game.lastSent("camille", STATUS.FINISHED)).toMatchObject({
+      rank: 1,
+      totalPlayers: 1,
+    })
+    expect(game.broadcasts.map(({ name }) => name)).toEqual([STATUS.SHOW_START])
+  })
+
+  it("only lets the host end a game under way, once", async () => {
+    const game = setup([question()], [player("camille")])
+
+    game.round.endGame(game.manager)
+    expect(finishedCount(game)).toBe(0)
+
+    await game.reachFirstQuestion()
+    game.round.endGame(socketOf("camille"))
+    expect(finishedCount(game)).toBe(0)
+
+    game.round.endGame(game.manager)
+    game.round.endGame(game.manager)
+    // The host's final screen, and the player's.
+    expect(finishedCount(game)).toBe(2)
+  })
+})
+
 const ITEMS = ["Accueil", "Diagnostic", "Orientation", "Suivi"]
 
 const ORDERING = question({

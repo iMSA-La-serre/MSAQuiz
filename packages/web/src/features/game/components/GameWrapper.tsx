@@ -20,6 +20,7 @@ type Props = PropsWithChildren & {
   statusName: Status | undefined
   onNext?: () => void
   onBack?: () => void
+  onEnd?: () => void
   manager?: boolean
 }
 
@@ -28,6 +29,7 @@ const GameWrapper = ({
   statusName,
   onNext,
   onBack,
+  onEnd,
   manager,
 }: Props) => {
   const { isConnected } = useSocket()
@@ -88,10 +90,21 @@ const GameWrapper = ({
 
             {manager && isLobby && (
               <div className="flex w-full justify-between p-4">
+                {onBack && (
+                  <Button
+                    onClick={onBack}
+                    className="hover:bg-accent bg-white px-4 text-black"
+                  >
+                    {t("common:exit")}
+                  </Button>
+                )}
+
+                {/* On the right, where the game goes on, as the host's
+                « Suivant » in the game. */}
                 {next && (
                   <Button
                     className={clsx(
-                      "hover:bg-accent bg-white px-4 text-black",
+                      "hover:bg-accent ml-auto bg-white px-4 text-black",
                       {
                         "pointer-events-none": isDisabled,
                       },
@@ -99,15 +112,6 @@ const GameWrapper = ({
                     onClick={handleNext}
                   >
                     {t(next)}
-                  </Button>
-                )}
-
-                {onBack && (
-                  <Button
-                    onClick={onBack}
-                    className="hover:bg-accent bg-white px-4 text-black"
-                  >
-                    {t("common:exit")}
                   </Button>
                 )}
               </div>
@@ -120,6 +124,7 @@ const GameWrapper = ({
                 statusName={statusName}
                 disabled={isDisabled}
                 onNext={handleNext}
+                onEnd={onEnd}
               />
             )}
           </>

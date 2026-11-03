@@ -146,6 +146,11 @@ export const gameSocketHandlers = ({ io, socket }: SocketContext) => {
     withGame(gameId, socket, (game) => game.showLeaderboard(socket)),
   )
 
+  // The game's own host alone ends it early (checked by the game).
+  socket.on(EVENTS.MANAGER.END_GAME, ({ gameId }) =>
+    withGame(gameId, socket, (game) => game.end(socket)),
+  )
+
   // The game's own host alone moves the video (checked by the game).
   socket.on(EVENTS.MANAGER.MEDIA_CONTROL, (control) =>
     withGame(control.gameId, socket, (game) =>

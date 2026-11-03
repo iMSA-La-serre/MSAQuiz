@@ -132,6 +132,7 @@ export interface ClientToServerEvents {
   [EVENTS.MANAGER.ABORT_QUIZ]: (_message: MessageGameId) => void
   [EVENTS.MANAGER.NEXT_QUESTION]: (_message: MessageGameId) => void
   [EVENTS.MANAGER.SHOW_LEADERBOARD]: (_message: MessageGameId) => void
+  [EVENTS.MANAGER.END_GAME]: (_message: MessageGameId) => void
   [EVENTS.MANAGER.GET_CONFIG]: () => void
   [EVENTS.MANAGER.LOGOUT]: () => void
   // The host plays, pauses or moves the video that plays on every device.

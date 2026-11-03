@@ -46,6 +46,8 @@ export const EVENTS = {
     ABORT_QUIZ: "manager:abortQuiz",
     NEXT_QUESTION: "manager:nextQuestion",
     SHOW_LEADERBOARD: "manager:showLeaderboard",
+    // End the game before its last question: the final ranking at once.
+    END_GAME: "manager:endGame",
     GET_CONFIG: "manager:getConfig",
     LOGOUT: "manager:logout",
     UNAUTHORIZED: "manager:unauthorized",

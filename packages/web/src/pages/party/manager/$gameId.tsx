@@ -101,6 +101,13 @@ const ManagerGamePage = () => {
     setQuestionStates(null)
   }
 
+  // Before its last question: the server sends everyone the final ranking.
+  const handleEnd = () => {
+    if (gameId) {
+      socket.emit(EVENTS.MANAGER.END_GAME, { gameId })
+    }
+  }
+
   const CurrentComponent =
     status && isKeyOf(GAME_STATE_COMPONENTS_MANAGER, status.name)
       ? GAME_STATE_COMPONENTS_MANAGER[status.name]
@@ -115,6 +122,7 @@ const ManagerGamePage = () => {
       statusName={status.name}
       onNext={handleSkip}
       onBack={status.name === STATUS.SHOW_ROOM ? handleBack : undefined}
+      onEnd={handleEnd}
       manager
     >
       {CurrentComponent && <CurrentComponent data={status.data as never} />}

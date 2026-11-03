@@ -276,6 +276,11 @@ export class RoundManager {
 
     await sleep(3)
 
+    // Ended by the host meanwhile (endGame).
+    if (!this.started) {
+      return
+    }
+
     this.opts.io.to(this.opts.gameId).emit(EVENTS.GAME.START_COOLDOWN)
     await this.opts.cooldown.start(3)
 
@@ -809,42 +814,79 @@ export class RoundManager {
       this.currentQuestion + 1 === this.opts.quizz.questions.length
 
     if (isLastRound) {
-      this.started = false
-
-      const top = this.leaderboard.slice(0, 5).map(toPublicPlayer)
-
-      this.opts.onGameFinished({
-        id: `${Date.now()}-${nanoid(8)}`,
-        quizzId: this.opts.quizz.id,
-        subject: this.opts.quizz.subject,
-        date: new Date().toISOString(),
-        players: this.leaderboard.map((player, index) => ({
-          username: player.username,
-          points: player.points,
-          rank: index + 1,
-        })),
-        questions: this.questionsHistory,
-      })
-
-      this.opts.send(this.opts.getManagerId(), STATUS.FINISHED, {
-        subject: this.opts.quizz.subject,
-        top,
-      })
-
-      this.leaderboard.forEach((player, index) => {
-        this.opts.send(player.id, STATUS.FINISHED, {
-          subject: this.opts.quizz.subject,
-          top,
-          rank: index + 1,
-          totalPlayers: this.leaderboard.length,
-        })
-      })
+      this.finish(this.leaderboard, true)
 
       return
     }
 
     this.opts.send(this.opts.getManagerId(), STATUS.SHOW_LEADERBOARD, {
       leaderboard: this.leaderboard.slice(0, 5),
+    })
+  }
+
+  /**
+   * The host ends the game before its last question: everyone gets the final
+   * ranking of the points won so far. A question under way counts for
+   * nothing, its answers dropped. A game ended before any question was
+   * answered leaves no result.
+   */
+  endGame(socket: Socket): void {
+    if (!this.started || socket.id !== this.opts.getManagerId()) {
+      return
+    }
+
+    this.acceptingAnswers = false
+    this.playersAnswers = []
+    this.open = false
+    // Stopped first: the question's flow, released by the timer's abort,
+    // then finds the game over and goes no further.
+    this.started = false
+    this.opts.cooldown.abort()
+    this.opts.onQuestionOver?.()
+
+    // Every player still in the game, a late arrival included, from the
+    // points of the last results.
+    const ranking = [...this.opts.players.getAll()].sort(
+      (a, b) => b.points - a.points,
+    )
+
+    this.finish(ranking, this.questionsHistory.length > 0)
+  }
+
+  // The final ranking to the host and to each player, and the result saved
+  // with the questions played when `save` is set.
+  private finish(ranking: PublicPlayer[], save: boolean): void {
+    this.started = false
+
+    const top = ranking.slice(0, 5).map(toPublicPlayer)
+
+    if (save) {
+      this.opts.onGameFinished({
+        id: `${Date.now()}-${nanoid(8)}`,
+        quizzId: this.opts.quizz.id,
+        subject: this.opts.quizz.subject,
+        date: new Date().toISOString(),
+        players: ranking.map((player, index) => ({
+          username: player.username,
+          points: player.points,
+          rank: index + 1,
+        })),
+        questions: this.questionsHistory,
+      })
+    }
+
+    this.opts.send(this.opts.getManagerId(), STATUS.FINISHED, {
+      subject: this.opts.quizz.subject,
+      top,
+    })
+
+    ranking.forEach((player, index) => {
+      this.opts.send(player.id, STATUS.FINISHED, {
+        subject: this.opts.quizz.subject,
+        top,
+        rank: index + 1,
+        totalPlayers: ranking.length,
+      })
     })
   }
 }

@@ -1,11 +1,18 @@
 import { STATUS, type Status } from "@razzia/common/types/game/status"
+import AlertDialog from "@razzia/web/components/AlertDialog"
 import Button from "@razzia/web/components/Button"
 import HostMediaStatus from "@razzia/web/features/game/components/question/HostMediaStatus"
 import HostSoundBar from "@razzia/web/features/game/components/question/HostSoundBar"
 import { MANAGER_SKIP_BTN } from "@razzia/web/features/game/utils/constants"
 import { REMOTE_SAFE_ATTRIBUTE } from "@razzia/web/features/game/utils/keys"
 import clsx from "clsx"
-import { ArrowRight, LogOut, type LucideIcon, SkipForward } from "lucide-react"
+import {
+  ArrowRight,
+  Flag,
+  LogOut,
+  type LucideIcon,
+  SkipForward,
+} from "lucide-react"
 import { useEffect } from "react"
 import { useTranslation } from "react-i18next"
 
@@ -13,6 +20,8 @@ interface Props {
   statusName: Status | undefined
   disabled: boolean
   onNext: () => void
+  // Ends the game before its last question, once confirmed.
+  onEnd?: () => void
 }
 
 interface DockAction {
@@ -77,11 +86,13 @@ const hasOwnKeys = (target: EventTarget | null) => {
 // show (HostSoundBar). Held at the bottom of the screen, over a screen too
 // long for it, so « Passer » and « Suivant » stay in view and clickable,
 // and legible over its rows (stuck, see QUIET).
-const HostDock = ({ statusName, disabled, onNext }: Props) => {
+const HostDock = ({ statusName, disabled, onNext, onEnd }: Props) => {
   const { t } = useTranslation()
   const label = statusName ? MANAGER_SKIP_BTN[statusName] : null
   const action = statusName ? ACTIONS[statusName] : undefined
   const listensToKeys = Boolean(label && action?.presenterKeys) && !disabled
+  // Until the final ranking, which ends the game anyway.
+  const canEnd = statusName !== undefined && statusName !== STATUS.FINISHED
 
   useEffect(() => {
     if (!listensToKeys) {
@@ -119,22 +130,44 @@ const HostDock = ({ statusName, disabled, onNext }: Props) => {
     <footer className="short:min-h-16 short:pb-4 [container-type:scroll-state] pointer-events-none sticky bottom-0 z-10 mx-auto flex min-h-22 w-full max-w-7xl items-end justify-end gap-6 px-6 pb-6">
       <HostSoundBar />
       <HostMediaStatus />
-      {label && action && Icon && (
-        <Button
-          size="lg"
-          {...{ [DOCK_BUTTON_ATTRIBUTE]: "" }}
-          aria-disabled={disabled}
-          onClick={onNext}
-          className={clsx(
-            "focus-visible:outline-serre-yellow pointer-events-auto ml-auto shrink-0 rounded-full px-6 py-3 text-xl font-bold focus-visible:outline-3 focus-visible:outline-offset-2",
-            action.className,
-            { "pointer-events-none opacity-70": disabled },
-          )}
-        >
-          {t(label)}
-          <Icon aria-hidden className="size-5" />
-        </Button>
-      )}
+      <div className="ml-auto flex shrink-0 items-center gap-4">
+        {/* Never on a clicker's keys, and confirmed: it cannot be undone. */}
+        {onEnd && canEnd && (
+          <AlertDialog
+            trigger={
+              <Button
+                className={clsx(
+                  "focus-visible:outline-serre-yellow pointer-events-auto rounded-full px-4 py-2 text-base font-semibold focus-visible:outline-3 focus-visible:outline-offset-2",
+                  QUIET,
+                )}
+              >
+                <Flag aria-hidden className="size-4" />
+                {t("game:endGame.button")}
+              </Button>
+            }
+            title={t("game:endGame.title")}
+            description={t("game:endGame.description")}
+            confirmLabel={t("game:endGame.confirm")}
+            onConfirm={onEnd}
+          />
+        )}
+        {label && action && Icon && (
+          <Button
+            size="lg"
+            {...{ [DOCK_BUTTON_ATTRIBUTE]: "" }}
+            aria-disabled={disabled}
+            onClick={onNext}
+            className={clsx(
+              "focus-visible:outline-serre-yellow pointer-events-auto shrink-0 rounded-full px-6 py-3 text-xl font-bold focus-visible:outline-3 focus-visible:outline-offset-2",
+              action.className,
+              { "pointer-events-none opacity-70": disabled },
+            )}
+          >
+            {t(label)}
+            <Icon aria-hidden className="size-5" />
+          </Button>
+        )}
+      </div>
     </footer>
   )
 }
