@@ -9,6 +9,7 @@ config
 release.json
 
 # not needed to build, keeps context small and cache stable
+deploy
 .github
 .vscode
 docs

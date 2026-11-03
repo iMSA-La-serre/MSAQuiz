@@ -211,21 +211,15 @@ All fields are optional — anything you omit keeps its default value.
 
 ## 🚀 Deploying a new version (iMSA)
 
-1. **Build the image from this repo** (the Dockerfile handles the SQLite native module, the DB migrations and the web build):
+Deployments run on the Studio server, in one command:
 
-   ```bash
-   docker build -t <registry>/msaquiz:latest .
-   docker push <registry>/msaquiz:latest
-   ```
+```bash
+~/bin/deploy-msaquiz.sh
+```
 
-2. **On the VM**: `docker compose pull && docker compose up -d` (or `up -d --build` if building on the VM).
+It checks the ground, backs the database up, moves the clone to the latest commit of `release/imsa-demo`, rebuilds the image, recreates the `msaquiz` container only, and checks that the page and the socket.io handshake answer. A failed build leaves the site online on the previous version; a failed restart puts the previous image and commit back. The config volume is never touched: `msaquiz.db` migrates itself at startup, `game.json` and `branding/` are left alone.
 
-3. **The config volume does the rest** — nothing else to install:
-   - `config/msaquiz.db` is created and migrated automatically at startup;
-   - `config/branding/` (La Serre theme) is untouched by deployments;
-   - `config/game.json` (manager password) is preserved.
-
-4. **First deployment of the DB version only**: quizzes previously stored as `config/quizz/*.json` are no longer read — re-import the ones you care about via the manager (Quizz → Import, JSON).
+See **[docs/deployment.md](docs/deployment.md)** for installing the script, `--status`, rollbacks, restoring the database and troubleshooting.
 
 ## 📝 Contributing
 

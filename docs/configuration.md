@@ -12,7 +12,7 @@ The configuration lives in the `config` folder (mounted as a Docker volume, or `
 | `moderation.txt`     | Optional words a word cloud drops, see [Word cloud moderation](quiz.md#word-cloud-moderation). |
 | `quizz/`, `results/` | Legacy file storage. Kept for reference only — MSAQuiz no longer reads these files.            |
 
-> **Back up this folder.** Since quizzes and results moved to SQLite, `msaquiz.db` is the only copy of everything the team has created. The database is in WAL mode, so a hot copy of the volume is safe.
+> **Back up this folder.** Since quizzes and results moved to SQLite, `msaquiz.db` is the only copy of everything the team has created. The database is in WAL mode, so copying `msaquiz.db` alone while the server runs loses the most recent writes: copy it **with** its `-wal` and `-shm` files, or let `~/bin/deploy-msaquiz.sh --backup` take a verified copy (see [Deployment](deployment.md)).
 
 Migrations run automatically when the server starts: there is nothing to install or administer, and the database file is created on first boot.
 
