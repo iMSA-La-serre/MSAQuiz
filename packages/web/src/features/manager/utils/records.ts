@@ -1,9 +1,13 @@
-import { FULL_CREDIT, QUESTION_TYPE_META } from "@razzia/common/constants"
+import {
+  FULL_CREDIT,
+  QUESTION_TYPE_META,
+  QUESTION_TYPES,
+} from "@razzia/common/constants"
 import type {
   PlayerAnswerRecord,
   QuestionResult,
 } from "@razzia/common/types/game"
-import { partialCredits } from "@razzia/common/utils/choice"
+import { multiScore, partialCredits } from "@razzia/common/utils/choice"
 
 /**
  * Whether a record holds an answer. A shortanswer text that matched no
@@ -28,17 +32,48 @@ export type ChoiceVerdict =
   // The share of the points earned, in percent.
   | { verdict: "partial"; credit: number }
 
+type ChoiceQuestion = Pick<
+  QuestionResult,
+  "type" | "answers" | "solutions" | "options"
+>
+
+// The multiplier of a choice answer saved without one, worked out as the
+// server does: a multiple choice in its scoring mode, a single choice from
+// the one answer picked, with its credit when it is not right.
+const choiceScore = (question: ChoiceQuestion, answerIds: number[]): number => {
+  if (question.type === QUESTION_TYPES.MULTI) {
+    return multiScore(
+      answerIds,
+      question.solutions,
+      question.options?.scoringMode,
+    )
+  }
+
+  if (answerIds.length !== 1) {
+    return 0
+  }
+
+  const [picked] = answerIds
+
+  if (question.solutions.includes(picked)) {
+    return 1
+  }
+
+  return (partialCredits(question)?.at(picked) ?? 0) / FULL_CREDIT
+}
+
 /**
  * The verdict of a player's row in the result window, for the choice types
- * that bring no cells of their own. A scored question reads right or wrong,
- * a missing answer included, as it always did, or partly right on a single
- * choice with partial credits: the multiplier saved with the answer, or the
- * credit of the answer picked for a record saved without one. A poll has no
- * right answer: the answer is recorded, as on the other unscored types, or
- * missing.
+ * that bring no cells of their own, as the phone told the player: from the
+ * multiplier saved with the answer, or worked out for a record saved without
+ * one. Right with full credit, partly right with some (a multiple choice
+ * missing a right answer or with a wrong one ticked, a single choice with
+ * partial credits), wrong with none, a missing answer included, as it always
+ * did. A poll has no right answer: the answer is recorded, as on the other
+ * unscored types, or missing.
  */
 export const choiceVerdict = (
-  question: Pick<QuestionResult, "type" | "answers" | "solutions" | "options">,
+  question: ChoiceQuestion,
   record: PlayerAnswerRecord,
 ): ChoiceVerdict => {
   const { answerIds, score } = record
@@ -47,15 +82,13 @@ export const choiceVerdict = (
     return { verdict: hasAnswer(record) ? "recorded" : "noAnswer" }
   }
 
-  if (answerIds?.some((id) => question.solutions.includes(id))) {
+  const multiplier = score ?? choiceScore(question, answerIds ?? [])
+
+  if (multiplier >= 1) {
     return { verdict: "correct" }
   }
 
-  const credits = partialCredits(question)
-  const [picked] = answerIds ?? []
-  const stored =
-    answerIds?.length === 1 ? (credits?.at(picked) ?? 0) / FULL_CREDIT : 0
-  const credit = credits ? Math.round((score ?? stored) * 100) : 0
-
-  return credit > 0 ? { verdict: "partial", credit } : { verdict: "wrong" }
+  return multiplier > 0
+    ? { verdict: "partial", credit: Math.round(multiplier * 100) }
+    : { verdict: "wrong" }
 }

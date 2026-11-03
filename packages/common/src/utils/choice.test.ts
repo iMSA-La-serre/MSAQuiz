@@ -2,6 +2,7 @@ import { QUESTION_TYPES, SCORING_MODES } from "@razzia/common/constants"
 import type { Question, QuestionType } from "@razzia/common/types/game"
 import {
   isCreditStep,
+  multiScore,
   partialCredits,
   partialOutcomeOf,
   pollMultiple,
@@ -103,6 +104,7 @@ describe("partialCredits", () => {
 describe("partialOutcomeOf", () => {
   it("follows the type's setting", () => {
     const types: QuestionType[] = [
+      QUESTION_TYPES.MULTI,
       QUESTION_TYPES.ORDERING,
       QUESTION_TYPES.HIGHLIGHT,
       QUESTION_TYPES.STATEMENTS,
@@ -112,7 +114,7 @@ describe("partialOutcomeOf", () => {
       expect(partialOutcomeOf(question({ type })), type).toBe(true)
     }
 
-    expect(partialOutcomeOf(question({ type: QUESTION_TYPES.MULTI }))).toBe(
+    expect(partialOutcomeOf(question({ type: QUESTION_TYPES.TRUEFALSE }))).toBe(
       false,
     )
   })
@@ -156,5 +158,24 @@ describe("publicOptions", () => {
 
     expect(publicOptions(options)).toBe(options)
     expect(publicOptions(undefined)).toBeUndefined()
+  })
+})
+
+describe("multiScore", () => {
+  it("scores in the mode given, balanced when none is", () => {
+    const solutions = [0, 2]
+
+    expect(multiScore([0, 1, 2], solutions, SCORING_MODES.STRICT)).toBe(0)
+    expect(multiScore([0, 1, 2], solutions, SCORING_MODES.BALANCED)).toBe(0.5)
+    expect(multiScore([0, 1, 2], solutions, SCORING_MODES.LENIENT)).toBe(1)
+    expect(multiScore([0], solutions)).toBe(0.5)
+    expect(multiScore([0, 2], solutions)).toBe(1)
+    expect(multiScore([0, 1], solutions)).toBe(0)
+  })
+
+  it("gives nothing in a mode it does not know", () => {
+    expect(
+      multiScore([0, 2], [0, 2], "generous" as typeof SCORING_MODES.STRICT),
+    ).toBe(0)
   })
 })

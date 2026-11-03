@@ -52,8 +52,8 @@ const QuestionCard = ({ question }: { question: QuestionStats }) => {
       {/* Types not answered by picking choices bring their own list. */}
       {StatsAnswers && <StatsAnswers question={question} />}
 
-      {/* A single choice with partial credits: the right answers, and how
-      close the others came. */}
+      {/* A multiple choice, a single choice with partial credits: the right
+      answers, and how close the others came. */}
       {!StatsAnswers && question.averageScore !== undefined && (
         <p className="text-muted-foreground mt-2 text-xs">
           {t("manager:stats.creditSummary", {

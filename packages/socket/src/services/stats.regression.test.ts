@@ -131,6 +131,39 @@ describe("statistics of games saved before score and text", () => {
           "type": "single",
         },
         {
+          "answerCount": 5,
+          "answers": [
+            {
+              "count": 4,
+              "label": "Rouge",
+            },
+            {
+              "count": 2,
+              "label": "Bleu",
+            },
+            {
+              "count": 1,
+              "label": "Vert",
+            },
+            {
+              "count": 1,
+              "label": "Jaune",
+            },
+          ],
+          "averageScore": 0.5,
+          "correctCount": 2,
+          "gameCount": 2,
+          "missingCount": 1,
+          "question": "Couleurs primaires ?",
+          "scored": true,
+          "solutionLabels": [
+            "Rouge",
+            "Bleu",
+          ],
+          "successRate": 0.4,
+          "type": "multi",
+        },
+        {
           "answerCount": 2,
           "answers": [
             {
@@ -152,38 +185,6 @@ describe("statistics of games saved before score and text", () => {
           ],
           "successRate": 0.5,
           "type": "truefalse",
-        },
-        {
-          "answerCount": 5,
-          "answers": [
-            {
-              "count": 4,
-              "label": "Rouge",
-            },
-            {
-              "count": 2,
-              "label": "Bleu",
-            },
-            {
-              "count": 1,
-              "label": "Vert",
-            },
-            {
-              "count": 1,
-              "label": "Jaune",
-            },
-          ],
-          "correctCount": 3,
-          "gameCount": 2,
-          "missingCount": 1,
-          "question": "Couleurs primaires ?",
-          "scored": true,
-          "solutionLabels": [
-            "Rouge",
-            "Bleu",
-          ],
-          "successRate": 0.6,
-          "type": "multi",
         },
         {
           "answerCount": 3,
@@ -208,6 +209,8 @@ describe("statistics of games saved before score and text", () => {
         },
       ]
     `)
-    expect(overallSuccessRate(stats)).toMatchInlineSnapshot(`0.5`)
+    expect(overallSuccessRate(stats)).toMatchInlineSnapshot(
+      `0.4166666666666667`,
+    )
   })
 })

@@ -15,10 +15,10 @@ const ResultModalTable = () => {
   const { t, i18n } = useTranslation()
   const { ResultCells } = QUESTION_REGISTRY[questionResult.type]
 
-  // A single choice with partial credits: a wrong answer earning part of the
-  // points reads « En partie juste », as the phone said, with its share. A
-  // poll: « Réponse enregistrée », as the other unscored types, never
-  // « Incorrect ».
+  // An answer earning part of the points (a multiple choice partly right, a
+  // single choice with partial credits) reads « En partie juste », as the
+  // phone said, with its share. A poll: « Réponse enregistrée », as the other
+  // unscored types, never « Incorrect ».
   const verdictCell = (result: ChoiceVerdict) => {
     switch (result.verdict) {
       case "partial":

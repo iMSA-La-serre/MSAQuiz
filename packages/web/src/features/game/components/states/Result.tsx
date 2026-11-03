@@ -25,9 +25,8 @@ interface Props {
   data: CommonStatusDataMap["SHOW_RESULT"]
 }
 
-// Green for an answer that earned points, fully or partly right (a multi
-// partly right is green too); a miss is navy, never red; a poll stays neutral
-// because nobody can be wrong.
+// Green for an answer that earned points, fully or partly right; a miss is
+// navy, never red; a poll stays neutral because nobody can be wrong.
 const TONES: Record<ResultOutcome, string> = {
   correct: "bg-primary",
   partial: "bg-primary",
@@ -81,6 +80,7 @@ const Result = ({
     totalPlayers,
     placed,
     found,
+    ticked,
     matched,
     credit,
   },
@@ -212,6 +212,16 @@ const Result = ({
               })}
               {found.extra > 0 &&
                 ` · ${t("game:result.extra", { count: found.extra })}`}
+            </p>
+          )}
+          {ticked && (
+            <p className="mt-2 text-lg leading-snug font-semibold text-balance">
+              {t("game:result.ticked", {
+                count: ticked.count,
+                total: ticked.total,
+              })}
+              {ticked.extra > 0 &&
+                ` · ${t("game:result.extra", { count: ticked.extra })}`}
             </p>
           )}
           {matched && (

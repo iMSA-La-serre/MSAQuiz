@@ -254,13 +254,15 @@ export const QUESTION_TYPE_META: Record<
     partialOutcome: false,
     nominative: true,
   },
+  // A right answer missed, or a wrong one ticked, in the balanced or lenient
+  // mode: partly right, never « Bonne réponse ».
   multi: {
     scored: true,
     acceptsAnswers: true,
     minAnswers: 2,
     maxAnswers: 4,
     speedBonus: true,
-    partialOutcome: false,
+    partialOutcome: true,
     nominative: true,
   },
   truefalse: {

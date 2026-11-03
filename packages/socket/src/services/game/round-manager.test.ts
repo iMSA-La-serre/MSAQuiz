@@ -1,4 +1,8 @@
-import { MEDIA_TYPES, QUESTION_TYPES } from "@razzia/common/constants"
+import {
+  MEDIA_TYPES,
+  QUESTION_TYPES,
+  SCORING_MODES,
+} from "@razzia/common/constants"
 import type { GameResult, Player, Question } from "@razzia/common/types/game"
 import type { Server, Socket } from "@razzia/common/types/game/socket"
 import {
@@ -776,7 +780,7 @@ describe("RoundManager, shortanswer", () => {
     const game = setup(
       [
         { ...SHORTANSWER, maxPoints: 0, penalty: 100 },
-        // The existing types keep their rule: no point earned is a miss.
+        // A single choice too: its right answer is never a miss.
         question({ maxPoints: 0, penalty: 100 }),
       ],
       [{ ...player("camille", 500), correctInARow: 2 }],
@@ -805,12 +809,13 @@ describe("RoundManager, shortanswer", () => {
     await game.closeAnswers()
 
     expect(game.lastSent("camille", STATUS.SHOW_RESULT)).toMatchObject({
-      outcome: "wrong",
-      correct: false,
-      points: -100,
-      myPoints: 400,
+      outcome: "correct",
+      correct: true,
+      message: "game:correct",
+      points: 0,
+      myPoints: 500,
     })
-    expect(game.roster()[0]?.correctInARow).toBe(0)
+    expect(game.roster()[0]?.correctInARow).toBe(4)
   })
 })
 
@@ -2483,16 +2488,117 @@ describe("RoundManager, single choice with partial credits", () => {
     })
   })
 
-  it("keeps the outcome of a single choice without credits: points decide", async () => {
-    // A right answer worth no points reads wrong, as it always did.
-    const game = setup([question({ maxPoints: 0 })], [player("camille")])
+  it("reads a right answer given as the time runs out right, never penalized", async () => {
+    // The speed bonus has nothing left to give: the answer is still right.
+    const game = setup(
+      [question({ penalty: 100 })],
+      [player("camille", 300), player("yanis", 300)],
+    )
 
     await game.reachFirstQuestion()
     await game.openAnswers(5)
+    await vi.advanceTimersByTimeAsync(20_000)
     game.round.selectAnswer(socketOf("camille"), { answerKeys: [1] })
+    game.round.selectAnswer(socketOf("yanis"), { answerKeys: [0] })
     await game.closeAnswers()
 
     expect(game.lastSent("camille", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "correct",
+      correct: true,
+      message: "game:correct",
+      points: 0,
+      myPoints: 300,
+    })
+    expect(game.lastSent("yanis", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "wrong",
+      points: -100,
+      myPoints: 200,
+    })
+  })
+})
+
+describe("RoundManager, multiple choice", () => {
+  const MULTI = question({
+    type: QUESTION_TYPES.MULTI,
+    question: "Quelles couleurs sont primaires ?",
+    answers: ["Rouge", "Vert", "Bleu", "Orange"],
+    solutions: [0, 2],
+    options: { scoringMode: SCORING_MODES.BALANCED },
+  })
+
+  it("reads an answer partly right as such, never « Bonne réponse »", async () => {
+    const game = setup(
+      [MULTI],
+      [
+        player("camille"),
+        { ...player("yanis"), correctInARow: 2 },
+        player("ines"),
+        player("samir"),
+      ],
+    )
+
+    await game.reachFirstQuestion()
+    await game.openAnswers(5)
+    game.round.selectAnswer(socketOf("camille"), { answerKeys: [0, 2] })
+    // A right answer missed, then a wrong one ticked on top of both.
+    game.round.selectAnswer(socketOf("yanis"), { answerKeys: [0] })
+    game.round.selectAnswer(socketOf("ines"), { answerKeys: [0, 1, 2] })
+    // As many wrong as right: nothing left.
+    game.round.selectAnswer(socketOf("samir"), { answerKeys: [0, 1] })
+    await game.closeAnswers()
+
+    expect(game.lastSent("camille", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "correct",
+      message: "game:correct",
+    })
+    expect(game.lastSent("camille", STATUS.SHOW_RESULT)).not.toHaveProperty(
+      "ticked",
+    )
+    expect(game.lastSent("yanis", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "partial",
+      correct: true,
+      message: "game:partial",
+      points: 500,
+      ticked: { count: 1, total: 2, extra: 0 },
+    })
+    // A partly right answer breaks a run of right ones.
+    expect(game.roster().find(({ id }) => id === "yanis")?.correctInARow).toBe(
+      0,
+    )
+    expect(game.lastSent("ines", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "partial",
+      ticked: { count: 2, total: 2, extra: 1 },
+    })
+    expect(game.lastSent("samir", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "wrong",
+      message: "game:wrong",
+      points: 0,
+    })
+    expect(game.lastSent("samir", STATUS.SHOW_RESULT)).not.toHaveProperty(
+      "ticked",
+    )
+    expect(game.lastSent(MANAGER_ID, STATUS.SHOW_RESPONSES)).toMatchObject({
+      correctCount: 1,
+      partialCount: 2,
+    })
+  })
+
+  it("gives all or nothing in the strict mode", async () => {
+    const game = setup(
+      [{ ...MULTI, options: { scoringMode: SCORING_MODES.STRICT } }],
+      [player("camille"), player("yanis")],
+    )
+
+    await game.reachFirstQuestion()
+    await game.openAnswers(5)
+    game.round.selectAnswer(socketOf("camille"), { answerKeys: [0, 2] })
+    game.round.selectAnswer(socketOf("yanis"), { answerKeys: [0] })
+    await game.closeAnswers()
+
+    expect(game.lastSent("camille", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "correct",
+    })
+    expect(game.lastSent("yanis", STATUS.SHOW_RESULT)).toMatchObject({
       outcome: "wrong",
       points: 0,
     })

@@ -186,6 +186,8 @@
     "placed_one": "{{count}} élément sur {{total}} bien placé",
     "placed_other": "{{count}} éléments sur {{total}} bien placés",
     "rankLabel": "Rang",
+    "ticked_one": "{{count}} bonne réponse cochée sur {{total}}",
+    "ticked_other": "{{count}} bonnes réponses cochées sur {{total}}",
     "total": "Total"
   },
   "shortanswer": {

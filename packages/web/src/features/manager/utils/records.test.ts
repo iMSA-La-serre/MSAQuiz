@@ -71,12 +71,34 @@ describe("choiceVerdict", () => {
     })
     expect(choiceVerdict(single(), record([0]))).toEqual({ verdict: "wrong" })
     expect(choiceVerdict(single(), record(null))).toEqual({ verdict: "wrong" })
+  })
+
+  it("reads a multiple choice as the phone did, not from one right answer ticked", () => {
+    const multi = single({ type: QUESTION_TYPES.MULTI, solutions: [0, 1] })
+
+    // Saved with its multiplier, in the balanced mode.
+    expect(choiceVerdict(multi, record([0, 1], 1))).toEqual({
+      verdict: "correct",
+    })
+    expect(choiceVerdict(multi, record([1], 0.5))).toEqual({
+      verdict: "partial",
+      credit: 50,
+    })
+    expect(choiceVerdict(multi, record([1, 3], 0))).toEqual({
+      verdict: "wrong",
+    })
+    // Saved without one: worked out in the question's mode.
+    expect(choiceVerdict(multi, record([1, 3]))).toEqual({ verdict: "wrong" })
+    expect(choiceVerdict(multi, record([0, 1, 2]))).toEqual({
+      verdict: "partial",
+      credit: 50,
+    })
     expect(
       choiceVerdict(
-        single({ type: QUESTION_TYPES.MULTI, solutions: [0, 1] }),
-        record([1, 3]),
+        { ...multi, options: { scoringMode: SCORING_MODES.STRICT } },
+        record([1]),
       ),
-    ).toEqual({ verdict: "correct" })
+    ).toEqual({ verdict: "wrong" })
   })
 
   it("reads an answer earning part of the points as partly right", () => {

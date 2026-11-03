@@ -61,10 +61,10 @@ export const recordScore = (
   })
 
 /**
- * Whether a recorded answer counts as correct in the statistics. The types
- * that existed before partial credit keep their rule, any credit; the others
- * need full credit, and so does a single choice with partial credits, whose
- * partly right answers the phones did not call right.
+ * Whether a recorded answer counts as correct in the statistics, as the phone
+ * told its player: full credit on the types whose partly right answers read
+ * « En partie juste » (partialOutcomeOf: a multiple choice, a single choice
+ * with partial credits...), any credit on the others.
  */
 export const isCorrectRecord = (
   question: QuestionResult,
@@ -175,6 +175,7 @@ const answerLabels = (
 // counted correct, the mean tells how close the answers came. A single choice
 // with partial credits gives it too, see newTally.
 const AVERAGE_SCORE_TYPES = new Set<string>([
+  QUESTION_TYPES.MULTI,
   QUESTION_TYPES.ORDERING,
   QUESTION_TYPES.HIGHLIGHT,
   QUESTION_TYPES.STATEMENTS,

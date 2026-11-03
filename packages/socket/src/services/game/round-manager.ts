@@ -123,28 +123,16 @@ const TYPE_RESULT_MESSAGES: Partial<
   scale: { voted: "game:scaleAnswered", noVote: "game:noAnswer" },
 }
 
-// Scored types that existed before partial credit: their outcome keeps
-// following the points earned. The others follow the multiplier alone, so a
-// recognized answer worth 0 points (maxPoints 0, speed bonus run out) is still
-// correct and never penalized. So does a single choice with partial credits,
-// whose partly right answers must not read as right.
-const POINTS_OUTCOME_TYPES = new Set<QuestionType>([
-  QUESTION_TYPES.SINGLE,
-  QUESTION_TYPES.MULTI,
-  QUESTION_TYPES.TRUEFALSE,
-])
-
-// How the round ended for one player.
+// How the round ended for one player, from the multiplier alone, never from
+// the points: a right answer worth 0 points (maxPoints 0, or given as the time
+// ran out, when the speed bonus has nothing left to give) is still correct,
+// and never penalized. A multiplier between 0 and 1 is partly right on the
+// types that say so (partialOutcomeOf), right on the others (markers).
 const roundOutcome = (
   question: Question,
-  {
-    answered,
-    score,
-    points,
-  }: { answered: boolean; score: number; points: number },
+  { answered, score }: { answered: boolean; score: number },
 ): ResultOutcome => {
   const { scored } = QUESTION_TYPE_META[question.type]
-  const partialOutcome = partialOutcomeOf(question)
 
   // Unscored types (poll, wordcloud, ranking, scale): confirm the vote, or
   // flag the missing one, never claim a vote that was not cast.
@@ -156,11 +144,7 @@ const roundOutcome = (
     return "noAnswer"
   }
 
-  if (POINTS_OUTCOME_TYPES.has(question.type) && !partialOutcome) {
-    return points > 0 ? "correct" : "wrong"
-  }
-
-  if (score === 1 || (score > 0 && !partialOutcome)) {
+  if (score === 1 || (score > 0 && !partialOutcomeOf(question))) {
     return "correct"
   }
 
@@ -425,7 +409,6 @@ export class RoundManager {
       const outcome = roundOutcome(question, {
         answered: Boolean(answer),
         score,
-        points,
       })
 
       return { player, answer, score, points, outcome }
@@ -435,10 +418,12 @@ export class RoundManager {
       rounds.map(({ player, outcome }) => [player.id, outcome]),
     )
 
-    // Highlight, partial outcome only: the passages found and the others
-    // tapped, shown on the player's result card to explain the partial points.
+    // Highlight and multiple choice, partial outcome only: the right answers
+    // picked (passages found, answers ticked) and the others, shown on the
+    // player's result card to explain the partial points.
     const foundCounts = new Map(
-      question.type === QUESTION_TYPES.HIGHLIGHT
+      question.type === QUESTION_TYPES.HIGHLIGHT ||
+        question.type === QUESTION_TYPES.MULTI
         ? rounds.flatMap(({ player, answer, outcome }) =>
             answer && outcome === "partial"
               ? [
@@ -561,7 +546,10 @@ export class RoundManager {
           ...(placed !== undefined && {
             placed: { count: placed, total: question.answers.length },
           }),
-          ...(found && { found }),
+          ...(found &&
+            (question.type === QUESTION_TYPES.MULTI
+              ? { ticked: found }
+              : { found })),
           ...(matched && { matched }),
           ...(credit !== undefined && { credit }),
         })

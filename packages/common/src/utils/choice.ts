@@ -3,8 +3,13 @@ import {
   FULL_CREDIT,
   QUESTION_TYPE_META,
   QUESTION_TYPES,
+  SCORING_MODES,
 } from "@razzia/common/constants"
-import type { Question, QuestionOptions } from "@razzia/common/types/game"
+import type {
+  Question,
+  QuestionOptions,
+  ScoringMode,
+} from "@razzia/common/types/game"
 
 // Settings of the choice types, shared by the validator, the server and the
 // web client: a poll that takes several answers, and a single choice whose
@@ -22,6 +27,50 @@ export const pollMultiple = (
   question: Pick<Question, "type" | "options">,
 ): boolean =>
   question.type === QUESTION_TYPES.POLL && question.options?.multiple === true
+
+const MULTI_SCORING: Record<
+  ScoringMode,
+  (_answerIds: readonly number[], _solutions: readonly number[]) => number
+> = {
+  // Every right answer and no other.
+  [SCORING_MODES.STRICT]: (answerIds, solutions) => {
+    const allCorrect = solutions.every((s) => answerIds.includes(s))
+    const noneWrong = answerIds.every((id) => solutions.includes(id))
+
+    return allCorrect && noneWrong ? 1 : 0
+  },
+  // The right answers ticked, less the others.
+  [SCORING_MODES.BALANCED]: (answerIds, solutions) => {
+    const x = answerIds.filter((id) => solutions.includes(id)).length
+    const y = answerIds.filter((id) => !solutions.includes(id)).length
+
+    return Math.max((x - y) / solutions.length, 0)
+  },
+  // The right answers ticked, the others cost nothing.
+  [SCORING_MODES.LENIENT]: (answerIds, solutions) => {
+    const x = answerIds.filter((id) => solutions.includes(id)).length
+
+    return x / solutions.length
+  },
+}
+
+/**
+ * The multiplier of a multiple choice answer, from 0 to 1, in the question's
+ * scoring mode, balanced when none is set. The server scores with it, and the
+ * result window reads with it the answers saved without their multiplier. A
+ * mode it does not know gives 0.
+ */
+export const multiScore = (
+  answerIds: readonly number[],
+  solutions: readonly number[],
+  mode?: ScoringMode,
+): number => {
+  const applied = mode ?? SCORING_MODES.BALANCED
+
+  return Object.hasOwn(MULTI_SCORING, applied)
+    ? MULTI_SCORING[applied](answerIds, solutions)
+    : 0
+}
 
 /** Whether a credit is one an answer that is not right may earn. */
 export const isCreditStep = (value: unknown): value is number =>

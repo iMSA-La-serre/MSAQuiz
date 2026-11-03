@@ -28,7 +28,7 @@ export type Status = (typeof STATUS)[keyof typeof STATUS]
 // How a round ended for one player: scored questions give correct, wrong or
 // noAnswer, the unscored ones (poll, word cloud, ranking, scale) give voted
 // or noVote. Partial only comes from the types with
-// QUESTION_TYPE_META.partialOutcome (ordering, highlight, statements,
+// QUESTION_TYPE_META.partialOutcome (multi, ordering, highlight, statements,
 // categorize), and from a single choice with partial credit
 // (partialOutcomeOf): some credit, not all of it.
 export type ResultOutcome =
@@ -118,6 +118,9 @@ export interface CommonStatusDataMap {
     // Highlight, partial outcome only: the passages to spot the player found,
     // out of how many, and the other passages tapped.
     found?: { count: number; total: number; extra: number }
+    // Multiple choice, partial outcome only: the right answers the player
+    // ticked, out of how many, and the wrong ones ticked.
+    ticked?: { count: number; total: number; extra: number }
     // Statements and categorize, partial outcome only: the items the player
     // matched with their right target, out of how many.
     matched?: { count: number; total: number }
