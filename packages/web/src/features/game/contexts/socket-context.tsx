@@ -2,7 +2,6 @@ import type {
   ClientToServerEvents,
   ServerToClientEvents,
 } from "@razzia/common/types/game/socket"
-import { readSessionToken } from "@razzia/web/features/manager/utils/account"
 import React, {
   createContext,
   useCallback,
@@ -49,11 +48,7 @@ export const socketClient: TypedSocket = io("/", {
   reconnection: true,
   reconnectionAttempts: Infinity,
   reconnectionDelay: 1000,
-  // Read on every connection: the manager may have signed in or out since
-  // the previous one.
-  auth: (send) => {
-    send({ clientId, sessionToken: readSessionToken() })
-  },
+  auth: { clientId },
 })
 
 const SocketContext = createContext<SocketContextValue>({

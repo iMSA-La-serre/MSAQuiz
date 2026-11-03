@@ -8,31 +8,15 @@ import {
 } from "@razzia/web/features/game/contexts/socket-context"
 import { useManagerStore } from "@razzia/web/features/game/stores/manager"
 import Configurations from "@razzia/web/features/manager/components/configurations"
-import { clearSessionToken } from "@razzia/web/features/manager/utils/account"
-import { createFileRoute, Navigate, useNavigate } from "@tanstack/react-router"
-import toast from "react-hot-toast"
-import { useTranslation } from "react-i18next"
+import { createFileRoute, useNavigate } from "@tanstack/react-router"
 
 const ManagerConfigPage = () => {
   const { isConnected } = useSocket()
-  const { setGameId, setStatus, setConfig, config, reset } = useManagerStore()
+  const { setGameId, setStatus, setConfig, config } = useManagerStore()
   const navigate = useNavigate()
-  const { t } = useTranslation()
 
   useEvent(EVENTS.MANAGER.CONFIG, (data) => {
     setConfig(data)
-  })
-
-  // The session ended (unused for long, signed out elsewhere, account
-  // disabled): back to the sign-in form, which an empty config leads to.
-  useEvent(EVENTS.MANAGER.UNAUTHORIZED, () => {
-    clearSessionToken()
-    toast.error(t("errors:manager.sessionExpired"))
-    reset()
-  })
-
-  useEvent(EVENTS.MANAGER.PASSWORD_CHANGE_REQUIRED, () => {
-    reset()
   })
 
   useEvent(EVENTS.MANAGER.GAME_CREATED, ({ gameId, inviteCode }) => {
@@ -52,10 +36,8 @@ const ManagerConfigPage = () => {
     )
   }
 
-  // Signed out, or the session ended. Navigating from an effect: a navigation
-  // started while rendering suspends the page, blank until it completes.
   if (!config) {
-    return <Navigate to="/manager" />
+    return navigate({ to: "/manager" })
   }
 
   return (

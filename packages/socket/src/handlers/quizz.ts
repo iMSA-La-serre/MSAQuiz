@@ -1,6 +1,5 @@
 import { EVENTS } from "@razzia/common/constants"
 import type { QuizzError } from "@razzia/common/types/game"
-import { ADMIN_USER_ID } from "@razzia/socket/db/seed"
 import type { SocketContext } from "@razzia/socket/handlers/types"
 import {
   deleteQuizz,
@@ -32,9 +31,6 @@ const errorPayloadOf = (
 }
 
 export const quizzSocketHandlers = ({ socket }: SocketContext) => {
-  // The signed-in account, which withAuth has just checked.
-  const ownerId = () => manager.getUser(socket)?.id ?? ADMIN_USER_ID
-
   socket.on(
     EVENTS.QUIZZ.GET,
     manager.withAuth(socket, (id) => {
@@ -53,7 +49,7 @@ export const quizzSocketHandlers = ({ socket }: SocketContext) => {
     EVENTS.QUIZZ.SAVE,
     manager.withAuth(socket, (data) => {
       try {
-        const { id } = saveQuizz(data, ownerId())
+        const { id } = saveQuizz(data)
 
         socket.emit(EVENTS.QUIZZ.SAVE_SUCCESS, { id })
         emitConfig(socket)
@@ -71,7 +67,7 @@ export const quizzSocketHandlers = ({ socket }: SocketContext) => {
     EVENTS.QUIZZ.IMPORT,
     manager.withAuth(socket, (data) => {
       try {
-        const { id, warnings } = importQuizz(data, ownerId())
+        const { id, warnings } = importQuizz(data)
 
         socket.emit(
           EVENTS.QUIZZ.SAVE_SUCCESS,
@@ -91,9 +87,6 @@ export const quizzSocketHandlers = ({ socket }: SocketContext) => {
   socket.on(
     EVENTS.QUIZZ.IMPORT_XLSX,
     manager.withAuth(socket, (payload) => {
-      // Read now: the account could sign out while the file is parsed.
-      const owner = ownerId()
-
       const importSpreadsheet = async () => {
         try {
           // The payload comes from the network: never trust its shape
@@ -115,7 +108,7 @@ export const quizzSocketHandlers = ({ socket }: SocketContext) => {
           }
 
           const quizz = await parseQuizzXlsx(data, name)
-          const { id } = saveQuizz(quizz, owner)
+          const { id } = saveQuizz(quizz)
 
           socket.emit(EVENTS.QUIZZ.SAVE_SUCCESS, { id })
           emitConfig(socket)

@@ -144,9 +144,7 @@ Main game settings:
 
 Options:
 
-- `managerPassword`: the first password of the `admin` account, temporary: the first sign-in as `admin` asks for a new one, after which this value opens nothing. **Must be changed from the default `"PASSWORD"` value**, otherwise the `admin` account cannot sign in.
-
-**Accounts.** Each animateur signs in with their own account (email address + password); administrators create them from the **Comptes** button of the manager. Roles, temporary passwords, sessions and access recovery are described in [docs/configuration.md](docs/configuration.md#accounts).
+- `managerPassword`: The master password for accessing the manager interface. **Must be changed from the default `"PASSWORD"` value**, otherwise manager access is blocked.
 
 ### 2. Database (`config/msaquiz.db`)
 
@@ -206,7 +204,7 @@ All fields are optional — anything you omit keeps its default value.
 ## 🎮 How to Play
 
 1. Access the manager interface at http://localhost:3000/manager
-2. Sign in with your account (on a new install: identifier `admin` and the `managerPassword` of `config/game.json`, to change at once)
+2. Enter the manager password (defined in `config/game.json`)
 3. Share the game URL (http://localhost:3000) and room code with participants
 4. Wait for players to join
 5. Click the start button to begin the game
@@ -225,11 +223,9 @@ All fields are optional — anything you omit keeps its default value.
 3. **The config volume does the rest** — nothing else to install:
    - `config/msaquiz.db` is created and migrated automatically at startup;
    - `config/branding/` (La Serre theme) is untouched by deployments;
-   - `config/game.json` (first password of the `admin` account) is preserved.
+   - `config/game.json` (manager password) is preserved.
 
 4. **First deployment of the DB version only**: quizzes previously stored as `config/quizz/*.json` are no longer read — re-import the ones you care about via the manager (Quizz → Import, JSON).
-
-5. **First deployment of the accounts version only**: the shared password no longer opens the manager for everyone. **Before deploying**, replace `managerPassword` in `config/game.json` with a new password only you know: whoever first signs in as `admin` with it chooses the admin password, and every animateur knows the former shared one. Then sign in with the identifier `admin` and that password, choose a new one, create one account per animateur (**Comptes** button) and pass on the temporary passwords it shows.
 
 ## 📝 Contributing
 

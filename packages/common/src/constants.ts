@@ -49,12 +49,6 @@ export const EVENTS = {
     GET_CONFIG: "manager:getConfig",
     LOGOUT: "manager:logout",
     UNAUTHORIZED: "manager:unauthorized",
-    // Signed in: the session token the browser keeps, and the account.
-    SESSION: "manager:session",
-    // The account's password is temporary: nothing else until it is changed.
-    PASSWORD_CHANGE_REQUIRED: "manager:passwordChangeRequired",
-    CHANGE_PASSWORD: "manager:changePassword",
-    PASSWORD_CHANGED: "manager:passwordChanged",
     // Play, pause or move the video that plays on every device.
     MEDIA_CONTROL: "manager:mediaControl",
     // How many phones show it.
@@ -86,33 +80,6 @@ export const EVENTS = {
     DATA: "stats:data",
     ERROR: "stats:error",
   },
-  // Accounts of the manager interface, for administrators.
-  USERS: {
-    LIST: "users:list",
-    DATA: "users:data",
-    CREATE: "users:create",
-    UPDATE: "users:update",
-    RESET_PASSWORD: "users:resetPassword",
-    // Shown once to the administrator, who passes it on.
-    TEMPORARY_PASSWORD: "users:temporaryPassword",
-    ERROR: "users:error",
-  },
-} as const
-
-// Accounts of the manager interface.
-export const AUTH_LIMITS = {
-  PASSWORD_MIN_LENGTH: 12,
-  PASSWORD_MAX_LENGTH: 128,
-  NAME_LENGTH: 60,
-  EMAIL_LENGTH: 254,
-  // Failed sign-ins in a row before the identifier is refused, and for how
-  // long.
-  MAX_FAILED_LOGINS: 5,
-  LOCK_MINUTES: 15,
-  // A session ends after this long unused, and at the latest this long after
-  // signing in.
-  SESSION_IDLE_HOURS: 12,
-  SESSION_MAX_DAYS: 7,
 } as const
 
 export const NO_TIME_LIMIT = -1

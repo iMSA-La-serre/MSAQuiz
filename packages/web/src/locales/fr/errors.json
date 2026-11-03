@@ -15,17 +15,9 @@
     "playerAlreadyConnected": "Ce joueur est déjà connecté"
   },
   "manager": {
-    "failed": "La connexion a échoué, réessayez",
     "failedToReadConfig": "Impossible de lire la configuration",
-    "invalidCredentials": "Identifiant ou mot de passe incorrect",
-    "passwordMismatch": "Les deux nouveaux mots de passe ne sont pas identiques",
-    "passwordNotConfigured": "Le compte admin n'a pas encore de mot de passe : renseignez managerPassword dans game.json",
-    "passwordTooLong": "Le mot de passe ne peut pas dépasser {{max}} caractères",
-    "passwordTooShort": "Le mot de passe doit faire au moins {{min}} caractères",
-    "passwordUnchanged": "Choisissez un mot de passe différent de l'actuel",
-    "sessionExpired": "Votre session a pris fin : reconnectez-vous",
-    "tooManyAttempts": "Trop de tentatives échouées : réessayez dans quelques minutes",
-    "wrongCurrentPassword": "Mot de passe actuel incorrect"
+    "invalidPassword": "Mot de passe invalide",
+    "passwordNotConfigured": "Mot de passe animateur non configuré"
   },
   "notFound": {
     "back": "Retour à l'accueil",
@@ -119,14 +111,5 @@
   "stats": {
     "failed": "Le calcul des statistiques a échoué",
     "notFound": "Statistiques introuvables"
-  },
-  "users": {
-    "cannotChangeSelf": "Votre propre compte ne se modifie pas depuis cette liste",
-    "emailTaken": "Un compte existe déjà avec cette adresse",
-    "failed": "L'opération sur le compte a échoué",
-    "forbidden": "Réservé aux administrateurs",
-    "invalidEmail": "Adresse e-mail invalide",
-    "invalidName": "Indiquez un nom de 60 caractères au plus",
-    "notFound": "Compte introuvable"
   }
 }

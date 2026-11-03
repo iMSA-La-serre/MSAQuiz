@@ -13,12 +13,7 @@ import type {
   QuizzWithId,
 } from "@razzia/common/types/game"
 import type { Status, StatusDataMap } from "@razzia/common/types/game/status"
-import type {
-  ManagerConfig,
-  ManagerUser,
-  UserAccount,
-  UserRole,
-} from "@razzia/common/types/manager"
+import type { ManagerConfig } from "@razzia/common/types/manager"
 import { Server as ServerIO, Socket as SocketIO } from "socket.io"
 
 export type Server = ServerIO<ClientToServerEvents, ServerToClientEvents>
@@ -95,12 +90,6 @@ export interface ServerToClientEvents {
   [EVENTS.MANAGER.ERROR_MESSAGE]: (_message: string) => void
   [EVENTS.MANAGER.PLAYER_KICKED]: (_playerId: string) => void
   [EVENTS.MANAGER.UNAUTHORIZED]: () => void
-  [EVENTS.MANAGER.SESSION]: (_data: {
-    token: string
-    user: ManagerUser
-  }) => void
-  [EVENTS.MANAGER.PASSWORD_CHANGE_REQUIRED]: () => void
-  [EVENTS.MANAGER.PASSWORD_CHANGED]: () => void
   // How many phones show the video that plays on every device.
   [EVENTS.MANAGER.MEDIA_VIEWERS]: (_viewers: MediaViewers) => void
 
@@ -127,23 +116,12 @@ export interface ServerToClientEvents {
   [EVENTS.STATS.LIST_DATA]: (_data: QuizzStatsMeta[]) => void
   [EVENTS.STATS.DATA]: (_data: QuizzStats) => void
   [EVENTS.STATS.ERROR]: (_message: string) => void
-
-  // Accounts events
-  [EVENTS.USERS.DATA]: (_users: UserAccount[]) => void
-  [EVENTS.USERS.TEMPORARY_PASSWORD]: (_data: {
-    id: string
-    password: string
-  }) => void
-  [EVENTS.USERS.ERROR]: (_message: string) => void
 }
 
 export interface ClientToServerEvents {
   // Manager actions
   [EVENTS.GAME.CREATE]: (_quizzId: string) => void
-  [EVENTS.MANAGER.AUTH]: (_credentials: {
-    login: string
-    password: string
-  }) => void
+  [EVENTS.MANAGER.AUTH]: (_password: string) => void
   [EVENTS.MANAGER.RECONNECT]: (_message: { gameId: string }) => void
   [EVENTS.MANAGER.LEAVE]: (_message: { gameId: string }) => void
   [EVENTS.MANAGER.KICK_PLAYER]: (_message: {
@@ -156,11 +134,6 @@ export interface ClientToServerEvents {
   [EVENTS.MANAGER.SHOW_LEADERBOARD]: (_message: MessageGameId) => void
   [EVENTS.MANAGER.GET_CONFIG]: () => void
   [EVENTS.MANAGER.LOGOUT]: () => void
-  // The current password is not asked when it is a temporary one.
-  [EVENTS.MANAGER.CHANGE_PASSWORD]: (_data: {
-    currentPassword?: string
-    newPassword: string
-  }) => void
   // The host plays, pauses or moves the video that plays on every device.
   [EVENTS.MANAGER.MEDIA_CONTROL]: (_control: MediaControl) => void
 
@@ -201,20 +174,6 @@ export interface ClientToServerEvents {
   // Statistics actions
   [EVENTS.STATS.LIST]: () => void
   [EVENTS.STATS.GET]: (_quizzId: string) => void
-
-  // Accounts actions, for administrators
-  [EVENTS.USERS.LIST]: () => void
-  [EVENTS.USERS.CREATE]: (_data: {
-    name: string
-    email: string
-    role: UserRole
-  }) => void
-  [EVENTS.USERS.UPDATE]: (_data: {
-    id: string
-    role?: UserRole
-    disabled?: boolean
-  }) => void
-  [EVENTS.USERS.RESET_PASSWORD]: (_id: string) => void
 
   // Common
   // The server's clock, in milliseconds since 1970, sent back at once: a

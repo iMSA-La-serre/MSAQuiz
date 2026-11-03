@@ -1,49 +1,7 @@
 {
-  "account": {
-    "changePassword": "Changer mon mot de passe",
-    "chooseHint": "Votre mot de passe actuel est provisoire : choisissez le vôtre pour continuer.",
-    "chooseTitle": "Choisissez votre mot de passe",
-    "confirmPassword": "Confirmation",
-    "currentPassword": "Mot de passe actuel",
-    "newPassword": "Nouveau mot de passe",
-    "passwordChanged": "Mot de passe modifié",
-    "passwordRule": "{{min}} caractères au moins. Une courte phrase facile à retenir fait un bon mot de passe.",
-    "savePassword": "Enregistrer le mot de passe",
-    "signedInAs": "Connecté : {{name}}"
-  },
   "configurationsTitle": "Configurations",
-  "login": {
-    "identifier": "Identifiant (adresse e-mail)",
-    "submit": "Se connecter"
-  },
   "logout": "Déconnexion",
   "passwordPlaceholder": "Mot de passe",
-  "users": {
-    "copied": "Mot de passe copié",
-    "copy": "Copier le mot de passe",
-    "copyFailed": "Copie automatique impossible : le mot de passe est sélectionné, faites Ctrl+C",
-    "create": "Créer le compte",
-    "disable": "Désactiver le compte",
-    "disableConfirm": "Désactiver le compte de {{name}} ? Il ne pourra plus se connecter ; ses quiz et ses résultats restent disponibles.",
-    "disabled": "Compte désactivé",
-    "email": "Adresse e-mail",
-    "enable": "Réactiver le compte",
-    "name": "Prénom et nom",
-    "new": "Nouveau compte",
-    "pending": "Mot de passe provisoire, pas encore changé",
-    "reset": "Réinitialiser",
-    "resetConfirm": "Réinitialiser le mot de passe de {{name}} ? Ses sessions ouvertes seront fermées et un mot de passe provisoire vous sera affiché.",
-    "resetPassword": "Réinitialiser le mot de passe",
-    "role": "Rôle",
-    "roles": {
-      "admin": "Administrateur",
-      "creator": "Animateur"
-    },
-    "temporaryHint": "Transmettez-le à la personne : il ne sera plus affiché. Elle choisira le sien à sa première connexion.",
-    "temporaryPassword": "Mot de passe provisoire de {{email}}",
-    "title": "Comptes",
-    "you": "{{name}} (vous)"
-  },
   "quizz": {
     "create": "Créer un quiz",
     "delete": "Supprimer le quiz",

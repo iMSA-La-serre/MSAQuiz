@@ -22,13 +22,6 @@
       "when": 1788533985166,
       "tag": "0002_past_ink",
       "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "6",
-      "when": 1793613395069,
-      "tag": "0003_boring_wolfsbane",
-      "breakpoints": true
     }
   ]
 }

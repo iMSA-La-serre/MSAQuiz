@@ -11,6 +11,7 @@ import {
   type QuizzValidated,
 } from "@razzia/common/validators/quizz"
 import { db } from "@razzia/socket/db/client"
+import { ADMIN_USER_ID } from "@razzia/socket/db/seed"
 import { createQuizzId } from "@razzia/socket/db/quizz-id"
 import { quizzes } from "@razzia/socket/db/schema"
 import { eq } from "drizzle-orm"
@@ -63,17 +64,13 @@ export const getQuizzById = (id: string): QuizzWithId => {
   return { id: row.id, ...result.data }
 }
 
-// The account that saves or imports a quiz becomes its owner.
-const insertQuizz = (
-  quizz: QuizzValidated,
-  ownerId: string,
-): { id: string } => {
+const insertQuizz = (quizz: QuizzValidated): { id: string } => {
   const id = createQuizzId(quizz.subject)
 
   db.insert(quizzes)
     .values({
       id,
-      ownerId,
+      ownerId: ADMIN_USER_ID,
       subject: quizz.subject,
       data: quizz,
     })
@@ -90,14 +87,14 @@ const insertQuizz = (
   return { id }
 }
 
-export const saveQuizz = (data: unknown, ownerId: string): { id: string } => {
+export const saveQuizz = (data: unknown): { id: string } => {
   const result = quizzSaveValidator.safeParse(data)
 
   if (!result.success) {
     throw new QuizzValidationError(quizzErrorOf(result.error))
   }
 
-  return insertQuizz(result.data, ownerId)
+  return insertQuizz(result.data)
 }
 
 /**
@@ -109,7 +106,6 @@ export const saveQuizz = (data: unknown, ownerId: string): { id: string } => {
  */
 export const importQuizz = (
   data: unknown,
-  ownerId: string,
 ): { id: string; warnings: QuizzError[] } => {
   const result = quizzValidator.safeParse(data)
 
@@ -118,7 +114,7 @@ export const importQuizz = (
   }
 
   return {
-    ...insertQuizz(result.data, ownerId),
+    ...insertQuizz(result.data),
     warnings: mediaIssuesOf(result.data.questions),
   }
 }

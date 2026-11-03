@@ -2,7 +2,7 @@
 
 This folder covers the basic setup (config, quizzes, branding) as well as more advanced usage, like running behind a reverse proxy or building your own client.
 
-- [Configuration](configuration.md): the `config` folder — manager accounts, database, backups.
+- [Configuration](configuration.md): the `config` folder — manager password, database, backups.
 - [Quizzes](quiz.md): question types, quiz format, importing a spreadsheet.
 - [Branding](branding.md): optional custom theming via `config/branding/`.
 - [Sounds](sounds.md): register of every sound effect, its origin and licence.

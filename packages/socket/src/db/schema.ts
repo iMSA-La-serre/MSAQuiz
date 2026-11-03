@@ -1,18 +1,10 @@
 import type { GameResult } from "@razzia/common/types/game"
 import type { QuizzValidated } from "@razzia/common/validators/quizz"
 import { sql } from "drizzle-orm"
-import {
-  index,
-  integer,
-  primaryKey,
-  sqliteTable,
-  text,
-} from "drizzle-orm/sqlite-core"
+import { integer, primaryKey, sqliteTable, text } from "drizzle-orm/sqlite-core"
 
 export const users = sqliteTable("users", {
   id: text("id").primaryKey(),
-  // Identifiant de connexion : l'adresse e-mail en minuscules, ou « admin »
-  // pour le compte créé au premier démarrage.
   email: text("email").notNull().unique(),
   name: text("name").notNull(),
   // Rempli par le SSO Entra ID (null tant que l'utilisateur ne s'est pas
@@ -21,38 +13,10 @@ export const users = sqliteTable("users", {
   role: text("role", { enum: ["admin", "creator"] })
     .notNull()
     .default("creator"),
-  // Empreinte scrypt du mot de passe (services/password.ts), null tant que
-  // le compte n'en a pas.
-  passwordHash: text("password_hash"),
-  // Mot de passe provisoire (création, réinitialisation, premier démarrage) :
-  // à changer avant toute autre action.
-  mustChangePassword: integer("must_change_password", { mode: "boolean" })
-    .notNull()
-    .default(false),
-  // Un compte désactivé ne peut plus se connecter ; ses quiz restent.
-  disabled: integer("disabled", { mode: "boolean" }).notNull().default(false),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
 })
-
-// Sessions de l'interface animateur. L'identifiant est l'empreinte SHA-256 du
-// jeton remis au navigateur : une copie de la base (une sauvegarde) n'ouvre
-// aucune session.
-export const sessions = sqliteTable(
-  "sessions",
-  {
-    id: text("id").primaryKey(),
-    userId: text("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    createdAt: integer("created_at", { mode: "timestamp" })
-      .notNull()
-      .default(sql`(unixepoch())`),
-    expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
-  },
-  (table) => [index("sessions_user_id_idx").on(table.userId)],
-)
 
 export const quizzes = sqliteTable("quizzes", {
   id: text("id").primaryKey(),

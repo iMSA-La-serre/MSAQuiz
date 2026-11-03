@@ -26,6 +26,7 @@ import { EVENTS } from "@razzia/common/constants"
 import { STATUS } from "@razzia/common/types/game/status"
 import { randomUUID } from "node:crypto"
 import fs from "node:fs"
+import { resolve } from "node:path"
 import { monitorEventLoopDelay, performance } from "node:perf_hooks"
 import { parseArgs } from "node:util"
 import { io, type Socket } from "socket.io-client"
@@ -47,8 +48,8 @@ Options :
   --no-stop            Continuer les paliers suivants après un échec
   --out <fichier>      Écrire le détail des mesures en JSON
 
-Compte animateur : variables MANAGER_LOGIN (défaut admin) et MANAGER_PASSWORD.
-Son mot de passe ne doit plus être provisoire.
+Mot de passe animateur : variable MANAGER_PASSWORD, sinon lu dans game.json
+(dossier CONFIG_PATH, config/ du dépôt, ou /app/config dans le conteneur).
 
 La latence de la sonde avant l'arrivée des joueurs est celle du réseau : les
 seuils portent sur ce que chaque palier y ajoute.`
@@ -94,23 +95,46 @@ const THINK_MS = Number.parseInt(args.think, 10)
 const PROBE_EVERY_MS = 100
 const BASELINE_MS = 2000
 
-// An account of the manager interface. game.json no longer helps: its
-// password only opens the admin account until it is changed.
-const readCredentials = (): { login: string; password: string } => {
+const readPassword = (): string => {
   if (process.env.MANAGER_PASSWORD) {
-    return {
-      login: process.env.MANAGER_LOGIN ?? "admin",
-      password: process.env.MANAGER_PASSWORD,
+    return process.env.MANAGER_PASSWORD
+  }
+
+  // Where the server finds it (services/config.ts): CONFIG_PATH, the repo's
+  // config folder from packages/socket, or the image's volume, which
+  // `docker compose exec` runs without CONFIG_PATH.
+  const dirs = [
+    process.env.CONFIG_PATH,
+    resolve(process.cwd(), "../../config"),
+    "/app/config",
+  ]
+
+  for (const dir of dirs) {
+    if (!dir) {
+      continue
+    }
+
+    try {
+      const file = resolve(dir, "game.json")
+      const config = JSON.parse(fs.readFileSync(file, "utf-8")) as {
+        managerPassword?: string
+      }
+
+      if (config.managerPassword) {
+        return config.managerPassword
+      }
+    } catch {
+      // Next folder.
     }
   }
 
   console.error(
-    "Compte animateur manquant : définir MANAGER_PASSWORD (et MANAGER_LOGIN si ce n'est pas admin).",
+    "Mot de passe animateur introuvable : définir MANAGER_PASSWORD.",
   )
   process.exit(1)
 }
 
-const CREDENTIALS = readCredentials()
+const PASSWORD = readPassword()
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -262,21 +286,11 @@ const startHost = (): Promise<Host> =>
       fail(`connexion impossible à ${URL_} : ${error.message}`)
     })
     socket.on("connect", () => {
-      socket.emit(EVENTS.MANAGER.AUTH, CREDENTIALS)
+      socket.emit(EVENTS.MANAGER.AUTH, PASSWORD)
     })
     socket.on(EVENTS.MANAGER.ERROR_MESSAGE, (key: string) => {
       fail(`authentification refusée (${key})`)
     })
-    socket.on(
-      EVENTS.MANAGER.SESSION,
-      ({ user }: { user: { mustChangePassword: boolean } }) => {
-        if (user.mustChangePassword) {
-          fail(
-            "mot de passe provisoire : se connecter une fois à l'interface pour le changer",
-          )
-        }
-      },
-    )
     socket.on(
       EVENTS.MANAGER.CONFIG,
       (config: { quizz: Array<{ id: string; subject: string }> }) => {
