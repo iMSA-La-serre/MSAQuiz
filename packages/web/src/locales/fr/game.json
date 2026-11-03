@@ -41,7 +41,8 @@
     "reading": "Lecture",
     "readingLabel": "Lecture de la question : réponses ouvertes dans {{count}} s",
     "score": "Score",
-    "timeLeft": "Temps restant : {{count}} s"
+    "timeLeft": "Temps restant : {{count}} s",
+    "timeUp": "Temps écoulé"
   },
   "codeLabel": "Code de la partie",
   "confirm": "Valider",

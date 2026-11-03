@@ -1,4 +1,5 @@
 import {
+  EVENTS,
   MEDIA_TYPES,
   QUESTION_TYPES,
   SCORING_MODES,
@@ -23,6 +24,9 @@ vi.mock("@razzia/socket/services/registry", () => ({
 }))
 
 const MANAGER_ID = "manager"
+
+// RoundManager's LATE_ANSWER_GRACE.
+const LATE_ANSWER_GRACE_MS = 1000
 
 const player = (id: string, points = 0): Player => ({
   id,
@@ -64,6 +68,8 @@ const setup = (
     managerData?: unknown
   }> = []
   const sent: Array<{ target: string; name: Status; data: unknown }> = []
+  // Events sent through io, not as a status (the countdown).
+  const events: Array<{ event: string; data: unknown }> = []
   const finished: GameResult[] = []
   const openWindows: Array<() => void> = []
   let countdownDone = false
@@ -100,7 +106,15 @@ const setup = (
       broadcastCount: () => undefined,
     } as unknown as PlayerManager,
     cooldown: cooldown as unknown as CooldownTimer,
-    io: { to: () => ({ emit: () => true }) } as unknown as Server,
+    io: {
+      to: () => ({
+        emit: (event: string, data: unknown) => {
+          events.push({ event, data })
+
+          return true
+        },
+      }),
+    } as unknown as Server,
     gameId: "game",
     getManagerId: () => MANAGER_ID,
     broadcast: (name, data, managerData) => {
@@ -141,6 +155,10 @@ const setup = (
     sent,
     finished,
     roster: () => roster,
+    countdowns: () =>
+      events
+        .filter(({ event }) => event === EVENTS.GAME.COOLDOWN)
+        .map(({ data }) => data),
     lastBroadcast,
     lastManagerBroadcast,
     lastSent,
@@ -156,7 +174,14 @@ const setup = (
     openAnswers: async (seconds: number) => {
       await vi.advanceTimersByTimeAsync(seconds * 1000)
     },
+    // Time is up: the results follow the grace given to the answers still
+    // on their way, at once when every player has answered.
     closeAnswers: async () => {
+      cooldown.abort()
+      await vi.advanceTimersByTimeAsync(LATE_ANSWER_GRACE_MS)
+    },
+    // Time is up, the grace not over yet.
+    runOutOfTime: async () => {
       cooldown.abort()
       await vi.advanceTimersByTimeAsync(0)
     },
@@ -203,6 +228,56 @@ describe("RoundManager answer window", () => {
     game.round.selectAnswer(socketOf("camille"), { answerKeys: [1] })
 
     expect(game.lastSent("camille", STATUS.WAIT)).toBeDefined()
+  })
+
+  it("takes an answer still on its way as the time runs out, within a grace", async () => {
+    const game = setup(
+      [question()],
+      [player("camille"), player("yanis"), player("ines")],
+    )
+
+    await game.reachFirstQuestion()
+    await game.openAnswers(5)
+    game.round.selectAnswer(socketOf("camille"), { answerKeys: [1] })
+    await game.runOutOfTime()
+
+    // The phones take no more answers.
+    expect(game.countdowns().at(-1)).toBe(0)
+
+    // Sent just before the end, it arrives just after.
+    game.round.selectAnswer(socketOf("yanis"), { answerKeys: [1] })
+
+    expect(game.lastSent("yanis", STATUS.WAIT)).toBeDefined()
+    expect(game.lastSent(MANAGER_ID, STATUS.SHOW_RESPONSES)).toBeUndefined()
+
+    await vi.advanceTimersByTimeAsync(LATE_ANSWER_GRACE_MS)
+    game.round.selectAnswer(socketOf("ines"), { answerKeys: [1] })
+
+    expect(game.lastSent("ines", STATUS.WAIT)).toBeUndefined()
+    expect(game.lastSent("yanis", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "correct",
+    })
+    expect(game.lastSent("ines", STATUS.SHOW_RESULT)).toMatchObject({
+      outcome: "noAnswer",
+    })
+    expect(game.lastSent(MANAGER_ID, STATUS.SHOW_RESPONSES)).toMatchObject({
+      totalAnswered: 2,
+    })
+  })
+
+  it("shows the results at once when every player has answered", async () => {
+    const game = setup([question()], [player("camille"), player("yanis")])
+
+    await game.reachFirstQuestion()
+    await game.openAnswers(5)
+    game.round.selectAnswer(socketOf("camille"), { answerKeys: [1] })
+    game.round.selectAnswer(socketOf("yanis"), { answerKeys: [0] })
+    await vi.advanceTimersByTimeAsync(0)
+
+    expect(game.lastSent(MANAGER_ID, STATUS.SHOW_RESPONSES)).toMatchObject({
+      totalAnswered: 2,
+    })
+    expect(game.countdowns()).not.toContain(0)
   })
 
   it("ignores an answer sent after the results, also for the next question", async () => {
@@ -1778,6 +1853,7 @@ describe("RoundManager, what players receive", () => {
       "media",
       "options",
       "question",
+      "questionNumber",
       "questionType",
       "targets",
       "text",

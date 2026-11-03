@@ -19,6 +19,8 @@ interface Props {
   // Seconds shown in the ring: reading or answer time left, null without a
   // limit.
   remaining: number | null
+  // The answers no longer open: time is up, or the host skipped.
+  closed?: boolean
   answered?: number
   totalPlayers?: number
 }
@@ -44,6 +46,7 @@ const QuestionBand = ({
   time,
   cooldown,
   remaining,
+  closed = false,
   answered = 0,
   totalPlayers = 0,
 }: Props) => {
@@ -87,6 +90,10 @@ const QuestionBand = ({
 
     if (isReading) {
       return t("game:band.readingLabel", { count: cooldown ?? 0 })
+    }
+
+    if (closed) {
+      return t("game:band.timeUp")
     }
 
     const threshold =

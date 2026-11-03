@@ -51,9 +51,16 @@ const setup = () => {
     },
     except: (excluded: string) => emitTo(`${target}!${excluded}`),
   })
+  // Connections the game closed.
+  const closed: string[] = []
   const io = {
     to: emitTo,
-    in: () => ({ socketsLeave: () => undefined }),
+    in: (target: string) => ({
+      socketsLeave: () => undefined,
+      disconnectSockets: () => {
+        closed.push(target)
+      },
+    }),
   } as unknown as Server
   const socket = (id: string, clientId: string) =>
     ({
@@ -75,7 +82,7 @@ const setup = () => {
       .filter((entry) => entry.target === target && entry.event === event)
       .map(({ data }) => data)
 
-  return { io, socket, statusesOf, eventsOf }
+  return { io, socket, statusesOf, eventsOf, closed }
 }
 
 beforeEach(() => {
@@ -126,6 +133,88 @@ describe("Game reconnection", () => {
       name: STATUS.SHOW_RESPONSES,
       data: { responses: { 1: 1, 2: 1 }, totalAnswered: 2 },
     })
+  })
+
+  it("gives a player the seat back before the old connection is seen gone", async () => {
+    const { io, socket, statusesOf, eventsOf, closed } = setup()
+    const manager = socket("manager-1", "client-manager")
+    const game = new Game(io, manager, QUIZZ)
+
+    game.join(socket("camille-1", "client-camille"), "Camille")
+    game.join(socket("yanis-1", "client-yanis"), "Yanis")
+    void game.start(manager)
+    await vi.advanceTimersByTimeAsync(13_000)
+
+    // A network cut the server has not noticed: camille-1 still connected.
+    const camilleBack = socket("camille-2", "client-camille")
+
+    game.reconnect(camilleBack)
+
+    expect(eventsOf("camille-2", EVENTS.GAME.RESET)).toEqual([])
+    expect(
+      eventsOf("camille-2", EVENTS.PLAYER.SUCCESS_RECONNECT),
+    ).toMatchObject([{ status: { name: STATUS.SELECT_ANSWER } }])
+    expect(closed).toEqual(["camille-1"])
+
+    // The old connection going away at last changes nothing.
+    game.setPlayerDisconnected("camille-1")
+
+    expect(
+      game.players.find(({ username }) => username === "Camille"),
+    ).toMatchObject({
+      id: "camille-2",
+      connected: true,
+    })
+
+    // The answer the phone sends again counts.
+    game.selectAnswer(camilleBack, { answerKeys: [1] })
+
+    expect(statusesOf("camille-2").at(-1)).toMatchObject({
+      name: STATUS.WAIT,
+    })
+  })
+
+  it("gives the host the seat back before the old connection is seen gone", async () => {
+    const { io, socket, statusesOf, eventsOf, closed } = setup()
+    const manager = socket("manager-1", "client-manager")
+    const game = new Game(io, manager, QUIZZ)
+
+    game.join(socket("camille-1", "client-camille"), "Camille")
+    void game.start(manager)
+    await vi.advanceTimersByTimeAsync(13_000)
+
+    const managerBack = socket("manager-2", "client-manager")
+
+    game.reconnect(managerBack)
+
+    expect(eventsOf("manager-2", EVENTS.GAME.RESET)).toEqual([])
+    expect(
+      eventsOf("manager-2", EVENTS.MANAGER.SUCCESS_RECONNECT),
+    ).toMatchObject([{ status: { name: STATUS.SELECT_ANSWER } }])
+    expect(closed).toEqual(["manager-1"])
+
+    // « Passer » from the new connection: the results come to it.
+    game.abortRound(managerBack)
+    await vi.advanceTimersByTimeAsync(2000)
+
+    expect(statusesOf("manager-2").at(-1)).toMatchObject({
+      name: STATUS.SHOW_RESPONSES,
+    })
+  })
+
+  it("closes no connection when a player comes back on the same one", () => {
+    const { io, socket, eventsOf, closed } = setup()
+    const manager = socket("manager-1", "client-manager")
+    const game = new Game(io, manager, QUIZZ)
+    const camille = socket("camille-1", "client-camille")
+
+    game.join(camille, "Camille")
+    game.reconnect(camille)
+
+    expect(eventsOf("camille-1", EVENTS.PLAYER.SUCCESS_RECONNECT)).toHaveLength(
+      1,
+    )
+    expect(closed).toEqual([])
   })
 })
 
@@ -428,9 +517,10 @@ describe("Game, a video on every device", () => {
     game.join(tools.socket("camille-1", "client-camille"), "Camille")
     void game.start(manager)
     await vi.advanceTimersByTimeAsync(13_000)
-    // « Passer »: the timer stops within its second.
+    // « Passer »: the timer stops within its second, then the grace given to
+    // the answers on their way runs out.
     game.abortRound(manager)
-    await vi.advanceTimersByTimeAsync(1000)
+    await vi.advanceTimersByTimeAsync(2000)
 
     const yanis = tools.socket("yanis-1", "client-yanis")
 

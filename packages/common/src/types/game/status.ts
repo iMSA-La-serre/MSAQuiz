@@ -78,6 +78,9 @@ export interface CommonStatusDataMap {
   }
   SELECT_ANSWER: {
     question: string
+    // Counted from 1: a phone tells a question from the next by it, which
+    // a reconnection may bring without anything in between.
+    questionNumber: number
     // Public list, see SHOW_QUESTION. Ordering: answer with indices into it.
     answers: string[]
     // Whole for the host, see SHOW_QUESTION; a player never gets the address

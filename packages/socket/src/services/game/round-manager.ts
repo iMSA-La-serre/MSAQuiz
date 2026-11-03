@@ -114,6 +114,10 @@ const RESULT_MESSAGES: Record<ResultOutcome, string> = {
   noVote: "game:pollNoVote",
 }
 
+// Seconds an answer sent as the time ran out has to reach the server: a
+// phone's round trip on a busy Wi-Fi, with room to spare.
+const LATE_ANSWER_GRACE = 1
+
 // Types with their own heading for some outcomes.
 const TYPE_RESULT_MESSAGES: Partial<
   Record<QuestionType, Partial<Record<ResultOutcome, string>>>
@@ -364,6 +368,7 @@ export class RoundManager {
 
     const answering = {
       question: question.question,
+      questionNumber: this.currentQuestion + 1,
       answers,
       media,
       time: question.time,
@@ -385,6 +390,22 @@ export class RoundManager {
 
     if (!this.started) {
       return
+    }
+
+    // Time is up, or the host skipped, while answers may still be on their
+    // way: the phones take no more (the countdown at 0), and an answer sent
+    // just before still counts if it arrives within the grace. Nothing to
+    // wait for once every player has answered, nor on a slide.
+    if (
+      QUESTION_TYPE_META[question.type].acceptsAnswers &&
+      this.playersAnswers.length < this.opts.players.count()
+    ) {
+      this.opts.io.to(this.opts.gameId).emit(EVENTS.GAME.COOLDOWN, 0)
+      await sleep(LATE_ANSWER_GRACE)
+
+      if (!this.started) {
+        return
+      }
     }
 
     this.showResults(question)

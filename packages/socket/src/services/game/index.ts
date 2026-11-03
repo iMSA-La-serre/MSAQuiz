@@ -235,16 +235,29 @@ class Game {
     this.reconnectPlayer(socket)
   }
 
-  private reconnectManager(socket: Socket) {
-    if (this._manager.connected) {
-      socket.emit(EVENTS.GAME.RESET, "errors:game.managerAlreadyConnected")
-
-      return
+  // Still seen connected, a host or a player is back on a new connection
+  // before the server noticed the old one had gone: a network cut is only
+  // found out at the next heartbeat, up to 45 seconds later. The same browser
+  // (its clientId) takes its seat back, and the old connection, dead or a
+  // second tab, is closed once it no longer holds it: its disconnection then
+  // matches nobody and changes nothing.
+  private closeReplaced(oldSocketId: string, socket: Socket) {
+    if (oldSocketId !== socket.id) {
+      this.io.in(oldSocketId).disconnectSockets(true)
     }
+  }
+
+  private reconnectManager(socket: Socket) {
+    const oldSocketId = this._manager.id
+    const wasConnected = this._manager.connected
 
     socket.join(this.gameId)
     this._manager.id = socket.id
     this._manager.connected = true
+
+    if (wasConnected) {
+      this.closeReplaced(oldSocketId, socket)
+    }
 
     const status = this.managerStatus ??
       this.lastBroadcastStatus ?? {
@@ -273,11 +286,7 @@ class Game {
       return
     }
 
-    if (player.connected) {
-      socket.emit(EVENTS.GAME.RESET, "errors:game.playerAlreadyConnected")
-
-      return
-    }
+    const wasConnected = player.connected
 
     socket.join(this.gameId)
 
@@ -285,6 +294,10 @@ class Game {
     this.playerManager.updateSocketId(oldSocketId, socket.id)
     this.round.remapPlayer(oldSocketId, socket.id)
     player.connected = true
+
+    if (wasConnected) {
+      this.closeReplaced(oldSocketId, socket)
+    }
 
     const status = this.playerStatus.get(oldSocketId) ??
       this.lastBroadcastStatus ?? {

@@ -22,6 +22,7 @@ interface Props {
 const Answers = ({
   data: {
     question,
+    questionNumber,
     answers,
     media,
     time,
@@ -37,10 +38,13 @@ const Answers = ({
   const { socket } = useSocket()
   const { player, gameId } = usePlayerStore()
   const setLastAnswer = useQuestionStore((state) => state.setLastAnswer)
+  const setPendingAnswer = useQuestionStore((state) => state.setPendingAnswer)
 
-  // Follows the server's game:cooldown ticks (time - 1 down to 1).
+  // Follows the server's game:cooldown ticks (time - 1 down to 1), then 0
+  // once the answers no longer open, with or without a time limit.
   const [remaining, setRemaining] = useState(time)
   const [answered, setAnswered] = useState(0)
+  const closed = remaining === 0
 
   const [sfxPop] = useSound(SFX.ANSWERS.SOUND, {
     volume: 0.1,
@@ -53,7 +57,7 @@ const Answers = ({
   })
 
   const handleSubmit = (answer: AnswerPayload) => {
-    if (!player || !gameId) {
+    if (!player || !gameId || closed) {
       return
     }
 
@@ -61,6 +65,9 @@ const Answers = ({
       gameId,
       data: answer,
     })
+    // Kept until the server confirms it: a network cut may lose it, and the
+    // player page then sends it again (answerToResend).
+    setPendingAnswer({ questionNumber, answer })
     setLastAnswer({
       questionType,
       answer,
@@ -110,6 +117,7 @@ const Answers = ({
       totalPlayers={totalPlayer}
       answered={answered}
       remaining={time === NO_TIME_LIMIT ? null : remaining}
+      closed={closed}
       options={options}
       text={text}
       targets={targets}

@@ -15,18 +15,30 @@ export interface SentAnswer {
   targets?: string[]
 }
 
+// An answer sent and not confirmed yet (WAIT), with the number of its
+// question: a network cut may have lost it, and it goes again once the
+// phone is back, if that question still takes answers.
+export interface PendingAnswer {
+  questionNumber: number
+  answer: AnswerPayload
+}
+
 interface QuestionStore {
   questionStates: GameUpdateQuestion | null
   // Answer this player sent for the current question, shown while the others
   // answer. Cleared when the next question is read.
   lastAnswer: SentAnswer | null
+  pendingAnswer: PendingAnswer | null
   setQuestionStates: (_state: GameUpdateQuestion | null) => void
   setLastAnswer: (_answer: SentAnswer | null) => void
+  setPendingAnswer: (_answer: PendingAnswer | null) => void
 }
 
 export const useQuestionStore = create<QuestionStore>((set) => ({
   questionStates: null,
   lastAnswer: null,
+  pendingAnswer: null,
   setQuestionStates: (state) => set({ questionStates: state }),
   setLastAnswer: (answer) => set({ lastAnswer: answer }),
+  setPendingAnswer: (answer) => set({ pendingAnswer: answer }),
 }))

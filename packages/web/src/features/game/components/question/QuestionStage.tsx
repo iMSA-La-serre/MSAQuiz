@@ -49,6 +49,9 @@ interface Props {
   totalPlayers: number
   answered: number
   remaining: number | null
+  // Answering only: time is up, or the host skipped. The answers lock as
+  // during the reading time, while those already sent reach the server.
+  closed?: boolean
   options?: QuestionOptions
   // Highlight: the text holding the passages.
   text?: string
@@ -110,6 +113,7 @@ const QuestionStage = ({
   totalPlayers,
   answered,
   remaining,
+  closed = false,
   options,
   text,
   targets,
@@ -120,6 +124,7 @@ const QuestionStage = ({
   const { t } = useTranslation()
   const isReading = phase === "reading"
   const [opened, setOpened] = useState(false)
+  const locked = isReading || !opened || closed
 
   // Answering mounts with the rows still locked and opens them two frames
   // later, so the 300 ms colour change reads as unlocking.
@@ -196,6 +201,7 @@ const QuestionStage = ({
         time={time}
         cooldown={cooldown}
         remaining={remaining}
+        closed={closed}
         answered={answered}
         totalPlayers={totalPlayers}
       />
@@ -216,7 +222,7 @@ const QuestionStage = ({
           variant={variant}
           answers={answers}
           markers={markers}
-          locked={isReading || !opened}
+          locked={locked}
           readOnly={isHost}
         />
       ) : (
@@ -253,7 +259,7 @@ const QuestionStage = ({
       screenMedia={screenMedia}
       onSubmit={onSubmit}
       readOnly={isHost}
-      locked={isReading || !opened}
+      locked={locked}
       size={variant}
       large={questionType === "truefalse"}
     />
